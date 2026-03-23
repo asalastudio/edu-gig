@@ -18,6 +18,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## Testing
+
+Unit and component tests use **Vitest** and **React Testing Library**. See **[TESTING.md](./TESTING.md)** for commands (`npm run test`, `npm run test:watch`, `npm run test:coverage`). CI runs tests and a production build on every push/PR.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More

@@ -9,6 +9,7 @@ import { PrimaryButton } from "@/components/shared/button";
 import { SquaresFour, UserCircleCheck, TrendDown, Clock, DownloadSimple, Plus, MapPin, WarningCircle, X, ArrowRight } from "@phosphor-icons/react";
 import { Card } from "@/components/shared/card";
 import { cn } from "@/lib/utils";
+import { MOCK_RECENT_PLACEMENTS } from "@/lib/mock-educators";
 
 export default function DistrictDashboardPage() {
     const [showAlert, setShowAlert] = useState(true);
@@ -127,10 +128,7 @@ export default function DistrictDashboardPage() {
                                 <h2 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-8 relative z-10">Recent Placements</h2>
 
                                 <div className="flex flex-col gap-4 flex-1 justify-center relative z-10">
-                                    {[
-                                        { name: "Dr. Sarah Jenkins", id: "e_1", role: "SpEd Consultant", location: "Lincoln High", date: "Today" },
-                                        { name: "Miguel Rodriguez", id: "e_1", role: "Math Interventionist", location: "District Wide", date: "Yesterday" }
-                                    ].map((item, i) => (
+                                    {MOCK_RECENT_PLACEMENTS.map((item, i) => (
                                         <Link key={i} href={`/browse/${item.id}`} className="block">
                                             <div className="flex gap-4 p-5 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:shadow-md transition-all cursor-pointer group">
                                                 <div className="h-12 w-12 rounded-xl bg-white border border-[var(--border-strong)] flex items-center justify-center flex-shrink-0 text-[var(--text-tertiary)] font-heading font-bold text-base shadow-sm group-hover:text-[var(--accent-primary)] group-hover:border-[var(--accent-primary)]/30 transition-colors">

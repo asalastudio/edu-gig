@@ -11,42 +11,7 @@ import { ArrowLeft, FadersHorizontal, Lightning, Star, Clock, MapPin, Funnel } f
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { cn } from "@/lib/utils";
-
-// Mock data to demonstrate the Browse view
-const MOCK_EDUCATORS = [
-    {
-        id: "e_1",
-        name: "Dr. Sarah Jenkins",
-        headline: "Math Interventionist & Instructional Coach",
-        verificationTier: "premier" as const,
-        overallRating: 4.9,
-        reviewCount: 42,
-        gradeLevels: ["6_8", "9_12"],
-        areasOfNeed: ["Instruction and Curriculum", "Data"],
-        engagementTypes: ["substitute", "consulting"],
-        coverageRegions: ["region_1", "region_2"],
-        startingRate: 75,
-        availabilityStatus: "open" as const,
-        hasVideoIntro: true,
-        badges: ["Background Checked", "State Licensed TX", "NBCT"]
-    },
-    {
-        id: "e_2",
-        name: "Marcus Cole, M.Ed",
-        headline: "Behavioral Specialist & Special Ed Consultant",
-        verificationTier: "verified" as const,
-        overallRating: 4.7,
-        reviewCount: 18,
-        gradeLevels: ["k5", "6_8"],
-        areasOfNeed: ["Developmental & Medical", "Behavioral"],
-        engagementTypes: ["permanent", "consulting"],
-        coverageRegions: ["region_4"],
-        startingRate: 85,
-        availabilityStatus: "limited" as const,
-        hasVideoIntro: false,
-        badges: ["Background Checked"]
-    }
-];
+import { MOCK_EDUCATORS } from "@/lib/mock-educators";
 
 const QUICK_FILTERS = [
     { id: "quick_avail", label: "Available Now", icon: Clock, color: "text-emerald-600", bg: "bg-emerald-50 hover:bg-emerald-100 border-emerald-200" },
@@ -100,7 +65,7 @@ export default function BrowsePage() {
     } else if (sortOption === "availability") {
         filteredEducators.sort((a, b) => (b.availabilityStatus === 'open' ? 1 : 0) - (a.availabilityStatus === 'open' ? 1 : 0));
     } else if (sortOption === "rate") {
-        filteredEducators.sort((a, b) => a.startingRate - b.startingRate);
+        filteredEducators.sort((a, b) => (a.startingRate ?? 0) - (b.startingRate ?? 0));
     }
 
     return (

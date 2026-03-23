@@ -5,44 +5,47 @@ import { useParams, useRouter } from "next/navigation";
 import { PrimaryButton } from "@/components/shared/button";
 import { VerificationBadge } from "@/components/shared/verification-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlayCircle, Medal, CalendarBlank, MapPin, GraduationCap, Briefcase, BookOpen, CheckCircle, ChatCircle, BookmarkSimple, Star, ShieldCheck, Clock, Check } from "@phosphor-icons/react";
+import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, Star, ShieldCheck, Clock } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { getMockEducatorProfileView } from "@/lib/mock-educators";
 
 export default function EducatorProfilePage() {
-    const { educatorId } = useParams();
+    const params = useParams();
     const router = useRouter();
+    const educatorId = typeof params.educatorId === "string" ? params.educatorId : params.educatorId?.[0] ?? "";
 
-    // Mocking profile data based on HTML blueprint
-    const profile = {
-        name: "Dr. Sarah Jenkins",
-        initials: "SJ",
-        headline: "Math Interventionist & Instructional Coach",
-        verificationTier: "premier" as const,
-        availabilityStatus: "open" as const,
-        avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
-        bio: "Dedicated instructional coach with over 15 years turning around Title I math programs. I specialize in building sustainable curriculum maps and empowering educators to feel confident in their math pedagogy. My approach combines data-driven insights with empathetic coaching to drive school-wide improvement.",
-        yearsExperience: 15,
-        placements: 24,
-        avgRating: 4.9,
-        reviewCount: 42,
-        location: "Houston, TX (Hybrid)",
-        education: "Ed.D in Educational Leadership, UT Austin",
-        areas: ["Math", "Instructional Coaching", "Special Education"],
-        badges: ["Background Checked", "State Licensed TX", "NBCT"],
-        licenses: [
-            { type: "Teaching Certificate", issuer: "Texas TEA", status: "Verified", expiry: "2027" },
-            { type: "Principal as Instructional Leader", issuer: "Texas TEA", status: "Pending", expiry: "2026" }
-        ],
-        experience: [
-            { role: "Math Instructional Coach", district: "Dallas ISD", years: "2016–Present" },
-            { role: "5th Grade Math Teacher", district: "Fort Worth ISD", years: "2010–2016" }
-        ],
-        videoIntro: true,
-        availableDays: { M: { am: true, pm: true }, T: { am: true, pm: true }, W: { am: true, pm: true }, Th: { am: true, pm: false }, F: { am: false, pm: false } }
-    };
+    const profile = getMockEducatorProfileView(educatorId);
+
+    if (!profile) {
+        return (
+            <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
+                <SiteHeader />
+                <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
+                    <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Educator not found</h1>
+                    <p className="text-[var(--text-secondary)] mb-8">No demo profile matches this link. Try another educator from the directory.</p>
+                    <PrimaryButton onClick={() => router.push("/browse")}>Back to directory</PrimaryButton>
+                </main>
+                <SiteFooter />
+            </div>
+        );
+    }
+
+    const availabilityLabel =
+        profile.availabilityStatus === "open"
+            ? "Accepting Offers"
+            : profile.availabilityStatus === "limited"
+              ? "Limited availability"
+              : "Not accepting new requests";
+
+    const availabilityClass =
+        profile.availabilityStatus === "open"
+            ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+            : profile.availabilityStatus === "limited"
+              ? "bg-amber-100 text-amber-900 border-amber-200"
+              : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-strong)]";
 
     return (
         <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
@@ -67,7 +70,10 @@ export default function EducatorProfilePage() {
                         
                         <div className="flex-1 flex flex-col items-center md:items-start gap-4 w-full text-center md:text-left">
                             <div>
-                                <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-2">{profile.name}</h1>
+                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
+                                    <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)]">{profile.name}</h1>
+                                    <VerificationBadge tier={profile.verificationTier} />
+                                </div>
                                 <p className="text-[var(--accent-primary)] font-bold text-lg md:text-xl">{profile.headline}</p>
                                 <p className="text-[var(--text-secondary)] text-base mt-2 flex items-center justify-center md:justify-start gap-2">
                                     <MapPin weight="fill" className="w-5 h-5 text-[var(--text-tertiary)]" /> {profile.location}
@@ -102,15 +108,15 @@ export default function EducatorProfilePage() {
                             <div className="text-sm text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-1">Years Exp.</div>
                         </div>
                         <div className="p-6 text-center border-r hidden md:block border-[var(--border-strong)]">
-                            <div className="font-heading text-3xl font-bold text-[var(--text-primary)]">Math</div>
-                            <div className="text-sm text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-1">Primary Subject</div>
+                            <div className="font-heading text-2xl md:text-3xl font-bold text-[var(--text-primary)] leading-tight px-1">{profile.primarySubjectLabel}</div>
+                            <div className="text-sm text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-1">Primary focus</div>
                         </div>
                         <div className="p-6 text-center border-r border-b md:border-b-0 border-[var(--border-strong)]">
-                            <div className="font-heading text-3xl font-bold text-[var(--text-primary)]">K–8</div>
+                            <div className="font-heading text-2xl md:text-3xl font-bold text-[var(--text-primary)] leading-tight px-1">{profile.gradeLevelsLabel}</div>
                             <div className="text-sm text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-1">Grade Levels</div>
                         </div>
                         <div className="p-6 text-center border-[var(--border-strong)] md:border-r-0">
-                            <div className="font-heading text-3xl font-bold text-[var(--text-primary)]">{profile.badges.length}</div>
+                            <div className="font-heading text-3xl font-bold text-[var(--text-primary)]">{profile.certCount}</div>
                             <div className="text-sm text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-1">Certifications</div>
                         </div>
                     </div>
@@ -256,10 +262,11 @@ export default function EducatorProfilePage() {
                             </TabsContent>
 
                             <TabsContent value="availability" className="mt-0 outline-none animate-in fade-in duration-300">
-                                <div className="flex justify-between items-center mb-6">
+                                <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
                                     <h2 className="text-2xl font-bold text-[var(--text-primary)]">Current Availability</h2>
-                                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl font-bold text-sm">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Accepting Offers
+                                    <span className={cn("inline-flex items-center gap-2 px-4 py-2 border rounded-xl font-bold text-sm", availabilityClass)}>
+                                        {profile.availabilityStatus === "open" && <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+                                        {availabilityLabel}
                                     </span>
                                 </div>
                                 <div className="overflow-x-auto bg-white border border-[var(--border-subtle)] rounded-2xl shadow-sm">
@@ -309,9 +316,11 @@ export default function EducatorProfilePage() {
 
                         {/* Bottom Pills */}
                         <div className="px-8 md:px-12 pb-8 md:pb-12 flex flex-wrap gap-3">
-                            <span className="px-4 py-2 bg-[var(--bg-hover)] border border-[var(--border-strong)] rounded-lg text-sm font-bold text-[var(--text-secondary)] cursor-default">Instruction & Curriculum</span>
-                            <span className="px-4 py-2 bg-[var(--bg-hover)] border border-[var(--border-strong)] rounded-lg text-sm font-bold text-[var(--text-secondary)] cursor-default">Instructional Coaching Support</span>
-                            <span className="px-4 py-2 bg-[var(--bg-hover)] border border-[var(--border-strong)] rounded-lg text-sm font-bold text-[var(--text-secondary)] cursor-default">Math</span>
+                            {profile.areas.map((area) => (
+                                <span key={area} className="px-4 py-2 bg-[var(--bg-hover)] border border-[var(--border-strong)] rounded-lg text-sm font-bold text-[var(--text-secondary)] cursor-default">
+                                    {area}
+                                </span>
+                            ))}
                         </div>
                     </Tabs>
                 </div>

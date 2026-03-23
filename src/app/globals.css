@@ -1,26 +1,204 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* — Backgrounds ——————————————————————— */
+  --bg-app: #FAFAF9;
+  /* Warm off-white — not pure white, never sterile */
+  --bg-surface: #FFFFFF;
+  /* Cards, panels, modals */
+  --bg-elevated: #FFFFFF;
+  /* Dropdowns, popovers — with shadow only */
+  --bg-subtle: #F4F4F2;
+  /* Sidebar, inactive tabs, table zebra */
+  --bg-hover: #F0EFED;
+  /* Row hover, list item hover */
+  --bg-active: #E8E7E4;
+  /* Pressed state */
+
+  /* — Borders ——————————————————————————— */
+  --border-default: #E5E5E2;
+  /* Card edges, section dividers — thin, warm gray */
+  --border-strong: #CCCCC8;
+  /* Input focus rings, active elements */
+  --border-subtle: #EEEEEB;
+  /* The thinnest possible separation */
+
+  /* — Text ——————————————————————————————— */
+  --text-primary: #1A1A18;
+  /* Near-black, warm — headlines */
+  --text-secondary: #5C5C57;
+  /* Labels, metadata */
+  --text-tertiary: #9B9B96;
+  /* Placeholders, disabled, timestamps */
+  --text-inverse: #FAFAF9;
+  /* On dark backgrounds */
+
+  /* — Brand Accents ————————————————————— */
+  --accent-primary: #2D4A3E;
+  /* Chalkboard green — primary buttons, active nav */
+  --accent-primary-h: #243D33;
+  /* Hover */
+  --accent-secondary: #FACC15;
+  /* Flat yellow — CTAs, highlights, badges */
+  --accent-danger: #C0392B;
+  /* Destructive actions, urgent alerts */
+  --accent-success: #1F7A4B;
+  /* Verified badges, completion states */
+  --accent-warning: #E67E22;
+  /* Expiring credentials, caution states */
+  --accent-info: #2C6E9E;
+  /* Links, informational badges */
+
+  /* — Interactive ——————————————————————— */
+  --focus-ring: rgba(45, 74, 62, 0.35);
+  /* Chalkboard green focus */
+
+  /* — Spacing & Shape ——————————————————— */
+  --radius: 0.5rem;
+  --radius-sm: 0.25rem;
+  --radius-lg: 0.75rem;
+
+  /* — Shadcn Variable Overrides (to map our colors to shadcn defaults if missed) — */
+  --background: oklch(0.98 0 0);
+  /* Mapped approximately */
+  --foreground: oklch(0.1 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: oklch(0.3 0 0);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  /* — Backgrounds ——————————————————————— */
+  --bg-app: #111110;
+  /* True dark base — slightly warm, not pure black */
+  --bg-surface: #1A1A18;
+  /* Cards, panels */
+  --bg-elevated: #222220;
+  /* Modals, dropdowns — perceptibly lifted */
+  --bg-subtle: #161614;
+  /* Sidebar, recessed areas */
+  --bg-hover: #242420;
+  /* Row hover */
+  --bg-active: #2C2C28;
+  /* Pressed */
+
+  /* — Borders ——————————————————————————— */
+  --border-default: #2A2A26;
+  /* 1px separation — barely there, always present */
+  --border-strong: #3C3C38;
+  --border-subtle: #222220;
+
+  /* — Text ——————————————————————————————— */
+  --text-primary: #EFEFED;
+  --text-secondary: #8C8C88;
+  --text-tertiary: #525250;
+  --text-inverse: #111110;
+
+  /* — Brand Accents (shift warmer in dark) */
+  --accent-primary: #3D6B55;
+  /* Slightly lighter chalkboard for dark bg */
+  --accent-primary-h: #4A7D64;
+  --accent-secondary: #EAB308;
+  --accent-danger: #E05245;
+  --accent-success: #2A9E5E;
+  --accent-warning: #F39C12;
+  --accent-info: #4A9ED6;
+
+  --focus-ring: rgba(61, 107, 85, 0.5);
+
+  /* — Shadcn Overrides — */
+  --background: oklch(0.1 0 0);
+  --foreground: oklch(0.98 0 0);
+  --border: oklch(0.15 0 0);
+  --input: oklch(0.15 0 0);
+  --ring: oklch(0.5 0 0);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    border-color: var(--border-default);
+    outline-color: var(--focus-ring);
+  }
+
+  body {
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Scrollbar — minimal, Linear-style */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 99px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+  }
+
+  /* Selection */
+  ::selection {
+    background: var(--focus-ring);
+    color: var(--text-primary);
+  }
+
+  /* Focus visible — only for keyboard navigation */
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+
+  /* Thin line separator utility */
+  .divider {
+    height: 1px;
+    width: 100%;
+    background-color: var(--border-subtle);
+  }
+
+  /* Text truncation */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  /* Monospace numbers */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
 }

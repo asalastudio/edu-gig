@@ -88,7 +88,7 @@ export default function BrowsePage() {
         if (selectedGrades.length > 0 && !selectedGrades.some(grade => educator.gradeLevels.includes(grade))) return false;
         if (selectedRegions.length > 0 && !selectedRegions.some(region => educator.coverageRegions.includes(region))) return false;
         if (selectedEngagements.length > 0 && !selectedEngagements.some(eng => educator.engagementTypes.includes(eng))) return false;
-        if (verifiedOnly && educator.verificationTier === 'basic') return false; 
+        if (verifiedOnly && (educator.verificationTier as string) === 'basic') return false; 
         if (availableNow && educator.availabilityStatus !== 'open') return false;
         if (activeQuickFilter === "quick_top" && educator.overallRating < 4.8) return false;
         return true;

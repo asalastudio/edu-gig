@@ -270,7 +270,7 @@ export default function PostNeedPage() {
                         </div>
                         <h2 className="font-heading text-4xl font-bold text-[--text-primary] mb-4">Your need has been posted!</h2>
                         <p className="text-lg text-[--text-secondary] max-w-lg mb-10">
-                            We'll surface matched educators shortly. Expect responses within 24 hours.
+                            We&apos;ll surface matched educators shortly. Expect responses within 24 hours.
                         </p>
                         <div className="flex gap-4">
                             <Link href="/">

@@ -14,14 +14,15 @@ export function SiteFooter() {
                 <div className="flex flex-col gap-4">
                     <h4 className="text-sm font-semibold text-[--text-tertiary] uppercase tracking-wider">Explore</h4>
                     <Link href="/browse" className="text-sm text-[--text-secondary] hover:text-[--text-primary]">Browse Educators</Link>
-                    <Link href="/post" className="text-sm text-[--text-secondary] hover:text-[--text-primary]">Post a Need</Link>
+                    <Link href="/post" className="text-sm text-[--text-secondary] hover:text-[--text-primary]">Post a Need (districts)</Link>
                     <Link href="/#for-districts" className="text-sm text-[--text-secondary] hover:text-[--text-primary]">How It Works</Link>
+                    <Link href="/login" className="text-sm text-[--text-secondary] hover:text-[--text-primary] font-semibold">Sign in</Link>
                 </div>
                 
                 <div className="flex flex-col gap-4">
                     <h4 className="text-sm font-semibold text-[--text-tertiary] uppercase tracking-wider">Legal</h4>
-                    <Link href="#" className="text-sm text-[--text-secondary] hover:text-[--text-primary]">Privacy Policy</Link>
-                    <Link href="#" className="text-sm text-[--text-secondary] hover:text-[--text-primary]">Terms of Service</Link>
+                    <Link href="/privacy" className="text-sm text-[--text-secondary] hover:text-[--text-primary]">Privacy Policy</Link>
+                    <Link href="/terms" className="text-sm text-[--text-secondary] hover:text-[--text-primary]">Terms of Service</Link>
                 </div>
             </div>
             

@@ -3,11 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/shared/sidebar";
-import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { PrimaryButton } from "@/components/shared/button";
 import { SquaresFour, UserCircleCheck, TrendDown, Clock, DownloadSimple, Plus, MapPin, WarningCircle, X, ArrowRight } from "@phosphor-icons/react";
-import { Card } from "@/components/shared/card";
 import { cn } from "@/lib/utils";
 import { MOCK_RECENT_PLACEMENTS } from "@/lib/mock-educators";
 

@@ -10,7 +10,6 @@ import {
     Target, 
     Strategy, 
     Database, 
-    Briefcase, 
     Calculator,
     GraduationCap,
     Lightbulb,

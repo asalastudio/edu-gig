@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { PrimaryButton } from "@/components/shared/button";
 import { ShieldCheck, Sparkle, TrendUp, Users, Star, Check } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
@@ -30,8 +31,15 @@ export default function Home() {
               Find top educators <br className="hidden md:block" />
               for your district in exactly <span className="text-[--accent-primary] relative inline-block">
                 zero days.
-                <svg className="absolute w-full h-3 -bottom-1 left-0 text-[--accent-secondary] opacity-80" viewBox="0 0 100 10" preserveAspectRatio="none">
-                  <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="4" fill="none" />
+                <svg className="absolute w-full h-3 -bottom-1 left-0 opacity-100" viewBox="0 0 100 10" preserveAspectRatio="none">
+                  <path 
+                    d="M0 5 Q 50 10 100 5" 
+                    stroke="var(--accent-secondary)" 
+                    strokeWidth="4" 
+                    fill="none" 
+                    pathLength="100"
+                    className="draw-line"
+                  />
                 </svg>
               </span>
             </h1>
@@ -69,7 +77,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="flex flex-col gap-6">
               <h2 className="font-heading text-4xl md:text-5xl font-bold text-[--text-primary] leading-tight">
-                Staffing doesn't have to be a nightmare.
+                Staffing doesn&apos;t have to be a nightmare.
               </h2>
               <p className="text-lg text-[--text-secondary] leading-relaxed">
                 Whether you need a specialized math interventionist for a 3-month contract or a reliable daily substitute, our marketplace model cuts out the middleman blockades.
@@ -102,7 +110,13 @@ export default function Home() {
                 {/* Mock Card 1 */}
                 <div className="p-4 bg-[--bg-surface] rounded-xl border border-[--border-default] shadow-sm flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-[--bg-hover] border border-[--border-subtle] flex-shrink-0 flex items-center justify-center overflow-hidden">
-                    <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Avatar" className="w-full h-full object-cover" />
+                    <Image
+                      src="https://randomuser.me/api/portraits/women/68.jpg"
+                      alt=""
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="flex flex-col gap-1.5 flex-1">
                     <div className="h-4 w-3/4 bg-[--text-primary] rounded opacity-90" />
@@ -115,7 +129,13 @@ export default function Home() {
                 {/* Mock Card 2 */}
                 <div className="p-4 bg-[--bg-surface] rounded-xl border border-[--border-default] shadow-sm flex items-center gap-4 translate-x-4 opacity-80">
                   <div className="h-12 w-12 rounded-full bg-[--bg-hover] border border-[--border-subtle] flex-shrink-0 flex items-center justify-center overflow-hidden">
-                    <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Avatar" className="w-full h-full object-cover" />
+                    <Image
+                      src="https://randomuser.me/api/portraits/men/32.jpg"
+                      alt=""
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="flex flex-col gap-1.5 flex-1">
                     <div className="h-4 w-5/6 bg-[--text-primary] rounded opacity-90" />

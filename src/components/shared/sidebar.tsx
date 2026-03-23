@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { SquaresFour, Users, Clock, EnvelopeSimple, Gear, Briefcase, PlusCircle } from "@phosphor-icons/react";
+import { SquaresFour, Users, EnvelopeSimple, Gear, Briefcase, PlusCircle } from "@phosphor-icons/react";
 
 export type NavItem = {
     href: string;
@@ -16,25 +16,32 @@ export function Sidebar() {
     const pathname = usePathname();
     const isEducator = pathname.includes('/educator');
     const basePath = isEducator ? '/dashboard/educator' : '/dashboard/district';
+    const settingsHref = isEducator ? '/dashboard/educator/settings' : '/dashboard/district/settings';
 
     const navItems: NavItem[] = [
         { href: basePath, label: "Dashboard", icon: SquaresFour },
         { href: "/browse", label: "Directory", icon: Users },
-        { href: isEducator ? "/dashboard/educator" : "/post", label: isEducator ? "My Gigs" : "Create Request", icon: isEducator ? Briefcase : PlusCircle },
+        { href: isEducator ? "/dashboard/educator/my-gigs" : "/post", label: isEducator ? "My Gigs" : "Create Request", icon: isEducator ? Briefcase : PlusCircle },
         { href: "#", label: "Messages", icon: EnvelopeSimple, count: 3 },
-        { href: "#", label: "Settings", icon: Gear },
+        { href: settingsHref, label: "Settings", icon: Gear },
     ];
 
     return (
         <aside className="w-[220px] h-screen flex flex-col bg-[--bg-subtle] border-r border-[--border-default] px-2 py-4">
 
             {/* Logo */}
-            <div className="px-3 mb-6">
+            <div className="px-3 mb-6 flex flex-col gap-2">
                 <Link href="/">
                     <span className="font-heading text-lg font-bold text-[--text-primary]">
                         EduGig
                     </span>
                 </Link>
+                <span
+                    className="inline-flex w-fit items-center rounded-md border border-[--border-subtle] bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[--text-secondary]"
+                    title="Current workspace"
+                >
+                    {isEducator ? "Educator" : "District"}
+                </span>
             </div>
 
             {/* Nav Group */}
@@ -43,7 +50,7 @@ export function Sidebar() {
                     Workspace
                 </span>
                 {navItems.map(item => (
-                    <SidebarItem key={item.label} item={item} />
+                    <SidebarItem key={item.label} item={item} basePath={basePath} settingsHref={settingsHref} />
                 ))}
             </nav>
 
@@ -51,10 +58,25 @@ export function Sidebar() {
     )
 }
 
-function SidebarItem({ item }: { item: NavItem }) {
-    const pathname = usePathname()
-    // Exact match for active state, or prefix match for subpages
-    const isActive = item.href !== "#" && (pathname === item.href || (item.href !== "/browse" && item.href !== "/post" && pathname.startsWith(item.href)));
+function SidebarItem({
+    item,
+    basePath,
+    settingsHref,
+}: {
+    item: NavItem;
+    basePath: string;
+    settingsHref: string;
+}) {
+    const pathname = usePathname();
+    const isActive =
+        item.href !== "#" &&
+        (() => {
+            if (item.label === "Dashboard") return pathname === basePath;
+            if (item.label === "Settings") return pathname.startsWith(settingsHref);
+            if (item.href === "/browse") return pathname === "/browse" || pathname.startsWith("/browse/");
+            if (item.href === "/post") return pathname.startsWith("/post");
+            return pathname === item.href || pathname.startsWith(item.href + "/");
+        })();
     
     return (
         <Link href={item.href}

@@ -9,7 +9,8 @@ import { Input } from "@/components/shared/input";
 import { CheckIcon, CalendarIcon } from "lucide-react";
 
 export default function GigCheckoutPage() {
-    const { gigId } = useParams();
+    const params = useParams<{ gigId: string }>();
+    const gigId = typeof params.gigId === "string" ? params.gigId : "";
 
     return (
         <div className="min-h-screen bg-[--bg-app] py-12 px-6">
@@ -17,7 +18,10 @@ export default function GigCheckoutPage() {
 
                 {/* Multistep Checkout Form */}
                 <div className="lg:col-span-2 flex flex-col gap-8">
-                    <PageHeader title="Checkout" />
+                    <PageHeader
+                        title="Checkout"
+                        description={gigId ? `Gig reference: ${gigId}` : undefined}
+                    />
 
                     <Card className="p-8 border-[--border-strong] shadow-sm">
                         <div className="flex items-center gap-3 mb-6">

@@ -2,6 +2,9 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { PrimaryButton } from "@/components/shared/button";
 import { VerificationBadge } from "@/components/shared/verification-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,13 +14,56 @@ import { SiteFooter } from "@/components/shared/site-footer";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { getMockEducatorProfileView } from "@/lib/mock-educators";
+import { mapConvexEducatorToProfileView } from "@/lib/map-convex-educator-profile";
+import { isDistrictRole } from "@/lib/roles";
+
+const USE_CONVEX = process.env.NEXT_PUBLIC_USE_CONVEX_BROWSE === "true";
 
 export default function EducatorProfilePage() {
     const params = useParams();
     const router = useRouter();
     const educatorId = typeof params.educatorId === "string" ? params.educatorId : params.educatorId?.[0] ?? "";
 
-    const profile = getMockEducatorProfileView(educatorId);
+    const viewer = useQuery(api.users.viewer, {});
+    const districtOK = !!viewer && isDistrictRole(viewer.role);
+    const useConvexProfile =
+        USE_CONVEX && districtOK && viewer !== undefined && !educatorId.startsWith("e_");
+
+    const convexData = useQuery(
+        api.educators.getProfileForDistrict,
+        useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
+    );
+
+    if (useConvexProfile && convexData === undefined) {
+        return (
+            <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
+                <SiteHeader />
+                <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
+                    <p className="text-[var(--text-secondary)]">Loading profile…</p>
+                </main>
+                <SiteFooter />
+            </div>
+        );
+    }
+
+    if (useConvexProfile && convexData === null) {
+        return (
+            <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
+                <SiteHeader />
+                <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
+                    <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Educator not found</h1>
+                    <p className="text-[var(--text-secondary)] mb-8">This profile isn’t available or the link is invalid.</p>
+                    <PrimaryButton onClick={() => router.push("/browse")}>Back to directory</PrimaryButton>
+                </main>
+                <SiteFooter />
+            </div>
+        );
+    }
+
+    const profile =
+        useConvexProfile && convexData
+            ? mapConvexEducatorToProfileView(convexData.educator, convexData.user)
+            : getMockEducatorProfileView(educatorId);
 
     if (!profile) {
         return (
@@ -255,7 +301,11 @@ export default function EducatorProfilePage() {
                                                 </div>
                                                 <span className="text-sm text-[var(--text-tertiary)] font-bold uppercase tracking-wider">Jan 2026</span>
                                             </div>
-                                            <p className="text-[var(--text-secondary)] text-lg leading-relaxed">"Exceptional expertise and professionalism. Made an immediate impact on our team's curriculum planning process. Highly recommended for any school looking to elevate their math department."</p>
+                                            <p className="text-[var(--text-secondary)] text-lg leading-relaxed">
+                                                &ldquo;Exceptional expertise and professionalism. Made an immediate impact on our
+                                                team&apos;s curriculum planning process. Highly recommended for any school looking to
+                                                elevate their math department.&rdquo;
+                                            </p>
                                         </div>
                                     </div>
                                 </div>

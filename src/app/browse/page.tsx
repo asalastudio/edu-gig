@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { PageHeader } from "@/components/shared/page-header";
 import { TaxonomyFilter } from "@/components/shared/taxonomy-filter";
-import { EducatorCard } from "@/components/shared/educator-card";
+import { EducatorCard, type EducatorCardProps } from "@/components/shared/educator-card";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { PrimaryButton } from "@/components/shared/button";
 import { ArrowLeft, FadersHorizontal, Lightning, Star, Clock, MapPin, Funnel } from "@phosphor-icons/react";
@@ -12,6 +14,9 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { cn } from "@/lib/utils";
 import { MOCK_EDUCATORS } from "@/lib/mock-educators";
+import { isDistrictRole } from "@/lib/roles";
+
+const USE_CONVEX_BROWSE = process.env.NEXT_PUBLIC_USE_CONVEX_BROWSE === "true";
 
 const QUICK_FILTERS = [
     { id: "quick_avail", label: "Available Now", icon: Clock, color: "text-emerald-600", bg: "bg-emerald-50 hover:bg-emerald-100 border-emerald-200" },
@@ -21,6 +26,25 @@ const QUICK_FILTERS = [
 ];
 
 export default function BrowsePage() {
+    const viewer = useQuery(api.users.viewer, {});
+    const districtOK = !!viewer && isDistrictRole(viewer.role);
+    const convexEducators = useQuery(
+        api.educators.listForBrowse,
+        USE_CONVEX_BROWSE && districtOK ? {} : "skip"
+    );
+
+    const roster: EducatorCardProps[] = useMemo(() => {
+        if (USE_CONVEX_BROWSE && viewer !== undefined && districtOK && convexEducators !== undefined) {
+            return convexEducators;
+        }
+        return MOCK_EDUCATORS;
+    }, [viewer, districtOK, convexEducators]);
+
+    const convexLive =
+        USE_CONVEX_BROWSE && viewer !== undefined && districtOK && convexEducators !== undefined;
+    const convexLoading =
+        USE_CONVEX_BROWSE && viewer !== undefined && districtOK && convexEducators === undefined;
+
     const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
     const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
     const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
@@ -48,7 +72,7 @@ export default function BrowsePage() {
     };
 
     // Filter logic
-    let filteredEducators = MOCK_EDUCATORS.filter(educator => {
+    const filteredEducators = roster.filter((educator) => {
         if (selectedAreas.length > 0 && !selectedAreas.some(area => educator.areasOfNeed.includes(area))) return false;
         if (selectedGrades.length > 0 && !selectedGrades.some(grade => educator.gradeLevels.includes(grade))) return false;
         if (selectedRegions.length > 0 && !selectedRegions.some(region => educator.coverageRegions.includes(region))) return false;
@@ -82,6 +106,25 @@ export default function BrowsePage() {
                     description="Browse and connect with verified specialists for your district's needs."
                     actions={<PrimaryButton onClick={() => alert("Loading saved educators...")}>Saved Educators</PrimaryButton>}
                 />
+
+                {USE_CONVEX_BROWSE && (
+                    <div
+                        className={cn(
+                            "mt-4 rounded-xl border px-4 py-3 text-sm font-medium",
+                            convexLive
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                                : convexLoading
+                                  ? "border-amber-200 bg-amber-50 text-amber-950"
+                                  : "border-[--border-subtle] bg-[--bg-surface] text-[--text-secondary]"
+                        )}
+                    >
+                        {convexLoading && "Loading live directory from Convex…"}
+                        {!convexLoading && convexLive && "Showing live directory data (Convex)."}
+                        {!convexLoading && !convexLive && viewer === null && "Signed out — showing demo directory. Sign in as a district user to use live data."}
+                        {!convexLoading && !convexLive && viewer && !districtOK && "Educator workspace — showing demo directory. Use a district account for the live roster."}
+                        {!convexLoading && !convexLive && viewer === undefined && "Checking session…"}
+                    </div>
+                )}
 
                 <div className="flex flex-col lg:flex-row gap-8 mt-8">
                     
@@ -227,7 +270,7 @@ export default function BrowsePage() {
                                     <Funnel weight="regular" className="w-10 h-10 text-[--text-tertiary]" />
                                 </div>
                                 <h3 className="text-2xl font-heading font-bold text-[--text-primary] mb-2">No educators found</h3>
-                                <p className="text-[--text-secondary] max-w-sm mb-8">We couldn't find any educators matching your exact criteria. Try removing some filters to see more results.</p>
+                                <p className="text-[--text-secondary] max-w-sm mb-8">We couldn&apos;t find any educators matching your exact criteria. Try removing some filters to see more results.</p>
                                 <PrimaryButton 
                                     className="px-8 shadow-sm bg-[--accent-secondary] text-[--text-primary] hover:bg-[--accent-secondary]/90"
                                     onClick={() => {

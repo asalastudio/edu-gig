@@ -2,9 +2,6 @@
 
 import React, { useState } from "react";
 import { Sidebar } from "@/components/shared/sidebar";
-import { PageHeader } from "@/components/shared/page-header";
-import { PrimaryButton } from "@/components/shared/button";
-import { Card } from "@/components/shared/card";
 import { Briefcase, TrendUp, Users, CalendarCheck, ArrowRight, CheckCircle, WarningCircle, X, Power } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
@@ -188,7 +185,7 @@ export default function EducatorDashboardPage() {
                                     <CheckCircle weight="fill" className="w-10 h-10" />
                                 </div>
                                 <h3 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">Inbox Zero</h3>
-                                <p className="text-base text-[var(--text-secondary)] font-medium">You're all caught up on district communications today.</p>
+                                <p className="text-base text-[var(--text-secondary)] font-medium">You&apos;re all caught up on district communications today.</p>
                             </div>
 
                         </div>

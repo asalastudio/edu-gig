@@ -9,10 +9,10 @@ export function PrimaryButton({ children, className, ...props }: ButtonProps) {
                 // Base
                 "inline-flex items-center justify-center gap-2",
                 "px-4 py-2 rounded-md",
-                "bg-[--accent-primary] text-white",
+                "bg-[var(--accent-primary)] text-white",
                 "text-sm font-medium",
                 // Hover — darken, no shadow
-                "hover:bg-[--accent-primary-h]",
+                "hover:bg-[var(--accent-primary-h)]",
                 // Active — press down
                 "active:scale-[0.98]",
                 // Focus — accessible ring

@@ -24,7 +24,7 @@ See `.env.local.example` for the full list. One-liner for each:
 1. Confirm all required env vars are set in Vercel and Convex dashboards.
 2. Deploy Convex first:
    ```bash
-   npx convex deploy --prod
+   npx convex deploy   # prod is the default; CLI no longer accepts --prod
    ```
 3. Merge to `main`. Vercel deploys the Next.js app automatically.
 4. Smoke-test by hitting `/`, `/browse`, and the dashboard routes as each role.

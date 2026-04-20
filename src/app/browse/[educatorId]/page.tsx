@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, Star, ShieldCheck, Clock } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
+import { Sidebar } from "@/components/shared/sidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { getMockEducatorProfileView } from "@/lib/mock-educators";
@@ -123,11 +124,9 @@ export default function EducatorProfilePage() {
               ? "bg-amber-100 text-amber-900 border-amber-200"
               : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-strong)]";
 
-    return (
-        <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
-            <SiteHeader />
-            
-            {/* Main Content */}
+    const signedIn = !!viewer;
+
+    const profileMain = (
             <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
                 <button onClick={() => router.back()} className="text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8 inline-flex items-center gap-2 transition-colors">
                     &larr; Back to Browse
@@ -405,14 +404,29 @@ export default function EducatorProfilePage() {
                     </Tabs>
                 </div>
             </main>
+    );
 
-            {/* Sticky Mobile CTA */}
+    const mobileCta = (
             <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-[--border-subtle] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-50">
                 <PrimaryButton onClick={handleMessageEducator} className="w-full py-3 text-base flex items-center justify-center gap-2">
                     <ChatCircle weight="bold" className="w-5 h-5" /> Message Educator
                 </PrimaryButton>
             </div>
+    );
 
+    return signedIn ? (
+        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
+            <Sidebar />
+            <div className="flex-1 overflow-y-auto w-full flex flex-col">
+                {profileMain}
+                {mobileCta}
+            </div>
+        </div>
+    ) : (
+        <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
+            <SiteHeader />
+            {profileMain}
+            {mobileCta}
             <SiteFooter />
         </div>
     );

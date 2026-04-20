@@ -12,6 +12,7 @@ import { PrimaryButton } from "@/components/shared/button";
 import { ArrowLeft, FadersHorizontal, Lightning, Star, Clock, MapPin, Funnel } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
+import { Sidebar } from "@/components/shared/sidebar";
 import { cn } from "@/lib/utils";
 import { MOCK_EDUCATORS } from "@/lib/mock-educators";
 import { isDistrictRole } from "@/lib/roles";
@@ -92,14 +93,15 @@ export default function BrowsePage() {
         filteredEducators.sort((a, b) => (a.startingRate ?? 0) - (b.startingRate ?? 0));
     }
 
-    return (
-        <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
-            <SiteHeader />
+    const signedIn = !!viewer;
+    const directoryBody = (
             <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 pt-8 pb-16 px-6 lg:px-12">
-                
-                <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-[--text-secondary] hover:text-[--text-primary] mb-6 w-fit">
-                    <ArrowLeft className="w-4 h-4" /> Home
-                </Link>
+
+                {!signedIn && (
+                    <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-[--text-secondary] hover:text-[--text-primary] mb-6 w-fit">
+                        <ArrowLeft className="w-4 h-4" /> Home
+                    </Link>
+                )}
 
                 <PageHeader
                     title="Find K-12 Educators"
@@ -291,6 +293,19 @@ export default function BrowsePage() {
 
                 </div>
             </div>
+    );
+
+    return signedIn ? (
+        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
+            <Sidebar />
+            <div className="flex-1 overflow-y-auto w-full flex flex-col">
+                {directoryBody}
+            </div>
+        </div>
+    ) : (
+        <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
+            <SiteHeader />
+            {directoryBody}
             <SiteFooter />
         </div>
     );

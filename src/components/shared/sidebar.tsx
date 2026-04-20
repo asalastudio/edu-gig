@@ -98,7 +98,7 @@ function SidebarItem({
                 isActive ? "text-[--accent-primary]" : "text-[--text-tertiary] group-hover:text-[--text-secondary]"
             )} />
             {item.label}
-            {item.count && (
+            {typeof item.count === "number" && item.count > 0 && (
                 <span className="ml-auto text-xs text-[--text-tertiary] font-mono">
                     {item.count}
                 </span>

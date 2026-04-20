@@ -182,9 +182,6 @@ export default function EducatorDashboardPage() {
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={() => alert("Loading full calendar...")} className="w-full mt-6 py-3 text-sm font-bold text-[var(--text-secondary)] bg-white border-2 border-[var(--border-strong)] rounded-xl hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-all">
-                                    View Full Calendar
-                                </button>
                             </div>
 
                             {/* Unread Messages */}

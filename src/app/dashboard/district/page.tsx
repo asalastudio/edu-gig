@@ -2,15 +2,34 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Sidebar } from "@/components/shared/sidebar";
 import { StatCard } from "@/components/shared/stat-card";
 import { PrimaryButton } from "@/components/shared/button";
 import { SquaresFour, UserCircleCheck, TrendDown, Clock, DownloadSimple, Plus, MapPin, WarningCircle, X, ArrowRight } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { MOCK_RECENT_PLACEMENTS } from "@/lib/mock-educators";
+import { isDistrictRole } from "@/lib/roles";
+import { formatDistrictKpis, formatPipelineStatus, type PipelineRow } from "@/lib/map-dashboard";
+
+const MOCK_PIPELINE: PipelineRow[] = [
+    { id: "m1", role: "Instructional Coach", spec: "Math", status: "interviewing", daysOpen: 14 },
+    { id: "m2", role: "Resource Teacher", spec: "Special Ed", status: "placed", daysOpen: 2 },
+    { id: "m3", role: "AP Physics Sub", spec: "Long-term (12 wks)", status: "open", daysOpen: 21 },
+];
 
 export default function DistrictDashboardPage() {
     const [showAlert, setShowAlert] = useState(true);
+
+    const viewer = useQuery(api.users.viewer, {});
+    const live = !!viewer && isDistrictRole(viewer.role);
+    const kpis = useQuery(api.dashboards.districtKpis, live ? {} : "skip");
+    const pipeline = useQuery(api.dashboards.districtPipeline, live ? {} : "skip");
+
+    const kpiValues = formatDistrictKpis(live && kpis ? kpis : null);
+    const pipelineRows: PipelineRow[] =
+        live && pipeline ? pipeline.map((p) => ({ ...p })) : MOCK_PIPELINE;
 
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
@@ -55,10 +74,10 @@ export default function DistrictDashboardPage() {
 
                     {/* KPI Cards Row (Soft Depth Style) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                        <StatCard label="Active Openings" value="12" icon={SquaresFour} delta={-2} deltaLabel="resolved openings" />
-                        <StatCard label="Placements This Mo" value="4" icon={UserCircleCheck} />
-                        <StatCard label="Avg Time-to-Fill" value="18 days" icon={Clock} delta={15} deltaLabel="faster than prior" />
-                        <StatCard label="Total Spend YTD" value="$128.5K" icon={TrendDown} />
+                        <StatCard label="Active Openings" value={kpiValues.activeOpenings} icon={SquaresFour} />
+                        <StatCard label="Placements This Mo" value={kpiValues.placementsThisMonth} icon={UserCircleCheck} />
+                        <StatCard label="Avg Time-to-Fill" value={kpiValues.avgTimeToFill} icon={Clock} />
+                        <StatCard label="Total Spend YTD" value={kpiValues.totalSpendYtd} icon={TrendDown} />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-12">
@@ -86,32 +105,37 @@ export default function DistrictDashboardPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-[var(--border-subtle)] bg-white">
-                                        {[
-                                            { role: "Instructional Coach", spec: "Math", cand: "3 Contacted", status: "Interviewing", color: "amber", days: 14 },
-                                            { role: "Resource Teacher", spec: "Special Ed", cand: "1 Contacted", status: "Placed", color: "emerald", days: 2 },
-                                            { role: "AP Physics Sub", spec: "Long-term (12 wks)", cand: "0 Found", status: "Sourcing", color: "blue", days: 21 },
-                                        ].map((row, i) => (
-                                            <tr key={i} className="hover:bg-[var(--bg-hover)] transition-colors group cursor-pointer">
-                                                <td className="py-6 px-8">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-lg text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">{row.role}</span>
-                                                        <span className="text-sm font-semibold text-[var(--text-tertiary)] mt-1">{row.spec}</span>
-                                                    </div>
+                                        {pipelineRows.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} className="py-10 px-8 text-center text-sm font-semibold text-[var(--text-tertiary)]">
+                                                    No openings yet. <Link href="/post" className="text-[var(--accent-primary)] underline">Post your first need</Link>.
                                                 </td>
-                                                <td className="py-6 px-6 font-bold text-[var(--text-secondary)]">{row.cand}</td>
-                                                <td className="py-6 px-6">
-                                                    <span className={cn(
-                                                        "px-4 py-2 font-bold rounded-xl text-sm leading-none border shadow-sm inline-block",
-                                                        row.color === 'emerald' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                                            row.color === 'amber' ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                                                "bg-blue-50 text-blue-700 border-blue-200"
-                                                    )}>
-                                                        {row.status}
-                                                    </span>
-                                                </td>
-                                                <td className="py-6 px-8 tabular-nums font-bold text-xl text-right text-[var(--text-primary)]">{row.days}</td>
                                             </tr>
-                                        ))}
+                                        ) : pipelineRows.map((row) => {
+                                            const label = formatPipelineStatus(row.status);
+                                            return (
+                                                <tr key={row.id} className="hover:bg-[var(--bg-hover)] transition-colors group cursor-pointer">
+                                                    <td className="py-6 px-8">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-lg text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">{row.role}</span>
+                                                            <span className="text-sm font-semibold text-[var(--text-tertiary)] mt-1">{row.spec}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-6 px-6 font-bold text-[var(--text-secondary)]">—</td>
+                                                    <td className="py-6 px-6">
+                                                        <span className={cn(
+                                                            "px-4 py-2 font-bold rounded-xl text-sm leading-none border shadow-sm inline-block",
+                                                            label.color === 'emerald' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                                                label.color === 'amber' ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                                                    "bg-blue-50 text-blue-700 border-blue-200"
+                                                        )}>
+                                                            {label.text}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-6 px-8 tabular-nums font-bold text-xl text-right text-[var(--text-primary)]">{row.daysOpen}</td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>

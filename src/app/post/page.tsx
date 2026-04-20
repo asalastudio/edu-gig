@@ -2,34 +2,64 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useMutation, useQuery } from "convex/react";
+import { z } from "zod";
+import { api } from "@/convex/_generated/api";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { PrimaryButton } from "@/components/shared/button";
 import { TAXONOMY } from "@/lib/taxonomy";
+import { isDistrictRole } from "@/lib/roles";
 import { ArrowLeft, CheckCircle, CaretRight, Briefcase, Calendar, FileText } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+
+const needSchema = z.object({
+    orgName: z.string().trim().min(1, "Organization name is required."),
+    areaOfNeed: z.string().min(1, "Please select an area of need."),
+    subCategory: z.string().optional(),
+    gradeLevel: z.string().optional(),
+    engagementType: z.string().optional(),
+    startDate: z.string().optional(),
+    duration: z.string().optional(),
+    compensationRange: z.string().optional(),
+    description: z.string().optional(),
+});
 
 export default function PostNeedPage() {
     const [step, setStep] = useState(1);
     const [isSuccess, setIsSuccess] = useState(false);
-    
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+
     // Form state
     const [orgName, setOrgName] = useState("");
     const [areaId, setAreaId] = useState("");
     const [specId, setSpecId] = useState("");
-    
+    const [gradeLevel, setGradeLevel] = useState("");
+    const [engagementType, setEngagementType] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [duration, setDuration] = useState("");
+    const [compensationRange, setCompensationRange] = useState("");
+    const [description, setDescription] = useState("");
+
     // Errors
     const [errors, setErrors] = useState<{org?: string; area?: string}>({});
+
+    const viewer = useQuery(api.users.viewer, {});
+    const canPersist = !!viewer && isDistrictRole(viewer.role);
+    const createNeed = useMutation(api.needs.create);
 
     const selectedAreaObj = TAXONOMY.areasOfNeed.find(a => a.id === areaId);
     const specs = selectedAreaObj?.subCategories || [];
 
-    const handleNext = () => {
+    const handleNext = (e?: React.MouseEvent) => {
+        e?.preventDefault();
+        e?.stopPropagation();
         if (step === 1) {
             const newErrors: {org?: string; area?: string} = {};
             if (!orgName.trim()) newErrors.org = "Organization name is required.";
             if (!areaId) newErrors.area = "Please select an area of need.";
-            
+
             if (Object.keys(newErrors).length > 0) {
                 setErrors(newErrors);
                 return;
@@ -38,10 +68,49 @@ export default function PostNeedPage() {
         setStep(prev => Math.min(prev + 1, 3));
     };
 
-    const handleBack = () => setStep(prev => Math.max(prev - 1, 1));
+    const handleBack = (e?: React.MouseEvent) => {
+        e?.preventDefault();
+        setStep(prev => Math.max(prev - 1, 1));
+    };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSubmitError(null);
+
+        const parsed = needSchema.safeParse({
+            orgName,
+            areaOfNeed: areaId,
+            subCategory: specId || undefined,
+            gradeLevel: gradeLevel || undefined,
+            engagementType: engagementType || undefined,
+            startDate: startDate || undefined,
+            duration: duration || undefined,
+            compensationRange: compensationRange || undefined,
+            description: description || undefined,
+        });
+        if (!parsed.success) {
+            const first = parsed.error.issues[0];
+            setSubmitError(first?.message ?? "Please review the form and try again.");
+            return;
+        }
+
+        if (canPersist) {
+            setSubmitting(true);
+            try {
+                await createNeed(parsed.data);
+            } catch (err) {
+                console.error(err);
+                setSubmitError(
+                    err instanceof Error
+                        ? err.message
+                        : "Could not post this need. Please try again."
+                );
+                setSubmitting(false);
+                return;
+            }
+            setSubmitting(false);
+        }
+
         setIsSuccess(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
@@ -148,8 +217,10 @@ export default function PostNeedPage() {
 
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="grade" className="text-sm font-semibold text-[--text-primary]">Grade Level Band</label>
-                                        <select 
+                                        <select
                                             id="grade"
+                                            value={gradeLevel}
+                                            onChange={(e) => setGradeLevel(e.target.value)}
                                             className="w-full h-12 px-4 rounded-xl border border-[--border-subtle] bg-[--bg-app] text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] focus:bg-white transition-all"
                                         >
                                             <option value="">Select Grade</option>
@@ -175,11 +246,13 @@ export default function PostNeedPage() {
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                             {TAXONOMY.engagementTypes.map(eng => (
                                                 <label key={eng.id} className="flex flex-col items-start gap-2 p-4 border border-[--border-subtle] bg-[--bg-app] rounded-xl cursor-pointer hover:border-[--accent-primary]/50 focus-within:ring-2 focus-within:ring-[--accent-primary] transition-all has-[:checked]:bg-[--accent-primary]/5 has-[:checked]:border-[--accent-primary]">
-                                                    <input 
-                                                        type="radio" 
-                                                        name="engagementType" 
+                                                    <input
+                                                        type="radio"
+                                                        name="engagementType"
                                                         value={eng.id}
-                                                        className="w-4 h-4 text-[--accent-primary] focus:ring-[--accent-primary] border-[--border-strong]" 
+                                                        checked={engagementType === eng.id}
+                                                        onChange={() => setEngagementType(eng.id)}
+                                                        className="w-4 h-4 text-[--accent-primary] focus:ring-[--accent-primary] border-[--border-strong]"
                                                     />
                                                     <span className="text-[--text-primary] font-semibold text-sm">{eng.label}</span>
                                                 </label>
@@ -190,17 +263,21 @@ export default function PostNeedPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                                         <div className="flex flex-col gap-2">
                                             <label htmlFor="startDate" className="text-sm font-semibold text-[--text-primary]">Desired Start Date</label>
-                                            <input 
-                                                type="date" 
+                                            <input
+                                                type="date"
                                                 id="startDate"
+                                                value={startDate}
+                                                onChange={(e) => setStartDate(e.target.value)}
                                                 className="w-full h-12 px-4 rounded-xl border border-[--border-subtle] bg-[--bg-app] text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] focus:bg-white transition-all"
                                             />
                                         </div>
                                         <div className="flex flex-col gap-2">
                                             <label htmlFor="duration" className="text-sm font-semibold text-[--text-primary]">Duration</label>
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 id="duration"
+                                                value={duration}
+                                                onChange={(e) => setDuration(e.target.value)}
                                                 placeholder="e.g. 1 semester, Ongoing"
                                                 className="w-full h-12 px-4 rounded-xl border border-[--border-subtle] bg-[--bg-app] text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] focus:bg-white transition-all"
                                             />
@@ -220,9 +297,11 @@ export default function PostNeedPage() {
 
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="compRange" className="text-sm font-semibold text-[--text-primary]">Compensation Range</label>
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             id="compRange"
+                                            value={compensationRange}
+                                            onChange={(e) => setCompensationRange(e.target.value)}
                                             placeholder="e.g. $80–$100/hr or Per salary schedule"
                                             className="w-full h-12 px-4 rounded-xl border border-[--border-subtle] bg-[--bg-app] text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] focus:bg-white transition-all"
                                         />
@@ -230,13 +309,19 @@ export default function PostNeedPage() {
 
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="description" className="text-sm font-semibold text-[--text-primary]">Description</label>
-                                        <textarea 
+                                        <textarea
                                             id="description"
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
                                             rows={5}
                                             placeholder="Describe the role, requirements, and any context that will help educators understand the opportunity."
                                             className="w-full p-4 rounded-xl border border-[--border-subtle] bg-[--bg-app] text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] focus:bg-white transition-all resize-y"
                                         ></textarea>
                                     </div>
+
+                                    {submitError && (
+                                        <p className="text-sm text-red-600 font-medium">{submitError}</p>
+                                    )}
                                 </div>
                             )}
 
@@ -256,8 +341,8 @@ export default function PostNeedPage() {
                                         Continue <CaretRight weight="bold" className="w-4 h-4" />
                                     </PrimaryButton>
                                 ) : (
-                                    <PrimaryButton type="submit" className="shadow-md bg-[--accent-secondary] text-[--text-primary] hover:bg-[--accent-secondary]/90">
-                                        Post This Need
+                                    <PrimaryButton type="submit" disabled={submitting} className="shadow-md bg-[--accent-secondary] text-[--text-primary] hover:bg-[--accent-secondary]/90">
+                                        {submitting ? "Posting…" : canPersist ? "Post This Need" : "Post (Demo)"}
                                     </PrimaryButton>
                                 )}
                             </div>

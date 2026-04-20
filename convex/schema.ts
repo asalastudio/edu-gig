@@ -108,6 +108,30 @@ export default defineSchema({
             filterFields: ["areaOfNeed", "gradeLevels", "coverageRegions", "engagementType"],
         }),
 
+    // ─── Needs (District-Posted Open Requests) ────────────────
+    needs: defineTable({
+        districtId: v.optional(v.id("districts")),
+        postedByUserId: v.id("users"),
+        orgName: v.string(),                 // denormalized for display before district row is linked
+        areaOfNeed: v.string(),              // taxonomy code
+        subCategory: v.optional(v.string()),
+        gradeLevel: v.optional(v.string()),
+        engagementType: v.optional(v.string()),
+        startDate: v.optional(v.string()),
+        duration: v.optional(v.string()),
+        compensationRange: v.optional(v.string()),
+        description: v.optional(v.string()),
+        status: v.union(
+            v.literal("open"),
+            v.literal("interviewing"),
+            v.literal("placed"),
+            v.literal("closed")
+        ),
+        createdAt: v.number(),
+    }).index("by_district", ["districtId"])
+        .index("by_posted_by", ["postedByUserId"])
+        .index("by_status", ["status"]),
+
     // ─── Orders / Placements ─────────────────────────────────
     orders: defineTable({
         gigId: v.id("gigs"),

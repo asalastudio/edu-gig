@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { SquaresFour, Users, EnvelopeSimple, Gear, Briefcase, PlusCircle } from "@phosphor-icons/react";
 
@@ -18,11 +20,15 @@ export function Sidebar() {
     const basePath = isEducator ? '/dashboard/educator' : '/dashboard/district';
     const settingsHref = isEducator ? '/dashboard/educator/settings' : '/dashboard/district/settings';
 
+    const viewer = useQuery(api.users.viewer, {});
+    const unread = useQuery(api.notifications.unreadCount, viewer ? {} : "skip");
+    const messagesBadge = typeof unread === "number" ? unread : undefined;
+
     const navItems: NavItem[] = [
         { href: basePath, label: "Dashboard", icon: SquaresFour },
         { href: "/browse", label: "Directory", icon: Users },
         { href: isEducator ? "/dashboard/educator/my-gigs" : "/post", label: isEducator ? "My Gigs" : "Create Request", icon: isEducator ? Briefcase : PlusCircle },
-        { href: "#", label: "Messages", icon: EnvelopeSimple, count: 3 },
+        { href: "/dashboard/messages", label: "Messages", icon: EnvelopeSimple, count: messagesBadge },
         { href: settingsHref, label: "Settings", icon: Gear },
     ];
 

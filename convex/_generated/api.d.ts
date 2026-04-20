@@ -8,7 +8,14 @@
  * @module
  */
 
+import type * as dashboards from "../dashboards.js";
+import type * as districts from "../districts.js";
 import type * as educators from "../educators.js";
+import type * as gigs from "../gigs.js";
+import type * as messages from "../messages.js";
+import type * as needs from "../needs.js";
+import type * as notifications from "../notifications.js";
+import type * as orders from "../orders.js";
 import type * as seed from "../seed.js";
 import type * as users from "../users.js";
 
@@ -19,7 +26,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  dashboards: typeof dashboards;
+  districts: typeof districts;
   educators: typeof educators;
+  gigs: typeof gigs;
+  messages: typeof messages;
+  needs: typeof needs;
+  notifications: typeof notifications;
+  orders: typeof orders;
   seed: typeof seed;
   users: typeof users;
 }>;

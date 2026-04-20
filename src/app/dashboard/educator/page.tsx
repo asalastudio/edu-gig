@@ -1,13 +1,30 @@
 "use client";
 
 import React, { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Sidebar } from "@/components/shared/sidebar";
 import { Briefcase, TrendUp, Users, CalendarCheck, ArrowRight, CheckCircle, WarningCircle, X, Power } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { formatEducatorKpis, formatOrderStatus, type EducatorPipelineRow } from "@/lib/map-dashboard";
+
+const MOCK_PIPELINE: EducatorPipelineRow[] = [
+    { id: "m1", title: "Curriculum Mapping Workshop", district: "Lincoln Tech High", status: "in_progress", amount: 800, startDate: "Due in 3 days" },
+    { id: "m2", title: "Long-Term Math Substitute", district: "Westside ISD", status: "completed", amount: 4200, startDate: "Completed Monday" },
+    { id: "m3", title: "Bilingual Resource Teacher", district: "Austin Elementary", status: "pending", amount: 1200, startDate: "Starts next week" },
+];
 
 export default function EducatorDashboardPage() {
     const [showAlert, setShowAlert] = useState(true);
     const [isActive, setIsActive] = useState(true);
+
+    const viewer = useQuery(api.users.viewer, {});
+    const live = !!viewer && viewer.role === "educator";
+    const kpis = useQuery(api.dashboards.educatorKpis, live ? {} : "skip");
+    const pipeline = useQuery(api.dashboards.educatorPipeline, live ? {} : "skip");
+
+    const kpiValues = formatEducatorKpis(live && kpis ? kpis : null);
+    const pipelineRows: EducatorPipelineRow[] = live && pipeline ? pipeline : MOCK_PIPELINE;
 
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
@@ -36,7 +53,7 @@ export default function EducatorDashboardPage() {
                             <h1 className="font-heading text-4xl font-bold text-[var(--text-primary)] tracking-tight mb-2">
                                 Educator Dashboard
                             </h1>
-                            <p className="text-lg text-[var(--text-secondary)] font-medium">Welcome back, Sarah. Track your active gigs and earnings pipeline.</p>
+                            <p className="text-lg text-[var(--text-secondary)] font-medium">Welcome back, {kpiValues.greetingName}. Track your active gigs and earnings pipeline.</p>
                         </div>
                         
                         <div className="flex items-center gap-4 bg-white p-2.5 pr-5 rounded-2xl border border-[var(--border-subtle)] shadow-sm hover:shadow-md transition-shadow">
@@ -63,20 +80,15 @@ export default function EducatorDashboardPage() {
                     {/* Quick Stats Banner (Sales CRM style) */}
                     <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[var(--border-subtle)] p-0 border border-[var(--border-subtle)] shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-3xl bg-white overflow-hidden">
                         {[
-                            { label: "Pipeline (Active Orders)", value: "$6,200", sub: "3 Active Gigs", icon: Briefcase, color: "blue" },
-                            { label: "Profile Conversions", value: "8.4%", sub: "48 Profile Views", icon: Users, color: "emerald", trend: "+1.2%" },
-                            { label: "Total Earnings YTD", value: "$14,500", sub: "12 completed tasks", icon: TrendUp, color: "amber", trend: "+$2.1k" },
+                            { label: "Pipeline (Active Orders)", value: kpiValues.pipelineValue, sub: kpiValues.activeCount, icon: Briefcase, color: "blue" },
+                            { label: "Profile Conversions", value: "—", sub: "Tracking coming soon", icon: Users, color: "emerald" },
+                            { label: "Total Earnings YTD", value: kpiValues.ytdPayout, sub: kpiValues.completedLabel, icon: TrendUp, color: "amber" },
                         ].map((stat, i) => (
                             <div key={i} className="flex-1 p-8 flex items-start justify-between min-w-[250px] hover:bg-[var(--bg-hover)] transition-colors">
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3">{stat.label}</span>
                                     <div className="flex items-center gap-3">
                                         <span className="font-heading text-4xl font-bold text-[var(--text-primary)]">{stat.value}</span>
-                                        {stat.trend && (
-                                            <span className="px-2.5 py-1 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-sm font-bold text-[var(--text-primary)]">
-                                                {stat.trend}
-                                            </span>
-                                        )}
                                     </div>
                                     <span className="text-sm font-medium text-[var(--text-secondary)] mt-2">{stat.sub}</span>
                                 </div>
@@ -100,45 +112,41 @@ export default function EducatorDashboardPage() {
                             <h2 className="font-heading text-2xl font-bold text-[var(--text-primary)] px-1">Active Pipeline</h2>
 
                             <div className="grid grid-cols-1 gap-5">
-                                {[
-                                    { title: "Curriculum Mapping Workshop", district: "Lincoln Tech High", status: "In Progress", amount: "$800", date: "Due in 3 days" },
-                                    { title: "Long-Term Math Substitute", district: "Westside ISD", status: "Review pending", amount: "$4,200", date: "Completed on Monday" },
-                                    { title: "Bilingual Resource Teacher", district: "Austin Elementary", status: "Awaiting signature", amount: "$1,200", date: "Starts next week" }
-                                ].map((gig, i) => (
-                                    <div key={i} className="p-0 border border-[var(--border-subtle)] shadow-[0_8px_30px_rgba(0,0,0,0.03)] rounded-3xl bg-white overflow-hidden group hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-lg transition-all duration-300 cursor-pointer">
-                                        <div className="flex flex-col sm:flex-row h-full">
-                                            {/* Status indicator bar */}
-                                            <div className={cn(
-                                                "w-full sm:w-3 h-3 sm:h-auto",
-                                                i === 0 ? "bg-blue-400" : i === 1 ? "bg-emerald-400" : "bg-amber-400"
-                                            )} />
-
-                                            <div className="flex-1 p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                                                <div className="flex flex-col">
-                                                    <h3 className="font-bold text-[var(--text-primary)] text-xl mb-2 group-hover:text-[var(--accent-primary)] transition-colors">{gig.title}</h3>
-                                                    <div className="flex items-center gap-3 text-base text-[var(--text-secondary)] font-medium">
-                                                        <span>{gig.district}</span>
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" />
-                                                        <span className={cn(
-                                                            "font-bold px-2 py-0.5 rounded-md text-sm",
-                                                            i === 0 ? "bg-blue-50 text-blue-700" : i === 1 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
-                                                        )}>{gig.status}</span>
+                                {pipelineRows.length === 0 ? (
+                                    <div className="p-10 border border-[var(--border-subtle)] shadow-sm rounded-3xl bg-white text-center text-[var(--text-secondary)]">
+                                        No active orders yet. District placements will appear here once you accept a gig.
+                                    </div>
+                                ) : pipelineRows.map((gig, i) => {
+                                    const label = formatOrderStatus(gig.status);
+                                    const barColor = label.color === "blue" ? "bg-blue-400" : label.color === "emerald" ? "bg-emerald-400" : "bg-amber-400";
+                                    const chipColor = label.color === "blue" ? "bg-blue-50 text-blue-700" : label.color === "emerald" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700";
+                                    return (
+                                        <div key={gig.id + i} className="p-0 border border-[var(--border-subtle)] shadow-[0_8px_30px_rgba(0,0,0,0.03)] rounded-3xl bg-white overflow-hidden group hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-lg transition-all duration-300 cursor-pointer">
+                                            <div className="flex flex-col sm:flex-row h-full">
+                                                <div className={cn("w-full sm:w-3 h-3 sm:h-auto", barColor)} />
+                                                <div className="flex-1 p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                                                    <div className="flex flex-col">
+                                                        <h3 className="font-bold text-[var(--text-primary)] text-xl mb-2 group-hover:text-[var(--accent-primary)] transition-colors">{gig.title}</h3>
+                                                        <div className="flex items-center gap-3 text-base text-[var(--text-secondary)] font-medium">
+                                                            <span>{gig.district}</span>
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" />
+                                                            <span className={cn("font-bold px-2 py-0.5 rounded-md text-sm", chipColor)}>{label.text}</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-6 self-end sm:self-auto">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="font-bold text-[var(--text-primary)] text-2xl">{gig.amount}</span>
-                                                        <span className="text-xs text-[var(--text-tertiary)] font-bold uppercase tracking-widest mt-1">{gig.date}</span>
-                                                    </div>
-                                                    <div className="h-12 w-12 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-center group-hover:bg-[var(--accent-primary)] group-hover:text-white transition-colors">
-                                                        <ArrowRight weight="bold" className="w-5 h-5" />
+                                                    <div className="flex items-center gap-6 self-end sm:self-auto">
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="font-bold text-[var(--text-primary)] text-2xl">${gig.amount.toLocaleString("en-US")}</span>
+                                                            <span className="text-xs text-[var(--text-tertiary)] font-bold uppercase tracking-widest mt-1">{gig.startDate ?? ""}</span>
+                                                        </div>
+                                                        <div className="h-12 w-12 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-center group-hover:bg-[var(--accent-primary)] group-hover:text-white transition-colors">
+                                                            <ArrowRight weight="bold" className="w-5 h-5" />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 

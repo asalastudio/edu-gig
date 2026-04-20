@@ -27,6 +27,7 @@ export const completeOnboarding = mutation({
     args: {
         role: roleValidator,
         organizationName: v.optional(v.string()),
+        headline: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -42,6 +43,8 @@ export const completeOnboarding = mutation({
         const parts = name.trim().split(/\s+/);
         const firstName = parts[0] ?? "User";
         const lastName = parts.length > 1 ? parts.slice(1).join(" ") : parts[0] ?? "Name";
+
+        const educatorHeadline = args.headline?.trim() || "Update your professional headline";
 
         if (existing) {
             if (existing.onboarded) {
@@ -60,10 +63,14 @@ export const completeOnboarding = mutation({
                     .query("educators")
                     .withIndex("by_user_id", (q) => q.eq("userId", existing._id))
                     .first();
-                if (!edu) {
+                if (edu) {
+                    if (args.headline?.trim()) {
+                        await ctx.db.patch(edu._id, { headline: educatorHeadline });
+                    }
+                } else {
                     await ctx.db.insert("educators", {
                         userId: existing._id,
-                        headline: "Update your professional headline",
+                        headline: educatorHeadline,
                         bio: "Tell districts about your experience and focus areas.",
                         yearsExperience: 0,
                         gradeLevelBands: [],
@@ -96,7 +103,7 @@ export const completeOnboarding = mutation({
         if (args.role === "educator") {
             await ctx.db.insert("educators", {
                 userId,
-                headline: "Update your professional headline",
+                headline: educatorHeadline,
                 bio: "Tell districts about your experience and focus areas.",
                 yearsExperience: 0,
                 gradeLevelBands: [],

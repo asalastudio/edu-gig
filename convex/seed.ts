@@ -2,9 +2,12 @@ import { mutation } from "./_generated/server";
 
 export const populate = mutation({
     handler: async (ctx) => {
-        // Check if we already have users
-        const existingUsers = await ctx.db.query("users").collect();
-        if (existingUsers.length > 0) {
+        // Idempotent on the seeded educator set: skip only if the dummy clerk IDs already exist.
+        const seeded = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", "dummy_clerk_id_1"))
+            .first();
+        if (seeded) {
             return "Already populated";
         }
 

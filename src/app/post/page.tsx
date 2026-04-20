@@ -357,7 +357,7 @@ export default function PostNeedPage() {
                         <p className="text-lg text-[--text-secondary] max-w-lg mb-10">
                             We&apos;ll surface matched educators shortly. Expect responses within 24 hours.
                         </p>
-                        <div className="flex gap-4">
+                        <div className="flex flex-wrap gap-4 justify-center">
                             <Link href="/">
                                 <button className="px-6 py-3 rounded-xl border border-[--border-strong] font-semibold text-[--text-primary] hover:bg-[--bg-surface] transition-colors shadow-sm">
                                     Return Home

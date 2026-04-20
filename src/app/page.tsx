@@ -56,15 +56,15 @@ export default function Home() {
         <section className="w-full bg-[--accent-primary] py-6 px-6 text-center shadow-inner relative z-20">
             <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-white font-medium text-lg">
                 <span className="flex items-center gap-2">
-                    <ShieldCheck weight="fill" className="w-5 h-5 opacity-80" /> 500+ Verified Educators
+                    <ShieldCheck weight="fill" className="w-5 h-5 opacity-80" /> Credential-Verified Educators
                 </span>
                 <span className="hidden md:inline text-white/40">•</span>
                 <span className="flex items-center gap-2">
-                    <Users weight="fill" className="w-5 h-5 opacity-80" /> 75+ Partner Districts
+                    <Users weight="fill" className="w-5 h-5 opacity-80" /> Direct District Connections
                 </span>
                 <span className="hidden md:inline text-white/40">•</span>
                 <span className="flex items-center gap-2">
-                    <Star weight="fill" className="w-5 h-5 text-[--accent-secondary]" /> 4.9 Average Rating
+                    <Star weight="fill" className="w-5 h-5 text-[--accent-secondary]" /> Transparent, Agency-Free Pricing
                 </span>
             </div>
         </section>

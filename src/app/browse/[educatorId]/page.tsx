@@ -65,6 +65,36 @@ export default function EducatorProfilePage() {
             ? mapConvexEducatorToProfileView(convexData.educator, convexData.user)
             : getMockEducatorProfileView(educatorId);
 
+    // Real Convex user id for the educator (when browsing Convex data). Null for mock demo rows.
+    const convexRecipientUserId: string | null =
+        useConvexProfile && convexData ? convexData.user._id : null;
+
+    const handleMessageEducator = () => {
+        const firstName = convexData?.user.firstName ?? "";
+        const lastName = convexData?.user.lastName ?? "";
+        const displayName = `${firstName} ${lastName}`.trim();
+
+        if (!viewer) {
+            const next = convexRecipientUserId
+                ? `/dashboard/messages?to=${encodeURIComponent(convexRecipientUserId)}${
+                      displayName ? `&name=${encodeURIComponent(displayName)}` : ""
+                  }`
+                : "/dashboard/messages";
+            router.push(`/login?next=${encodeURIComponent(next)}`);
+            return;
+        }
+
+        if (!convexRecipientUserId) {
+            alert("Sign in with a district account to start a conversation with this educator.");
+            return;
+        }
+
+        const query = `to=${encodeURIComponent(convexRecipientUserId)}${
+            displayName ? `&name=${encodeURIComponent(displayName)}` : ""
+        }`;
+        router.push(`/dashboard/messages?${query}`);
+    };
+
     if (!profile) {
         return (
             <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
@@ -137,7 +167,7 @@ export default function EducatorProfilePage() {
                             </div>
                             
                             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto mt-2">
-                                <button onClick={() => alert("Opening message thread...")} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-xl hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
+                                <button onClick={handleMessageEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-xl hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
                                     <ChatCircle weight="fill" className="w-5 h-5" /> Message Educator
                                 </button>
                                 <button onClick={() => alert("Educator saved to your list.")} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-xl hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
@@ -378,7 +408,7 @@ export default function EducatorProfilePage() {
 
             {/* Sticky Mobile CTA */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-[--border-subtle] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-50">
-                <PrimaryButton onClick={() => alert("Opening message thread...")} className="w-full py-3 text-base flex items-center justify-center gap-2">
+                <PrimaryButton onClick={handleMessageEducator} className="w-full py-3 text-base flex items-center justify-center gap-2">
                     <ChatCircle weight="bold" className="w-5 h-5" /> Message Educator
                 </PrimaryButton>
             </div>

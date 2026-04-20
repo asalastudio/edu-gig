@@ -14,9 +14,30 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+const SITE_DESCRIPTION =
+  "Fiverr for school districts. Connect with credential-verified K-12 educators, coaches, and specialists — no staffing-agency markup.";
+
 export const metadata: Metadata = {
-  title: "EduGig - The K-12 Educator Marketplace",
-  description: "Fiverr for school districts. Connect with verified K-12 specialists.",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: "EduGig - The K-12 Educator Marketplace",
+    template: "%s | EduGig",
+  },
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: "EduGig - The K-12 Educator Marketplace",
+    description: SITE_DESCRIPTION,
+    url: APP_URL,
+    siteName: "EduGig",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EduGig - The K-12 Educator Marketplace",
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({

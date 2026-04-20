@@ -170,3 +170,69 @@ export const updateMyProfile = mutation({
         return edu._id;
     },
 });
+
+/**
+ * Internal: patch verification state from a trusted webhook caller.
+ * Used by the Next.js /api/checkr/invite route (status="pending") and the
+ * /api/checkr/webhook route (status="verified"|"unverified"). Guarded by the
+ * same CONVEX_WEBHOOK_SHARED_SECRET as orders.createFromWebhook.
+ *
+ * One of `educatorId`, `educatorClerkId`, or `lookupBackgroundCheckId` must
+ * be supplied to locate the row. `lookupBackgroundCheckId` is a full-table
+ * scan (used by the Checkr webhook when only the candidate id is known).
+ */
+export const updateVerificationFromWebhook = mutation({
+    args: {
+        webhookSecret: v.string(),
+        educatorId: v.optional(v.id("educators")),
+        educatorClerkId: v.optional(v.string()),
+        lookupBackgroundCheckId: v.optional(v.string()),
+        status: v.union(
+            v.literal("unverified"),
+            v.literal("pending"),
+            v.literal("verified"),
+            v.literal("premier")
+        ),
+        backgroundCheckId: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const expected = process.env.CONVEX_WEBHOOK_SHARED_SECRET;
+        if (!expected || args.webhookSecret !== expected) {
+            throw new Error("Forbidden");
+        }
+
+        let educator = null;
+        if (args.educatorId) {
+            educator = await ctx.db.get(args.educatorId);
+        } else if (args.educatorClerkId) {
+            const user = await ctx.db
+                .query("users")
+                .withIndex("by_clerk_id", (q) =>
+                    q.eq("clerkId", args.educatorClerkId!)
+                )
+                .first();
+            if (user) {
+                educator = await ctx.db
+                    .query("educators")
+                    .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+                    .first();
+            }
+        } else if (args.lookupBackgroundCheckId) {
+            const all = await ctx.db.query("educators").collect();
+            educator =
+                all.find(
+                    (e) => e.backgroundCheckId === args.lookupBackgroundCheckId
+                ) ?? null;
+        }
+        if (!educator) throw new Error("Educator not found");
+
+        const patch: Record<string, unknown> = {
+            verificationStatus: args.status,
+        };
+        if (args.backgroundCheckId !== undefined) {
+            patch.backgroundCheckId = args.backgroundCheckId;
+        }
+        await ctx.db.patch(educator._id, patch);
+        return educator._id;
+    },
+});

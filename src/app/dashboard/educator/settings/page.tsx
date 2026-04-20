@@ -7,6 +7,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
+import { CredentialsSection } from "@/components/educator/credentials-section";
 import { ArrowLeft } from "@phosphor-icons/react";
 
 export default function EducatorSettingsPage() {
@@ -45,6 +46,7 @@ export default function EducatorSettingsPage() {
                                 </p>
                             )}
                         </section>
+                        <CredentialsSection />
                         <section className="p-8 rounded-3xl bg-white border border-[var(--border-subtle)] shadow-sm">
                             <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-4">Public profile</h2>
                             <p className="text-sm text-[var(--text-secondary)] mb-4">

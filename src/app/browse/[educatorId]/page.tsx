@@ -70,6 +70,8 @@ export default function EducatorProfilePage() {
     const convexRecipientUserId: string | null =
         useConvexProfile && convexData ? convexData.user._id : null;
 
+    const isMockProfile = educatorId.startsWith("e_");
+
     const handleMessageEducator = () => {
         const firstName = convexData?.user.firstName ?? "";
         const lastName = convexData?.user.lastName ?? "";
@@ -85,8 +87,16 @@ export default function EducatorProfilePage() {
             return;
         }
 
+        if (isMockProfile) {
+            alert(
+                "This is a sample profile from the public demo and can't receive messages. Use Directory in the sidebar to find real educators."
+            );
+            router.push("/browse");
+            return;
+        }
+
         if (!convexRecipientUserId) {
-            alert("Sign in with a district account to start a conversation with this educator.");
+            alert("Couldn't load this educator's account. Try returning to Directory and picking another profile.");
             return;
         }
 

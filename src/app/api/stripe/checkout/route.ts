@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { stripeCheckoutLimiter } from "@/lib/rate-limit";
 
 const hasStripe = !!process.env.STRIPE_SECRET_KEY;
 const hasClerk = !!process.env.CLERK_SECRET_KEY && !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -17,6 +18,20 @@ export async function POST(req: Request) {
         return NextResponse.json(
             { error: "Stripe is not configured. Set STRIPE_SECRET_KEY to enable card payments." },
             { status: 503 }
+        );
+    }
+
+    // Rate limit: 10 req/min per Clerk user id (when authed) or IP (when not).
+    const { userId: rlUserId } = hasClerk ? await auth() : { userId: null };
+    const rlKey = rlUserId || req.headers.get("x-forwarded-for") || "anonymous";
+    const rl = await stripeCheckoutLimiter.check(rlKey);
+    if (!rl.success) {
+        return NextResponse.json(
+            { error: "Too many requests" },
+            {
+                status: 429,
+                headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) },
+            }
         );
     }
 

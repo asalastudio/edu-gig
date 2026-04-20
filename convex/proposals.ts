@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
 
@@ -96,6 +97,12 @@ export const submit = mutation({
             actionUrl: `/dashboard/district/needs/${args.needId}`,
             createdAt: Date.now(),
         });
+
+        try {
+            await ctx.scheduler.runAfter(0, internal.emails.sendNewProposalAlert, { proposalId });
+        } catch (err) {
+            console.log("[proposals.submit] email schedule skipped:", err);
+        }
 
         return proposalId;
     },
@@ -196,6 +203,14 @@ export const accept = mutation({
             actionUrl: `/dashboard/educator/needs`,
             createdAt: Date.now(),
         });
+
+        try {
+            await ctx.scheduler.runAfter(0, internal.emails.sendProposalAcceptedAlert, {
+                proposalId: args.proposalId,
+            });
+        } catch (err) {
+            console.log("[proposals.accept] email schedule skipped:", err);
+        }
 
         return args.proposalId;
     },

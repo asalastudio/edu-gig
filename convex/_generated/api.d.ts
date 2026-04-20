@@ -11,6 +11,7 @@
 import type * as dashboards from "../dashboards.js";
 import type * as districts from "../districts.js";
 import type * as educators from "../educators.js";
+import type * as emails from "../emails.js";
 import type * as gigs from "../gigs.js";
 import type * as messages from "../messages.js";
 import type * as needs from "../needs.js";
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   dashboards: typeof dashboards;
   districts: typeof districts;
   educators: typeof educators;
+  emails: typeof emails;
   gigs: typeof gigs;
   messages: typeof messages;
   needs: typeof needs;

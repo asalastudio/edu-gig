@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
     return await ctx.db
@@ -55,6 +56,12 @@ export const send = mutation({
             actionUrl: "/dashboard/messages",
             createdAt: Date.now(),
         });
+
+        try {
+            await ctx.scheduler.runAfter(0, internal.emails.sendNewMessageAlert, { messageId });
+        } catch (err) {
+            console.log("[messages.send] email schedule skipped:", err);
+        }
 
         return messageId;
     },

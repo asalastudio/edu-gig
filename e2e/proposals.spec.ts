@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Proposals (signed-out demo)", () => {
     test("educator needs page shows the signed-out empty state", async ({ page }) => {
         await page.goto("/dashboard/educator/needs");
-        await expect(page.getByRole("heading", { name: /Open Needs/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Open Needs", exact: true })).toBeVisible();
         await expect(
             page.getByText(/Sign in as an educator to browse open needs/i)
         ).toBeVisible();

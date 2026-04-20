@@ -195,4 +195,23 @@ export default defineSchema({
         createdAt: v.number(),
     }).index("by_user", ["userId"]),
 
+    // ─── Proposals (Educator responses to District-posted Needs) ─
+    proposals: defineTable({
+        needId: v.id("needs"),
+        educatorId: v.id("educators"),
+        educatorUserId: v.id("users"), // denormalized for display
+        message: v.string(),
+        proposedRate: v.optional(v.number()),
+        proposedRateUnit: v.optional(v.union(v.literal("hourly"), v.literal("daily"), v.literal("fixed"))),
+        status: v.union(
+            v.literal("pending"),
+            v.literal("accepted"),
+            v.literal("rejected"),
+            v.literal("withdrawn")
+        ),
+        createdAt: v.number(),
+    }).index("by_need", ["needId"])
+        .index("by_educator", ["educatorId"])
+        .index("by_need_and_educator", ["needId", "educatorId"]),
+
 });

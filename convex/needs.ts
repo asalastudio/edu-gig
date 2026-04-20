@@ -93,6 +93,23 @@ export const getById = query({
     },
 });
 
+/**
+ * Educator-facing browse: open + interviewing needs across all districts.
+ * Ordered by createdAt desc so newest roles surface first.
+ */
+export const listOpenForEducators = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthorized");
+        const user = await getUserByClerkId(ctx, identity.subject);
+        if (!user || user.role !== "educator") throw new Error("Forbidden");
+
+        const needs = await ctx.db.query("needs").order("desc").collect();
+        return needs.filter((n) => n.status === "open" || n.status === "interviewing");
+    },
+});
+
 /** Move a need between statuses (e.g. open → interviewing → placed). */
 export const updateStatus = mutation({
     args: {

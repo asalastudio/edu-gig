@@ -116,10 +116,10 @@ export default function DistrictDashboardPage() {
                                             return (
                                                 <tr key={row.id} className="hover:bg-[var(--bg-hover)] transition-colors group cursor-pointer">
                                                     <td className="py-6 px-8">
-                                                        <div className="flex flex-col">
-                                                            <span className="font-bold text-lg text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">{row.role}</span>
+                                                        <Link href={`/dashboard/district/needs/${row.id}`} className="flex flex-col group/link">
+                                                            <span className="font-bold text-lg text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] group-hover/link:text-[var(--accent-primary)] transition-colors">{row.role}</span>
                                                             <span className="text-sm font-semibold text-[var(--text-tertiary)] mt-1">{row.spec}</span>
-                                                        </div>
+                                                        </Link>
                                                     </td>
                                                     <td className="py-6 px-6 font-bold text-[var(--text-secondary)]">—</td>
                                                     <td className="py-6 px-6">

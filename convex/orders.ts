@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
 const PLATFORM_FEE_PCT = 0.18;
@@ -59,7 +60,7 @@ export const createFromGig = mutation({
         const platformFee = Math.round(totalAmount * PLATFORM_FEE_PCT * 100) / 100;
         const educatorPayout = Math.round((totalAmount - platformFee) * 100) / 100;
 
-        return await ctx.db.insert("orders", {
+        const orderId = await ctx.db.insert("orders", {
             gigId: args.gigId,
             educatorId: gig.educatorId,
             districtId: district._id,
@@ -75,6 +76,14 @@ export const createFromGig = mutation({
             paymentMethod: args.paymentMethod,
             createdAt: Date.now(),
         });
+
+        try {
+            await ctx.scheduler.runAfter(0, internal.emails.sendBookingConfirmation, { orderId });
+        } catch (err) {
+            console.log("[orders.createFromGig] email schedule skipped:", err);
+        }
+
+        return orderId;
     },
 });
 
@@ -312,7 +321,7 @@ export const createFromWebhook = mutation({
         const platformFee = Math.round(args.totalAmount * PLATFORM_FEE_PCT * 100) / 100;
         const educatorPayout = Math.round((args.totalAmount - platformFee) * 100) / 100;
 
-        return await ctx.db.insert("orders", {
+        const orderId = await ctx.db.insert("orders", {
             gigId: args.gigId,
             educatorId: gig.educatorId,
             districtId: district._id,
@@ -329,5 +338,56 @@ export const createFromWebhook = mutation({
             paymentMethod: args.paymentMethod,
             createdAt: Date.now(),
         });
+
+        try {
+            await ctx.scheduler.runAfter(0, internal.emails.sendBookingConfirmation, { orderId });
+        } catch (err) {
+            console.log("[orders.createFromWebhook] email schedule skipped:", err);
+        }
+
+        return orderId;
+    },
+});
+
+/**
+ * Joined data needed to render a Net-30 invoice PDF for an order.
+ * Mirrors the access control of `getById`: buyer, educator on the order,
+ * or superadmin. Returns `null` when the viewer lacks access or data is missing.
+ */
+export const getInvoiceContext = query({
+    args: { orderId: v.id("orders") },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
+        const user = await getUserByClerkId(ctx, identity.subject);
+        if (!user) return null;
+
+        const order = await ctx.db.get(args.orderId);
+        if (!order) return null;
+
+        const educatorDoc = await ctx.db
+            .query("educators")
+            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+            .first();
+
+        const isBuyer = order.buyerUserId === user._id;
+        const isEducator = educatorDoc && order.educatorId === educatorDoc._id;
+        const isAdmin = user.role === "superadmin";
+        if (!isBuyer && !isEducator && !isAdmin) return null;
+
+        const gig = await ctx.db.get(order.gigId);
+        const orderEducator = await ctx.db.get(order.educatorId);
+        const educatorUser = orderEducator ? await ctx.db.get(orderEducator.userId) : null;
+        const buyer = await ctx.db.get(order.buyerUserId);
+        const district = await ctx.db.get(order.districtId);
+        if (!gig || !orderEducator || !educatorUser || !buyer || !district) return null;
+
+        return {
+            order,
+            gig,
+            buyer,
+            educator: educatorUser,
+            district,
+        };
     },
 });

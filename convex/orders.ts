@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 
 const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
 const PLATFORM_FEE_PCT = 0.18;
@@ -178,6 +179,98 @@ export const markCompleted = mutation({
         }
         await ctx.db.patch(args.orderId, { status: "completed" });
         return args.orderId;
+    },
+});
+
+/**
+ * Completed orders the viewer still owes a review on.
+ * Works for both district (buyer) and educator (seller) viewers.
+ */
+export const listCompletedAwaitingReview = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return [];
+        const user = await getUserByClerkId(ctx, identity.subject);
+        if (!user) return [];
+
+        const educator = await ctx.db
+            .query("educators")
+            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+            .first();
+
+        // Collect completed orders for this viewer from whichever side applies.
+        const completedOrders: Doc<"orders">[] = [];
+        if (educator) {
+            const rows = await ctx.db
+                .query("orders")
+                .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
+                .collect();
+            for (const o of rows) if (o.status === "completed") completedOrders.push(o);
+        }
+        if (
+            user.role === "district_admin" ||
+            user.role === "district_hr" ||
+            user.role === "superintendent" ||
+            user.role === "superadmin"
+        ) {
+            const districts = await ctx.db.query("districts").collect();
+            const district = districts.find((d) => d.adminIds.includes(user._id));
+            if (district) {
+                const rows = await ctx.db
+                    .query("orders")
+                    .withIndex("by_district", (q) => q.eq("districtId", district._id))
+                    .collect();
+                for (const o of rows) {
+                    if (o.status === "completed" && o.buyerUserId === user._id) {
+                        completedOrders.push(o);
+                    }
+                }
+            }
+        }
+
+        const out: Array<{
+            order: Doc<"orders">;
+            counterpartName: string;
+            role: "buyer" | "seller";
+        }> = [];
+
+        for (const order of completedOrders) {
+            const isBuyer = order.buyerUserId === user._id;
+            const role: "buyer" | "seller" = isBuyer ? "buyer" : "seller";
+            const educatorDoc = await ctx.db.get(order.educatorId);
+            if (!educatorDoc) continue;
+
+            // revieweeId: who this viewer would be reviewing
+            const revieweeId = isBuyer ? educatorDoc.userId : order.buyerUserId;
+
+            // Skip if viewer has already submitted a review for this order.
+            const existing = await ctx.db
+                .query("reviews")
+                .withIndex("by_reviewee", (q) => q.eq("revieweeId", revieweeId))
+                .collect();
+            const already = existing.some(
+                (r) => r.orderId === order._id && r.reviewerRole === role
+            );
+            if (already) continue;
+
+            let counterpartName = "Counterparty";
+            if (isBuyer) {
+                const counter = await ctx.db.get(educatorDoc.userId);
+                if (counter) {
+                    counterpartName = `${counter.firstName} ${counter.lastName}`.trim() || counterpartName;
+                }
+            } else {
+                const counter = await ctx.db.get(order.buyerUserId);
+                if (counter) {
+                    counterpartName = `${counter.firstName} ${counter.lastName}`.trim() || counterpartName;
+                }
+            }
+
+            out.push({ order, counterpartName, role });
+        }
+
+        return out;
     },
 });
 

@@ -16,7 +16,11 @@ import type * as messages from "../messages.js";
 import type * as needs from "../needs.js";
 import type * as notifications from "../notifications.js";
 import type * as orders from "../orders.js";
+<<<<<<< HEAD
 import type * as proposals from "../proposals.js";
+=======
+import type * as reviews from "../reviews.js";
+>>>>>>> worktree-agent-ab5ec35b
 import type * as seed from "../seed.js";
 import type * as users from "../users.js";
 
@@ -35,7 +39,11 @@ declare const fullApi: ApiFromModules<{
   needs: typeof needs;
   notifications: typeof notifications;
   orders: typeof orders;
+<<<<<<< HEAD
   proposals: typeof proposals;
+=======
+  reviews: typeof reviews;
+>>>>>>> worktree-agent-ab5ec35b
   seed: typeof seed;
   users: typeof users;
 }>;

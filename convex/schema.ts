@@ -160,6 +160,13 @@ export default defineSchema({
         .index("by_educator", ["educatorId"])
         .index("by_status", ["status"]),
 
+    stripeWebhookEvents: defineTable({
+        stripeEventId: v.string(),
+        eventType: v.string(),
+        orderId: v.optional(v.id("orders")),
+        processedAt: v.number(),
+    }).index("by_stripe_event_id", ["stripeEventId"]),
+
     // ─── Reviews ─────────────────────────────────────────────
     reviews: defineTable({
         orderId: v.id("orders"),

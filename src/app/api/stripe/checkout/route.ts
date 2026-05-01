@@ -5,13 +5,13 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { stripeCheckoutLimiter } from "@/lib/rate-limit";
+import { PLATFORM_FEE_PCT, computePricing } from "@/convex/pricing";
 
 const hasStripe = !!process.env.STRIPE_SECRET_KEY;
 const hasClerk = !!process.env.CLERK_SECRET_KEY && !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 const hasConvex = !!process.env.NEXT_PUBLIC_CONVEX_URL;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-const PLATFORM_FEE_PCT = 0.18;
 
 export async function POST(req: Request) {
     if (!hasStripe) {
@@ -74,9 +74,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Gig not found" }, { status: 404 });
     }
 
-    const totalAmount = gigData.gig.price;
-    const platformFee = Math.round(totalAmount * PLATFORM_FEE_PCT * 100) / 100;
-    const unitAmountCents = Math.round(totalAmount * 100);
+    const { gigPrice, totalCharged, platformFee, educatorPayout } = computePricing(gigData.gig.price);
+    const unitAmountCents = Math.round(totalCharged * 100);
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -89,7 +88,7 @@ export async function POST(req: Request) {
                     currency: "usd",
                     product_data: {
                         name: gigData.gig.title,
-                        description: `Platform fee (${Math.round(PLATFORM_FEE_PCT * 100)}%): $${platformFee.toFixed(2)} included`,
+                        description: `Includes ${Math.round(PLATFORM_FEE_PCT * 100)}% platform fee ($${platformFee.toFixed(2)})`,
                     },
                     unit_amount: unitAmountCents,
                 },
@@ -103,7 +102,10 @@ export async function POST(req: Request) {
             startDate,
             endDate: endDate ?? "",
             poNumber: poNumber ?? "",
-            totalAmount: String(totalAmount),
+            gigPrice: String(gigPrice),
+            platformFee: String(platformFee),
+            educatorPayout: String(educatorPayout),
+            totalAmount: String(totalCharged),
         },
     });
 

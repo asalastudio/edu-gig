@@ -3,9 +3,9 @@ import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { computePricing } from "./pricing";
 
 const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
-const PLATFORM_FEE_PCT = 0.18;
 
 async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
     return await ctx.db
@@ -56,9 +56,7 @@ export const createFromGig = mutation({
         const district = districts.find((d) => d.adminIds.includes(user._id));
         if (!district) throw new Error("No district associated with this user");
 
-        const totalAmount = gig.price;
-        const platformFee = Math.round(totalAmount * PLATFORM_FEE_PCT * 100) / 100;
-        const educatorPayout = Math.round((totalAmount - platformFee) * 100) / 100;
+        const { totalCharged, platformFee, educatorPayout } = computePricing(gig.price);
 
         const orderId = await ctx.db.insert("orders", {
             gigId: args.gigId,
@@ -69,7 +67,7 @@ export const createFromGig = mutation({
             engagementType: gig.engagementType,
             startDate: args.startDate,
             endDate: args.endDate,
-            totalAmount,
+            totalAmount: totalCharged,
             platformFee,
             educatorPayout,
             poNumber: args.poNumber,
@@ -80,7 +78,7 @@ export const createFromGig = mutation({
         try {
             await ctx.scheduler.runAfter(0, internal.emails.sendBookingConfirmation, { orderId });
         } catch (err) {
-            console.log("[orders.createFromGig] email schedule skipped:", err);
+            console.warn("[orders.createFromGig] email schedule skipped:", err);
         }
 
         return orderId;
@@ -291,6 +289,7 @@ export const listCompletedAwaitingReview = query({
 export const createFromWebhook = mutation({
     args: {
         webhookSecret: v.string(),
+        stripeEventId: v.string(),
         gigId: v.id("gigs"),
         buyerClerkId: v.string(),
         startDate: v.string(),
@@ -298,6 +297,9 @@ export const createFromWebhook = mutation({
         poNumber: v.optional(v.string()),
         paymentMethod: paymentMethodValidator,
         stripePaymentIntentId: v.string(),
+        gigPrice: v.number(),
+        platformFee: v.number(),
+        educatorPayout: v.number(),
         totalAmount: v.number(),
     },
     handler: async (ctx, args) => {
@@ -305,8 +307,27 @@ export const createFromWebhook = mutation({
         if (!expected || args.webhookSecret !== expected) {
             throw new Error("Forbidden");
         }
+
+        const existing = await ctx.db
+            .query("stripeWebhookEvents")
+            .withIndex("by_stripe_event_id", (q) => q.eq("stripeEventId", args.stripeEventId))
+            .first();
+        if (existing) return existing.orderId ?? null;
+
         const gig = await ctx.db.get(args.gigId);
         if (!gig || !gig.isActive) throw new Error("Gig not available");
+
+        const expectedPricing = computePricing(gig.price);
+        const matchesExpected = (actual: number, expectedAmount: number) =>
+            Math.abs(actual - expectedAmount) <= 0.01;
+        if (
+            !matchesExpected(args.gigPrice, expectedPricing.gigPrice) ||
+            !matchesExpected(args.platformFee, expectedPricing.platformFee) ||
+            !matchesExpected(args.educatorPayout, expectedPricing.educatorPayout) ||
+            !matchesExpected(args.totalAmount, expectedPricing.totalCharged)
+        ) {
+            throw new Error("Pricing tampered with");
+        }
 
         const buyer = await ctx.db
             .query("users")
@@ -318,9 +339,6 @@ export const createFromWebhook = mutation({
         const district = districts.find((d) => d.adminIds.includes(buyer._id));
         if (!district) throw new Error("Buyer has no district");
 
-        const platformFee = Math.round(args.totalAmount * PLATFORM_FEE_PCT * 100) / 100;
-        const educatorPayout = Math.round((args.totalAmount - platformFee) * 100) / 100;
-
         const orderId = await ctx.db.insert("orders", {
             gigId: args.gigId,
             educatorId: gig.educatorId,
@@ -331,18 +349,25 @@ export const createFromWebhook = mutation({
             startDate: args.startDate,
             endDate: args.endDate,
             totalAmount: args.totalAmount,
-            platformFee,
-            educatorPayout,
+            platformFee: args.platformFee,
+            educatorPayout: args.educatorPayout,
             stripePaymentIntentId: args.stripePaymentIntentId,
             poNumber: args.poNumber,
             paymentMethod: args.paymentMethod,
             createdAt: Date.now(),
         });
 
+        await ctx.db.insert("stripeWebhookEvents", {
+            stripeEventId: args.stripeEventId,
+            eventType: "checkout.session.completed",
+            orderId,
+            processedAt: Date.now(),
+        });
+
         try {
             await ctx.scheduler.runAfter(0, internal.emails.sendBookingConfirmation, { orderId });
         } catch (err) {
-            console.log("[orders.createFromWebhook] email schedule skipped:", err);
+            console.warn("[orders.createFromWebhook] email schedule skipped:", err);
         }
 
         return orderId;

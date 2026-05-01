@@ -4,7 +4,7 @@ test.describe("Reviews (signed-out demo)", () => {
     test("review form shows sign-in empty state when signed out", async ({ page }) => {
         await page.goto("/dashboard/reviews/some-id");
 
-        await expect(page.getByRole("heading", { name: /Leave a review/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Leave a review", exact: true })).toBeVisible();
         await expect(page.getByRole("heading", { name: /Sign in to leave a review/i })).toBeVisible();
     });
 

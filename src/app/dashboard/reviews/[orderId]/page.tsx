@@ -63,8 +63,9 @@ export default function LeaveReviewPage() {
     const orderId = rawOrderId as Id<"orders">;
     const router = useRouter();
 
+    const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     const viewer = useQuery(api.users.viewer, {});
-    const signedOut = viewer === null;
+    const signedOut = !hasClerk || viewer === null;
 
     const order = useQuery(api.orders.getById, signedOut ? "skip" : { orderId });
     const myEducator = useQuery(api.educators.getMine, signedOut ? "skip" : {});

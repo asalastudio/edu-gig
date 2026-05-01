@@ -1,6 +1,6 @@
 # Backups
 
-EduGig's primary datastore is Convex. Third-party services (Stripe, Clerk) handle durability of their own records. This doc covers what we back up, how often, and how to restore.
+K12Gig's primary datastore is Convex. Third-party services (Stripe, Clerk) handle durability of their own records. This doc covers what we back up, how often, and how to restore.
 
 ## Convex (primary)
 

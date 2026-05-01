@@ -4,8 +4,8 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 
 export const metadata: Metadata = {
-    title: "Terms of Service | EduGig",
-    description: "Terms governing use of the EduGig platform.",
+    title: "Terms of Service | K12Gig",
+    description: "Terms governing use of the K12Gig platform.",
 };
 
 export default function TermsPage() {
@@ -23,7 +23,7 @@ export default function TermsPage() {
                         These terms are a placeholder. Have legal counsel review and replace with your production terms before go-live.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[--text-primary] pt-4">Use of the platform</h2>
-                    <p>Users agree to provide accurate information, comply with applicable laws, and use EduGig only for lawful purposes.</p>
+                    <p>Users agree to provide accurate information, comply with applicable laws, and use K12Gig only for lawful purposes.</p>
                     <h2 className="font-heading text-xl font-bold text-[--text-primary] pt-4">Limitation of liability</h2>
                     <p>To be defined with your legal team — including disclaimers appropriate for your jurisdiction and insurance posture.</p>
                     <h2 className="font-heading text-xl font-bold text-[--text-primary] pt-4">Contact</h2>

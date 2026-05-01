@@ -63,7 +63,7 @@ async function sendViaResend(payload: ResendPayload): Promise<void> {
 }
 
 function fromAddress(): string {
-    return process.env.RESEND_FROM_EMAIL || "EduGig <hello@edugig.com>";
+    return process.env.RESEND_FROM_EMAIL || "K12Gig <hello@edugig.com>";
 }
 
 function appUrl(): string {

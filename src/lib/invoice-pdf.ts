@@ -2,7 +2,7 @@
  * Invoice PDF generator using pdf-lib (pure JS, works in Node and V8
  * isolate runtimes like Convex actions). Returns a Uint8Array.
  *
- * Layout is A4 single-page with the EduGig wordmark in the header
+ * Layout is A4 single-page with the K12Gig wordmark in the header
  * and a Net-30 footer. Fonts use the embedded Helvetica family so no
  * external asset loading is required.
  */
@@ -73,11 +73,11 @@ export async function generateInvoicePdf(input: InvoiceInput): Promise<Uint8Arra
     } = input;
 
     const pdf = await PDFDocument.create();
-    pdf.setTitle(`EduGig Invoice ${invoiceNumber(orderId)}`);
-    pdf.setAuthor("EduGig");
+    pdf.setTitle(`K12Gig Invoice ${invoiceNumber(orderId)}`);
+    pdf.setAuthor("K12Gig");
     pdf.setSubject("Net-30 Invoice");
-    pdf.setProducer("EduGig Invoice Generator");
-    pdf.setCreator("EduGig");
+    pdf.setProducer("K12Gig Invoice Generator");
+    pdf.setCreator("K12Gig");
 
     const helvetica = await pdf.embedFont(StandardFonts.Helvetica);
     const helveticaBold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -90,8 +90,8 @@ export async function generateInvoicePdf(input: InvoiceInput): Promise<Uint8Arra
     const marginX = 48;
     let y = H - 60;
 
-    // Header — EduGig wordmark (left) and INVOICE label (right).
-    page.drawText("EduGig", {
+    // Header — K12Gig wordmark (left) and INVOICE label (right).
+    page.drawText("K12Gig", {
         x: marginX,
         y,
         size: 24,
@@ -325,7 +325,7 @@ export async function generateInvoicePdf(input: InvoiceInput): Promise<Uint8Arra
         font: helvetica,
         color: MUTED_RGB,
     });
-    const brandFooter = "EduGig — The K-12 Educator Marketplace";
+    const brandFooter = "K12Gig — The K-12 Educator Marketplace";
     const brandFooterWidth = helvetica.widthOfTextAtSize(brandFooter, 9);
     page.drawText(brandFooter, {
         x: W - marginX - brandFooterWidth,

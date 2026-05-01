@@ -17,7 +17,7 @@ describe("resolveFlag precedence", () => {
 
     it("cookie overrides the env var", () => {
         const env = makeEnv({ FLAG_PREMIUM_TIER_UI: "true" });
-        const cookies = "edugig_flag_premium_tier_ui=0; other=ignored";
+        const cookies = "k12gig_flag_premium_tier_ui=0; other=ignored";
         expect(resolveFlag("premium_tier_ui", env, cookies)).toBe(false);
     });
 
@@ -34,7 +34,7 @@ describe("resolveFlag precedence", () => {
 
     it("ignores unparseable cookie values and falls through to env", () => {
         const env = makeEnv({ FLAG_EXPERIMENTAL_MESSAGING: "true" });
-        const cookies = "edugig_flag_experimental_messaging=maybe";
+        const cookies = "k12gig_flag_experimental_messaging=maybe";
         expect(resolveFlag("experimental_messaging", env, cookies)).toBe(true);
     });
 });
@@ -62,10 +62,10 @@ describe("isFlagEnabledClient", () => {
 
     it("honors cookie override over env", () => {
         vi.stubEnv("FLAG_PREMIUM_TIER_UI", "true");
-        expect(isFlagEnabledClient("premium_tier_ui", "edugig_flag_premium_tier_ui=0")).toBe(false);
+        expect(isFlagEnabledClient("premium_tier_ui", "k12gig_flag_premium_tier_ui=0")).toBe(false);
     });
 
     it("returns false for unknown flags regardless of input", () => {
-        expect(isFlagEnabledClient("nope" as FlagName, "edugig_flag_nope=1")).toBe(false);
+        expect(isFlagEnabledClient("nope" as FlagName, "k12gig_flag_nope=1")).toBe(false);
     });
 });

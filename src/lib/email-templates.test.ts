@@ -56,7 +56,7 @@ describe("bookingConfirmation", () => {
     it("includes unsubscribe placeholder and brand footer", () => {
         const out = bookingConfirmation(baseInput);
         expect(out.html).toContain("{{unsubscribe_url}}");
-        expect(out.html).toContain("EduGig");
+        expect(out.html).toContain("K12Gig");
         expect(out.html).toContain("The K-12 Educator Marketplace");
     });
 

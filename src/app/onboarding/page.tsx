@@ -137,7 +137,7 @@ function OnboardingWithClerk() {
                         One more step
                     </h1>
                     <p className="text-[var(--text-secondary)] font-medium mb-8">
-                        Tell us how you&apos;ll use EduGig to finish setup.
+                        Tell us how you&apos;ll use K12Gig to finish setup.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Link href={`/onboarding?${AUTH_INTENT_PARAM}=district`}>

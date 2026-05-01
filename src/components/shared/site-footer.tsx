@@ -6,7 +6,7 @@ export function SiteFooter() {
             <div className="max-w-7xl mx-auto px-6 lg:px-12 grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div className="md:col-span-2 flex flex-col gap-2">
                     <span className="font-heading text-2xl font-bold text-[--accent-primary] grayscale opacity-70">
-                        EduGig
+                        K12Gig
                     </span>
                     <p className="text-sm text-[--text-secondary]">Where educators grow.</p>
                 </div>
@@ -27,7 +27,7 @@ export function SiteFooter() {
             </div>
             
             <div className="max-w-7xl mx-auto px-6 lg:px-12 mt-12 pt-8 border-t border-[--border-subtle] text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
-                <p className="text-sm text-[--text-tertiary]">&copy; {new Date().getFullYear()} EduGig Inc. All rights reserved.</p>
+                <p className="text-sm text-[--text-tertiary]">&copy; {new Date().getFullYear()} K12Gig Inc. All rights reserved.</p>
             </div>
         </footer>
     );

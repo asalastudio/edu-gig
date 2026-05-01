@@ -43,15 +43,25 @@ export async function POST(req: Request) {
     const gigId = metadata.gigId;
     const buyerClerkId = metadata.buyerClerkId;
     const startDate = metadata.startDate;
-    const totalAmount = Number(metadata.totalAmount ?? "0");
+    const pricingMetadataKeys = ["gigPrice", "platformFee", "educatorPayout", "totalAmount"] as const;
+    const missingPricingMetadata = pricingMetadataKeys.filter((key) => !metadata[key]);
     const paymentIntentId =
         typeof session.payment_intent === "string"
             ? session.payment_intent
             : session.payment_intent?.id ?? "";
 
-    if (!gigId || !buyerClerkId || !startDate || !paymentIntentId || !totalAmount) {
+    if (!gigId || !buyerClerkId || !startDate || !paymentIntentId || missingPricingMetadata.length > 0) {
         console.error("Incomplete Stripe metadata", metadata);
         return NextResponse.json({ error: "Incomplete session metadata" }, { status: 400 });
+    }
+
+    const gigPrice = Number(metadata.gigPrice);
+    const platformFee = Number(metadata.platformFee);
+    const educatorPayout = Number(metadata.educatorPayout);
+    const totalAmount = Number(metadata.totalAmount);
+    if (![gigPrice, platformFee, educatorPayout, totalAmount].every(Number.isFinite)) {
+        console.error("Invalid Stripe pricing metadata", metadata);
+        return NextResponse.json({ error: "Invalid session metadata" }, { status: 400 });
     }
 
     const webhookSecret = process.env.CONVEX_WEBHOOK_SHARED_SECRET;
@@ -64,6 +74,7 @@ export async function POST(req: Request) {
     try {
         await convex.mutation(api.orders.createFromWebhook, {
             webhookSecret,
+            stripeEventId: event.id,
             gigId: gigId as Id<"gigs">,
             buyerClerkId,
             startDate,
@@ -71,9 +82,17 @@ export async function POST(req: Request) {
             poNumber: metadata.poNumber || undefined,
             paymentMethod: "card",
             stripePaymentIntentId: paymentIntentId,
+            gigPrice,
+            platformFee,
+            educatorPayout,
             totalAmount,
         });
     } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes("Pricing tampered with")) {
+            console.error("Stripe metadata pricing mismatch", { eventId: event.id, metadata });
+            return NextResponse.json({ error: "Pricing tampered with" }, { status: 400 });
+        }
         console.error("Convex order creation from webhook failed:", err);
         return NextResponse.json({ error: "Order creation failed" }, { status: 500 });
     }

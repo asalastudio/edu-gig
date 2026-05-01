@@ -65,7 +65,7 @@ Flags live in [src/lib/flags.ts](../src/lib/flags.ts). Precedence: cookie > env 
   ```
 - **Cookie override** (dev, per-browser). Set in devtools:
   ```
-  document.cookie = "edugig_flag_convex_live_browse=1; path=/";
+  document.cookie = "k12gig_flag_convex_live_browse=1; path=/";
   ```
   Use `0` to force-off even if env is on.
 

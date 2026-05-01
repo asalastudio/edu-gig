@@ -3,7 +3,7 @@ import { ImageResponse } from "next/og";
 // Route segment config — static so Next.js generates the image at build time.
 export const runtime = "edge";
 
-export const alt = "EduGig — The K-12 Educator Marketplace";
+export const alt = "K12Gig — The K-12 Educator Marketplace";
 export const size = {
     width: 1200,
     height: 630,
@@ -55,7 +55,7 @@ export default function OpengraphImage() {
                             letterSpacing: "-0.02em",
                         }}
                     >
-                        EduGig
+                        K12Gig
                     </span>
                 </div>
                 <div
@@ -68,7 +68,7 @@ export default function OpengraphImage() {
                         lineHeight: 1,
                     }}
                 >
-                    EduGig
+                    K12Gig
                 </div>
                 <div
                     style={{

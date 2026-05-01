@@ -1,10 +1,10 @@
-# EduGig Product Requirements (v1)
+# K12Gig Product Requirements (v1)
 
 ## Why
 
 U.S. K-12 districts rely on generic staffing agencies that take 20-40% markups, obscure educator rates, and slow time-to-fill for critical roles (SpEd, math interventionists, long-term subs). Educators lose agency over rate, availability, and district fit.
 
-EduGig is a two-sided marketplace: districts post needs and book verified educators directly; educators list service gigs and manage their own pipeline.
+K12Gig is a two-sided marketplace: districts post needs and book verified educators directly; educators list service gigs and manage their own pipeline.
 
 ## Readiness scorecard
 

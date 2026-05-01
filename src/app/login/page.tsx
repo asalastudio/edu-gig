@@ -12,7 +12,7 @@ export default function LoginHubPage() {
             <SiteHeader />
             <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-16 text-center">
                 <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-3">
-                    Sign in to EduGig
+                    Sign in to K12Gig
                 </h1>
                 <p className="text-lg text-[var(--text-secondary)] font-medium mb-12 max-w-xl mx-auto">
                     Choose how you use the platform. You can always switch roles later in account settings.

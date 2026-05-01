@@ -63,8 +63,9 @@ export default function LeaveReviewPage() {
     const orderId = rawOrderId as Id<"orders">;
     const router = useRouter();
 
+    const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     const viewer = useQuery(api.users.viewer, {});
-    const signedOut = viewer === null;
+    const signedOut = !hasClerk || viewer === null;
 
     const order = useQuery(api.orders.getById, signedOut ? "skip" : { orderId });
     const myEducator = useQuery(api.educators.getMine, signedOut ? "skip" : {});
@@ -149,7 +150,7 @@ export default function LeaveReviewPage() {
                                 Sign in to leave a review
                             </h3>
                             <p className="text-sm text-[var(--text-secondary)] max-w-sm mx-auto mb-6">
-                                You need an EduGig account to review an engagement you completed.
+                                You need a K12Gig account to review an engagement you completed.
                             </p>
                             <Link href="/login">
                                 <PrimaryButton>Sign in</PrimaryButton>

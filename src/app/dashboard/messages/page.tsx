@@ -57,7 +57,8 @@ function MessagesPageInner() {
         markRead({ conversationId: activeConversationId }).catch(() => {});
     }, [activeConversationId, markRead]);
 
-    const signedOut = viewer === null;
+    const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    const signedOut = !hasClerk || viewer === null;
 
     const activeConversationRow = activeConversationId
         ? convList.find((c) => c.conversationId === activeConversationId) ?? null

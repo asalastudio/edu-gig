@@ -11,7 +11,7 @@ const hasConvexDeployConfig = hasConvexDeployKey || hasSelfHostedConfig;
 const vercelEnv = process.env.VERCEL_ENV;
 const isProduction = vercelEnv === "production";
 
-const run = (command, args) => {
+const run = (command, args, options = {}) => {
   const result = spawnSync(command, args, {
     stdio: "inherit",
     shell: process.platform === "win32",
@@ -19,14 +19,21 @@ const run = (command, args) => {
 
   if (result.error) {
     console.error(result.error);
+    if (options.optional) return false;
     process.exit(1);
   }
 
-  process.exit(result.status ?? 1);
+  if (result.status && result.status !== 0) {
+    if (options.optional) return false;
+    process.exit(result.status);
+  }
+
+  return true;
 };
 
-if (hasConvexDeployConfig) {
+if (isProduction && hasConvexDeployConfig) {
   run("npx", ["convex", "deploy", "--cmd", "npm run build"]);
+  process.exit(0);
 }
 
 if (isProduction) {
@@ -37,6 +44,7 @@ if (isProduction) {
 }
 
 console.log(
-  "Convex deployment credentials are not configured for this non-production build; running Next.js build without Convex deploy.",
+  "Skipping Convex deploy for this non-production Vercel build; running Convex codegen before Next.js build.",
 );
+run("npx", ["convex", "codegen", "--typecheck=disable"], { optional: true });
 run("npm", ["run", "build"]);

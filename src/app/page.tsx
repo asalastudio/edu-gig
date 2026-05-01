@@ -45,7 +45,7 @@ export default function Home() {
             </h1>
 
             <p className="text-lg md:text-xl text-[--text-secondary] max-w-2xl leading-relaxed mt-4">
-              Stop waiting on generic staffing agencies. EduGig connects certified educators, coaches, and specialists directly with the districts who need them most.
+              Stop waiting on generic staffing agencies. K12Gig connects certified educators, coaches, and specialists directly with the districts who need them most.
             </p>
 
             <HeroSearch />

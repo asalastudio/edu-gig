@@ -47,15 +47,15 @@ function renderLayout(opts: { title: string; bodyHtml: string }): string {
 <tr><td align="center">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:${BG_COLOR};border-radius:12px;border:1px solid #e5e7db;overflow:hidden;">
 <tr><td style="background-color:${BRAND_COLOR};padding:20px 28px;">
-<div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.5px;">EduGig</div>
+<div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.5px;">K12Gig</div>
 </td></tr>
 <tr><td style="padding:28px;color:${TEXT_COLOR};font-size:15px;line-height:1.55;">
 ${opts.bodyHtml}
 </td></tr>
 <tr><td style="padding:20px 28px;background-color:${PANEL_COLOR};border-top:1px solid #e5e7db;color:${MUTED_COLOR};font-size:12px;line-height:1.5;">
-<div><strong>EduGig</strong> — The K-12 Educator Marketplace</div>
+<div><strong>K12Gig</strong> — The K-12 Educator Marketplace</div>
 <div style="margin-top:6px;">
-You received this email because of activity on your EduGig account.
+You received this email because of activity on your K12Gig account.
 <a href="{{unsubscribe_url}}" style="color:${MUTED_COLOR};text-decoration:underline;">Unsubscribe</a>
 </div>
 </td></tr>
@@ -110,7 +110,7 @@ export function bookingConfirmation(input: BookingConfirmationInput): EmailPaylo
 
     const bodyHtml = `
 <h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">Booking confirmed</h1>
-<p style="margin:0 0 16px;">Hi ${escapeHtml(buyerName)}, your EduGig booking is confirmed.</p>
+<p style="margin:0 0 16px;">Hi ${escapeHtml(buyerName)}, your K12Gig booking is confirmed.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px;">
   <tr><td style="padding:6px 0;color:${MUTED_COLOR};width:140px;">Gig</td><td style="padding:6px 0;font-weight:600;">${escapeHtml(gigTitle)}</td></tr>
   <tr><td style="padding:6px 0;color:${MUTED_COLOR};">Educator</td><td style="padding:6px 0;">${escapeHtml(educatorName)}</td></tr>
@@ -135,7 +135,7 @@ ${paymentMethod === "invoice" ? `<p style="margin:20px 0 0;color:${MUTED_COLOR};
         ``,
         `Hi ${buyerName},`,
         ``,
-        `Your EduGig booking has been confirmed.`,
+        `Your K12Gig booking has been confirmed.`,
         ``,
         `Gig: ${gigTitle}`,
         `Educator: ${educatorName}`,
@@ -153,7 +153,7 @@ ${paymentMethod === "invoice" ? `<p style="margin:20px 0 0;color:${MUTED_COLOR};
         paymentMethod === "invoice"
             ? `A Net-30 invoice PDF is attached. Payment is due within 30 days.`
             : ``,
-        `— EduGig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Educator Marketplace`,
     ]
         .filter(Boolean)
         .join("\n");
@@ -184,7 +184,7 @@ export function newMessageAlert(input: NewMessageAlertInput): EmailPayload {
 ${escapeHtml(preview)}
 </blockquote>
 <p style="margin:0 0 0;">
-  <a href="${escapeHtml(conversationUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Reply on EduGig</a>
+  <a href="${escapeHtml(conversationUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Reply on K12Gig</a>
 </p>
 `;
 
@@ -199,7 +199,7 @@ ${escapeHtml(preview)}
         ``,
         `Reply: ${conversationUrl}`,
         ``,
-        `— EduGig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Educator Marketplace`,
     ].join("\n");
 
     return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
@@ -252,7 +252,7 @@ export function newProposalAlert(input: NewProposalAlertInput): EmailPayload {
         ``,
         `Review: ${needUrl}`,
         ``,
-        `— EduGig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Educator Marketplace`,
     ].join("\n");
 
     return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
@@ -275,7 +275,7 @@ export function proposalAcceptedAlert(input: ProposalAcceptedAlertInput): EmailP
 <h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">Congratulations — your proposal was accepted</h1>
 <p style="margin:0 0 16px;">Hi ${escapeHtml(educatorFirstName)},</p>
 <p style="margin:0 0 16px;"><strong>${escapeHtml(orgName)}</strong> accepted your proposal for <strong>${escapeHtml(needTitle)}</strong>.</p>
-<p style="margin:0 0 20px;">The district will be in touch with next steps. You can also reach out directly through EduGig's messaging.</p>
+<p style="margin:0 0 20px;">The district will be in touch with next steps. You can also reach out directly through K12Gig's messaging.</p>
 <p style="margin:0 0 0;">
   <a href="${escapeHtml(needUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Open placement</a>
 </p>
@@ -292,7 +292,7 @@ export function proposalAcceptedAlert(input: ProposalAcceptedAlertInput): EmailP
         ``,
         `Open placement: ${needUrl}`,
         ``,
-        `— EduGig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Educator Marketplace`,
     ].join("\n");
 
     return { subject, html: renderLayout({ title: subject, bodyHtml }), text };

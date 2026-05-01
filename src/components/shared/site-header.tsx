@@ -13,7 +13,7 @@ export function SiteHeader() {
         <header className="w-full bg-[--bg-surface]/80 backdrop-blur-md border-b border-[--border-subtle] sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between gap-4">
                 <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-                    <span className="font-heading text-2xl font-bold text-[--accent-primary]">EduGig</span>
+                    <span className="font-heading text-2xl font-bold text-[--accent-primary]">K12Gig</span>
                 </Link>
                 
                 <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-[--text-secondary]">

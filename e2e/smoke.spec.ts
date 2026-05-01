@@ -9,7 +9,7 @@ test.describe("public smoke", () => {
         await expect(page.getByText(/Find K-12 Educators/i)).toBeVisible();
 
         await page.goto("/login");
-        await expect(page.getByRole("heading", { name: /Sign in to EduGig/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: /Sign in to K12Gig/i })).toBeVisible();
 
         await page.goto("/privacy");
         await expect(page.getByRole("heading", { name: /Privacy Policy/i })).toBeVisible();

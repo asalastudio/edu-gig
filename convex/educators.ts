@@ -113,7 +113,7 @@ export const listForBrowse = query({
                         ? ["Background Checked", "Premier"]
                         : educator.verificationStatus === "verified"
                           ? ["Background Checked"]
-                          : ["New to EduGig"],
+                          : ["New to K12Gig"],
             });
         }
         return out;

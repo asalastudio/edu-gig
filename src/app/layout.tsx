@@ -22,20 +22,20 @@ const SITE_DESCRIPTION =
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: "EduGig - The K-12 Educator Marketplace",
-    template: "%s | EduGig",
+    default: "K12Gig - The K-12 Educator Marketplace",
+    template: "%s | K12Gig",
   },
   description: SITE_DESCRIPTION,
   openGraph: {
-    title: "EduGig - The K-12 Educator Marketplace",
+    title: "K12Gig - The K-12 Educator Marketplace",
     description: SITE_DESCRIPTION,
     url: APP_URL,
-    siteName: "EduGig",
+    siteName: "K12Gig",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "EduGig - The K-12 Educator Marketplace",
+    title: "K12Gig - The K-12 Educator Marketplace",
     description: SITE_DESCRIPTION,
   },
 };

@@ -4,7 +4,7 @@
  *   cookie (dev override) > env var > default
  *
  * - Env var names follow `FLAG_<UPPERCASE>` (e.g. `FLAG_CONVEX_LIVE_BROWSE=true`).
- * - Cookie names follow `edugig_flag_<name>=1|0`.
+ * - Cookie names follow `k12gig_flag_<name>=1|0`.
  *
  * Use `isFlagEnabled` on the server (reads env + cookies via the passed string)
  * and `isFlagEnabledClient` in the browser, passing `document.cookie` directly.
@@ -25,7 +25,7 @@ function envVarName(flag: FlagName): string {
 }
 
 function cookieName(flag: FlagName): string {
-    return `edugig_flag_${flag}`;
+    return `k12gig_flag_${flag}`;
 }
 
 /** Parse a truthy/falsy string. Returns undefined if the value doesn't clearly map. */

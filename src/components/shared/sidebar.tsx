@@ -39,7 +39,7 @@ export function Sidebar() {
             <div className="px-3 mb-6 flex flex-col gap-2">
                 <Link href="/">
                     <span className="font-heading text-lg font-bold text-[--text-primary]">
-                        EduGig
+                        K12Gig
                     </span>
                 </Link>
                 <span

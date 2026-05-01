@@ -4,8 +4,8 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 
 export const metadata: Metadata = {
-    title: "Privacy Policy | EduGig",
-    description: "How EduGig handles personal information and district data.",
+    title: "Privacy Policy | K12Gig",
+    description: "How K12Gig handles personal information and district data.",
 };
 
 export default function PrivacyPage() {
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
                 <p className="text-[--text-secondary] text-sm mb-8">Last updated: March 2026</p>
                 <div className="prose prose-neutral max-w-none text-[--text-secondary] space-y-4">
                     <p>
-                        EduGig connects educators and districts. This page is a placeholder; replace with counsel-reviewed language before
+                        K12Gig connects educators and districts. This page is a placeholder; replace with counsel-reviewed language before
                         production launch.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[--text-primary] pt-4">Information we collect</h2>

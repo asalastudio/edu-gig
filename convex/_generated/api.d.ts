@@ -18,6 +18,7 @@ import type * as messages from "../messages.js";
 import type * as needs from "../needs.js";
 import type * as notifications from "../notifications.js";
 import type * as orders from "../orders.js";
+import type * as pricing from "../pricing.js";
 import type * as proposals from "../proposals.js";
 import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   needs: typeof needs;
   notifications: typeof notifications;
   orders: typeof orders;
+  pricing: typeof pricing;
   proposals: typeof proposals;
   reviews: typeof reviews;
   seed: typeof seed;

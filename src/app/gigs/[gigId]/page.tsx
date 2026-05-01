@@ -11,8 +11,7 @@ import { PrimaryButton } from "@/components/shared/button";
 import { Input } from "@/components/shared/input";
 import { CheckIcon, CalendarIcon } from "lucide-react";
 import { isDistrictRole } from "@/lib/roles";
-
-const PLATFORM_FEE_PCT = 0.18;
+import { PLATFORM_FEE_PCT, computePricing } from "@/convex/pricing";
 
 type PaymentMethod = "card" | "invoice";
 
@@ -46,9 +45,7 @@ export default function GigCheckoutPage() {
     const educatorName = gigData?.user
         ? `${gigData.user.firstName} ${gigData.user.lastName}`.trim()
         : "Dr. Sarah Jenkins";
-    const subtotal = gigData?.gig.price ?? 450;
-    const platformFee = Math.round(subtotal * PLATFORM_FEE_PCT * 100) / 100;
-    const total = subtotal + platformFee;
+    const { gigPrice, platformFee, totalCharged } = computePricing(gigData?.gig.price ?? 450);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -253,7 +250,7 @@ export default function GigCheckoutPage() {
                             <div className="flex flex-col gap-3 text-sm">
                                 <div className="flex justify-between text-[--text-secondary]">
                                     <span>Subtotal</span>
-                                    <span className="tabular-nums">${subtotal.toFixed(2)}</span>
+                                    <span className="tabular-nums">${gigPrice.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-[--text-secondary]">
                                     <span>Platform Fee ({Math.round(PLATFORM_FEE_PCT * 100)}%)</span>
@@ -265,7 +262,7 @@ export default function GigCheckoutPage() {
 
                             <div className="flex justify-between items-center text-lg font-bold text-[--text-primary]">
                                 <span>Total</span>
-                                <span className="tabular-nums">${total.toFixed(2)}</span>
+                                <span className="tabular-nums">${totalCharged.toFixed(2)}</span>
                             </div>
 
                             <p className="text-xs text-[--text-tertiary] text-center mt-6 flex items-center justify-center gap-1.5">

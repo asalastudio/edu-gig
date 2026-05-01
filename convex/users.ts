@@ -22,12 +22,24 @@ export const viewer = query({
     },
 });
 
-/** First-time or returning user onboarding — persists role and creates educator row when needed. */
+/** Roles that own a `districts` row (admin / HR / superintendent of a school district). */
+const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent"] as const;
+type DistrictRole = (typeof DISTRICT_ROLES)[number];
+
+function isDistrictRole(role: string): role is DistrictRole {
+    return (DISTRICT_ROLES as readonly string[]).includes(role);
+}
+
+/** First-time or returning user onboarding — persists role and creates educator/district row when needed. */
 export const completeOnboarding = mutation({
     args: {
         role: roleValidator,
         organizationName: v.optional(v.string()),
         headline: v.optional(v.string()),
+        /** US state code (e.g. "TX", "CA"). Required for district roles when creating a district row. */
+        state: v.optional(v.string()),
+        /** Coverage region (e.g. "region_1"). Defaults to "region_1" until full geographic taxonomy lands. */
+        region: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -45,6 +57,15 @@ export const completeOnboarding = mutation({
         const lastName = parts.length > 1 ? parts.slice(1).join(" ") : parts[0] ?? "Name";
 
         const educatorHeadline = args.headline?.trim() || "Update your professional headline";
+        const stateCode = args.state?.trim().toUpperCase();
+        const region = args.region?.trim() || "region_1";
+
+        // Validate: district roles must supply a state when we'd be creating a district row.
+        // We don't enforce this for educator-role re-onboarding flows.
+        const wantsDistrictRow = isDistrictRole(args.role) && !!args.organizationName?.trim();
+        if (wantsDistrictRow && !stateCode) {
+            throw new Error("State is required when creating a district");
+        }
 
         if (existing) {
             if (existing.onboarded) {
@@ -87,6 +108,26 @@ export const completeOnboarding = mutation({
                 }
             }
 
+            // K12-6: returning-user path previously skipped district creation entirely.
+            // If the user is finishing setup as a district admin/HR/superintendent and
+            // no district row exists for them yet, create it here.
+            if (wantsDistrictRow && stateCode) {
+                const alreadyAdmin = await ctx.db
+                    .query("districts")
+                    .filter((q) => q.eq(q.field("adminIds"), [existing._id]))
+                    .first();
+                if (!alreadyAdmin) {
+                    await ctx.db.insert("districts", {
+                        name: args.organizationName!.trim(),
+                        state: stateCode,
+                        region,
+                        adminIds: [existing._id],
+                        planType: "free",
+                        createdAt: Date.now(),
+                    });
+                }
+            }
+
             return { userId: existing._id, alreadyOnboarded: false as const };
         }
 
@@ -119,14 +160,11 @@ export const completeOnboarding = mutation({
             });
         }
 
-        if (
-            args.organizationName &&
-            (args.role === "district_admin" || args.role === "district_hr" || args.role === "superintendent")
-        ) {
+        if (wantsDistrictRow && stateCode) {
             await ctx.db.insert("districts", {
-                name: args.organizationName,
-                state: "TX",
-                region: "region_1",
+                name: args.organizationName!.trim(),
+                state: stateCode,
+                region,
                 adminIds: [userId],
                 planType: "free",
                 createdAt: Date.now(),

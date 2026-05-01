@@ -16,6 +16,7 @@ import {
     isAuthIntent,
     type AuthIntent,
 } from "@/lib/auth-intent";
+import { US_STATES } from "@/lib/us-states";
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -55,6 +56,7 @@ function OnboardingWithClerk() {
     const completeOnboarding = useMutation(api.users.completeOnboarding);
 
     const [value, setValue] = useState("");
+    const [stateCode, setStateCode] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
@@ -82,6 +84,10 @@ function OnboardingWithClerk() {
             );
             return;
         }
+        if (intent === "district" && !stateCode) {
+            setError("Choose your state to continue.");
+            return;
+        }
         setError(null);
         setSubmitting(true);
         try {
@@ -89,6 +95,7 @@ function OnboardingWithClerk() {
                 role: intent === "educator" ? "educator" : "district_admin",
                 organizationName: intent === "district" ? trimmed : undefined,
                 headline: intent === "educator" ? trimmed : undefined,
+                state: intent === "district" ? stateCode : undefined,
             });
             router.replace(dashboardPathForIntent(intent));
         } catch (err) {
@@ -185,6 +192,30 @@ function OnboardingWithClerk() {
                         />
                         <p className="text-sm text-[var(--text-tertiary)]">{helperText}</p>
                     </div>
+
+                    {!isEducator && (
+                        <div className="flex flex-col gap-2">
+                            <label htmlFor="onboarding-state" className="text-sm font-semibold text-[var(--text-primary)]">
+                                State
+                            </label>
+                            <select
+                                id="onboarding-state"
+                                value={stateCode}
+                                onChange={(e) => setStateCode(e.target.value)}
+                                className="w-full h-12 px-4 rounded-xl border border-[var(--border-subtle)] bg-white text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            >
+                                <option value="">Choose a state…</option>
+                                {US_STATES.map((s) => (
+                                    <option key={s.code} value={s.code}>
+                                        {s.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-sm text-[var(--text-tertiary)]">
+                                We use this to match your district with educators licensed in your state.
+                            </p>
+                        </div>
+                    )}
 
                     {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
 

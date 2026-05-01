@@ -7,7 +7,7 @@ Source: the launch-readiness SOW audit completed 2026-04-30. This doc is the see
 - **Linear project:** K12Gig Launch v1
 - **Team:** K12Gig (identifier: `KGIG`)
 - **Milestones:** P0 Blockers (week 1–2) · P1 Polish (week 3–4) · P2 Nice-to-have (post-launch)
-- **Labels:** area/* (payments, auth, dashboards, marketplace, legal, ops, security, email) · type/* (bug, feature, cleanup, legal) · severity/* (blocker, major, minor)
+- **Labels:** `area/*` (payments, auth, dashboards, marketplace, legal, ops, security, email) · `type/*` (bug, feature, cleanup, legal) · `severity/*` (blocker, major, minor)
 
 ## P0 — Blockers (must fix before any paying customer)
 

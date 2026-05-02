@@ -13,9 +13,11 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import {
     bookingConfirmation,
+    disputeCreatedAdminAlert,
     newMessageAlert,
     newProposalAlert,
     proposalAcceptedAlert,
+    refundIssuedAlert,
 } from "../src/lib/email-templates";
 import { generateInvoicePdf, invoiceNumber } from "../src/lib/invoice-pdf";
 
@@ -299,6 +301,55 @@ export const sendProposalAcceptedAlert = internalAction({
         } catch (err) {
             console.error("[emails] sendProposalAcceptedAlert failed", err);
         }
+    },
+});
+
+export const sendRefundIssued = internalAction({
+    args: { orderId: v.id("orders"), refundAmount: v.number(), reason: v.optional(v.string()) },
+    handler: async (ctx, args) => {
+        const data = await ctx.runQuery((await import("./_generated/api")).api.orders.getInvoiceContext, {
+            orderId: args.orderId,
+        });
+        if (!data?.buyer?.email) return;
+        const payload = refundIssuedAlert({
+            buyerFirstName: data.buyer.firstName || "there",
+            orderId: String(args.orderId),
+            refundAmount: args.refundAmount,
+            reason: args.reason,
+        });
+        await sendViaResend({
+            from: fromAddress(),
+            to: [data.buyer.email],
+            subject: payload.subject,
+            html: payload.html,
+            text: payload.text,
+        });
+    },
+});
+
+export const sendDisputeCreatedAlert = internalAction({
+    args: {
+        orderId: v.id("orders"),
+        disputeId: v.string(),
+        amount: v.number(),
+        reason: v.optional(v.string()),
+    },
+    handler: async (_ctx, args) => {
+        const adminEmail = process.env.PAYMENTS_ALERT_EMAIL || process.env.RESEND_FROM_EMAIL;
+        if (!adminEmail) return;
+        const payload = disputeCreatedAdminAlert({
+            orderId: String(args.orderId),
+            disputeId: args.disputeId,
+            amount: args.amount,
+            reason: args.reason,
+        });
+        await sendViaResend({
+            from: fromAddress(),
+            to: [adminEmail],
+            subject: payload.subject,
+            html: payload.html,
+            text: payload.text,
+        });
     },
 });
 

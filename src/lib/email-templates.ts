@@ -297,3 +297,37 @@ export function proposalAcceptedAlert(input: ProposalAcceptedAlertInput): EmailP
 
     return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
 }
+
+export function refundIssuedAlert(input: {
+    buyerFirstName: string;
+    orderId: string;
+    refundAmount: number;
+    reason?: string;
+}): EmailPayload {
+    const subject = `Refund issued for order ${input.orderId}`;
+    const reason = input.reason ? `Reason: ${input.reason}` : "Reason: Not provided";
+    const bodyHtml = `<h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">Refund issued</h1>
+<p>Hi ${escapeHtml(input.buyerFirstName)}, we have issued a refund for order ${escapeHtml(input.orderId)}.</p>
+<p><strong>Amount:</strong> ${escapeHtml(money(input.refundAmount))}</p>
+<p><strong>${escapeHtml(reason)}</strong></p>`;
+    const text = `Refund issued for order ${input.orderId}\nAmount: ${money(input.refundAmount)}\n${reason}`;
+    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+}
+
+export function disputeCreatedAdminAlert(input: {
+    orderId: string;
+    disputeId: string;
+    amount: number;
+    reason?: string;
+}): EmailPayload {
+    const subject = `Stripe dispute opened: ${input.orderId}`;
+    const reason = input.reason || "not_provided";
+    const bodyHtml = `<h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">Dispute flagged</h1>
+<p>An order has been marked disputed and requires manual review.</p>
+<p><strong>Order:</strong> ${escapeHtml(input.orderId)}<br/>
+<strong>Dispute:</strong> ${escapeHtml(input.disputeId)}<br/>
+<strong>Amount:</strong> ${escapeHtml(money(input.amount))}<br/>
+<strong>Reason:</strong> ${escapeHtml(reason)}</p>`;
+    const text = `Dispute flagged\nOrder: ${input.orderId}\nDispute: ${input.disputeId}\nAmount: ${money(input.amount)}\nReason: ${reason}`;
+    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+}

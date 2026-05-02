@@ -34,6 +34,43 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Signature verification failed" }, { status: 400 });
     }
 
+    const webhookSecret = process.env.CONVEX_WEBHOOK_SHARED_SECRET;
+    if (!webhookSecret) {
+        console.error("CONVEX_WEBHOOK_SHARED_SECRET not configured");
+        return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    }
+
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+    if (event.type === "payment_intent.refunded") {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        await convex.mutation(api.orders.markRefundedFromWebhook, {
+            webhookSecret,
+            stripeEventId: event.id,
+            stripePaymentIntentId: paymentIntent.id,
+            refundAmount: (paymentIntent.amount_received - paymentIntent.amount) / 100,
+        });
+        return NextResponse.json({ received: true });
+    }
+
+    if (event.type === "charge.dispute.created") {
+        const dispute = event.data.object as Stripe.Dispute;
+        const paymentIntentId =
+            typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id;
+        if (!paymentIntentId) {
+            return NextResponse.json({ error: "Dispute missing payment intent" }, { status: 400 });
+        }
+        await convex.mutation(api.orders.markDisputedFromWebhook, {
+            webhookSecret,
+            stripeEventId: event.id,
+            stripePaymentIntentId: paymentIntentId,
+            disputeId: dispute.id,
+            amount: dispute.amount / 100,
+            reason: dispute.reason || undefined,
+        });
+        return NextResponse.json({ received: true });
+    }
+
     if (event.type !== "checkout.session.completed") {
         return NextResponse.json({ received: true, ignored: event.type });
     }
@@ -64,13 +101,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Invalid session metadata" }, { status: 400 });
     }
 
-    const webhookSecret = process.env.CONVEX_WEBHOOK_SHARED_SECRET;
-    if (!webhookSecret) {
-        console.error("CONVEX_WEBHOOK_SHARED_SECRET not configured");
-        return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
-    }
 
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
     try {
         await convex.mutation(api.orders.createFromWebhook, {
             webhookSecret,

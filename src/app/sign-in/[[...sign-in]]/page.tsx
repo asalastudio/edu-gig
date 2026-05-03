@@ -5,16 +5,16 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
-import { AUTH_INTENT_PARAM, isAuthIntent } from "@/lib/auth-intent";
+import { AUTH_INTENT_PARAM, afterAuthPath, authPagePath, safeRedirectPath } from "@/lib/auth-intent";
 
 export default function SignInPage() {
     const searchParams = useSearchParams();
     const intentParam = searchParams.get(AUTH_INTENT_PARAM);
-    const intent = isAuthIntent(intentParam) ? intentParam : null;
-
-    const afterAuthUrl = intent
-        ? `/onboarding?${AUTH_INTENT_PARAM}=${intent}`
-        : "/onboarding";
+    const intent = intentParam === "district" || intentParam === "educator" ? intentParam : null;
+    const redirectParam = searchParams.get("redirect_url") ?? searchParams.get("redirectUrl") ?? searchParams.get("next");
+    const currentOrigin = typeof window === "undefined" ? undefined : window.location.origin;
+    const safeNext = safeRedirectPath(redirectParam, currentOrigin);
+    const afterAuthUrl = afterAuthPath(intent, safeNext);
 
     const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -57,7 +57,7 @@ export default function SignInPage() {
                 </p>
                 <SignIn
                     forceRedirectUrl={afterAuthUrl}
-                    signUpUrl={intent ? `/sign-up?${AUTH_INTENT_PARAM}=${intent}` : "/sign-up"}
+                    signUpUrl={authPagePath("/sign-up", intent, safeNext)}
                 />
                 <Link href="/login" className="mt-8 text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
                     ← Other sign-in options

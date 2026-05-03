@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { expectClerkSignIn } from "./helpers";
 
 test.describe("Credentials & Checkr integration", () => {
     test("GET /api/checkr/invite returns 405 (only POST is allowed)", async ({ request }) => {
@@ -15,10 +16,8 @@ test.describe("Credentials & Checkr integration", () => {
         expect([400, 503]).toContain(res.status());
     });
 
-    test("educator settings page renders the Credentials & Verification section", async ({ page }) => {
+    test("educator settings is protected by sign-in", async ({ page }) => {
         await page.goto("/dashboard/educator/settings");
-        await expect(
-            page.getByRole("heading", { name: /Credentials\s*&\s*Verification/i })
-        ).toBeVisible();
+        await expectClerkSignIn(page);
     });
 });

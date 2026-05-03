@@ -24,7 +24,7 @@ type StarPickerProps = {
 function StarPicker({ value, onChange, label, required }: StarPickerProps) {
     return (
         <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-[--text-primary]">
+            <label className="text-sm font-semibold text-[var(--text-primary)]">
                 {label}
                 {required ? " *" : ""}
             </label>
@@ -48,7 +48,7 @@ function StarPicker({ value, onChange, label, required }: StarPickerProps) {
                     </button>
                 ))}
                 {value > 0 && (
-                    <span className="ml-2 text-sm font-semibold text-[--text-secondary]">
+                    <span className="ml-2 text-sm font-semibold text-[var(--text-secondary)]">
                         {formatRating(value)}
                     </span>
                 )}
@@ -94,6 +94,8 @@ export default function LeaveReviewPage() {
     const [submitError, setSubmitError] = useState<string | null>(null);
 
     const isBuyerReviewing = reviewerRole === "buyer";
+    const backHref = viewer?.role === "educator" ? "/dashboard/educator" : "/dashboard/district";
+    const backLabel = viewer?.role === "educator" ? "Back to educator dashboard" : "Back to district dashboard";
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -133,10 +135,10 @@ export default function LeaveReviewPage() {
             <main className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-3xl mx-auto px-8 lg:px-12 py-10">
                     <Link
-                        href="/dashboard/educator"
+                        href={backHref}
                         className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8"
                     >
-                        <ArrowLeft className="w-4 h-4" /> Back to dashboard
+                        <ArrowLeft className="w-4 h-4" /> {backLabel}
                     </Link>
 
                     <PageHeader
@@ -184,7 +186,7 @@ export default function LeaveReviewPage() {
                             <p className="text-sm text-[var(--text-secondary)] mb-6">
                                 Thanks for the feedback — here&apos;s what you submitted.
                             </p>
-                            <div className="p-6 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex flex-col gap-3">
+                            <div className="p-6 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex flex-col gap-3">
                                 <div className="flex items-center gap-2">
                                     <Star weight="fill" className="w-5 h-5 text-amber-500" />
                                     <span className="font-bold text-[var(--text-primary)]">
@@ -212,7 +214,7 @@ export default function LeaveReviewPage() {
                     ) : (
                         <form
                             onSubmit={handleSubmit}
-                            className="mt-10 bg-white p-8 md:p-10 rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-[--border-subtle] flex flex-col gap-6"
+                            className="mt-10 bg-white p-8 md:p-10 rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-[var(--border-subtle)] flex flex-col gap-6"
                         >
                             <StarPicker
                                 value={overall}
@@ -249,7 +251,7 @@ export default function LeaveReviewPage() {
                             )}
 
                             <div className="flex flex-col gap-2">
-                                <label htmlFor="comment" className="text-sm font-semibold text-[--text-primary]">
+                                <label htmlFor="comment" className="text-sm font-semibold text-[var(--text-primary)]">
                                     Comments
                                 </label>
                                 <textarea
@@ -258,7 +260,7 @@ export default function LeaveReviewPage() {
                                     onChange={(e) => setComment(e.target.value)}
                                     rows={5}
                                     placeholder="What stood out? What could be improved?"
-                                    className="w-full p-4 rounded-xl border border-[--border-subtle] bg-[--bg-app] text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] focus:bg-white transition-all resize-y"
+                                    className="w-full p-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
                                 />
                             </div>
 
@@ -268,10 +270,10 @@ export default function LeaveReviewPage() {
                                 </p>
                             )}
 
-                            <div className="flex items-center justify-between mt-4 pt-6 border-t border-[--border-subtle]">
+                            <div className="flex items-center justify-between mt-4 pt-6 border-t border-[var(--border-subtle)]">
                                 <Link
                                     href="/dashboard/educator"
-                                    className="px-6 py-2.5 rounded-lg text-sm font-bold text-[--text-secondary] hover:bg-[--bg-subtle] transition-colors"
+                                    className="px-6 py-2.5 rounded-lg text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
                                 >
                                     Cancel
                                 </Link>

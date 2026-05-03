@@ -107,12 +107,12 @@ export const TAXONOMY = {
     ],
 
     coverageRegions: [
-        { id: "region_1", label: "Region 1" },
-        { id: "region_2", label: "Region 2" },
-        { id: "region_3", label: "Region 3" },
-        { id: "region_4", label: "Region 4" },
-        { id: "region_5", label: "Region 5" },
-        { id: "all", label: "All Regions" },
+        { id: "region_1", label: "North Texas / DFW" },
+        { id: "region_2", label: "Central Texas / Austin" },
+        { id: "region_3", label: "Gulf Coast / Houston" },
+        { id: "region_4", label: "South Texas / San Antonio" },
+        { id: "region_5", label: "West Texas / Remote" },
+        { id: "all", label: "Statewide / Remote" },
     ],
 
     engagementTypes: [
@@ -131,6 +131,11 @@ export const TAXONOMY = {
 /** Resolve taxonomy id to label for display (Convex seed data may use legacy codes). */
 export function getAreaOfNeedLabel(id: string): string {
     const found = TAXONOMY.areasOfNeed.find((a) => a.id === id);
+    return found?.label ?? id.replace(/_/g, " ");
+}
+
+export function getCoverageRegionLabel(id: string): string {
+    const found = TAXONOMY.coverageRegions.find((r) => r.id === id);
     return found?.label ?? id.replace(/_/g, " ");
 }
 

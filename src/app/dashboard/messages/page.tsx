@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -9,6 +10,7 @@ import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
 import { cn } from "@/lib/utils";
+import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
 
 export default function MessagesPage() {
     return (
@@ -22,6 +24,7 @@ function MessagesPageInner() {
     const searchParams = useSearchParams();
     const pendingRecipientId = searchParams.get("to") ?? null;
     const pendingRecipientName = searchParams.get("name") ?? null;
+    const returnTo = `/dashboard/messages${pendingRecipientId ? `?to=${encodeURIComponent(pendingRecipientId)}${pendingRecipientName ? `&name=${encodeURIComponent(pendingRecipientName)}` : ""}` : ""}`;
 
     const viewer = useQuery(api.users.viewer, {});
     const conversations = useQuery(api.messages.listMyConversations, viewer ? {} : "skip");
@@ -111,14 +114,29 @@ function MessagesPageInner() {
                     />
 
                     {signedOut && (
-                        <div className="mt-8 p-8 rounded-3xl bg-white border border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                            Sign in to see your conversations.
+                        <div className="mt-8 p-8 rounded-lg bg-white border border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                            <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
+                                Sign in to continue messaging
+                            </h2>
+                            <p className="text-sm font-medium mb-6">
+                                Your conversations are tied to your K12Gig account. Sign in and we’ll bring you back here.
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <Link href={`/sign-in?next=${encodeURIComponent(returnTo)}`}>
+                                    <PrimaryButton className="w-full sm:w-auto">Sign in</PrimaryButton>
+                                </Link>
+                                <Link href={`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent(returnTo)}`}>
+                                    <button className="w-full sm:w-auto px-6 py-3 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
+                                        Create account
+                                    </button>
+                                </Link>
+                            </div>
                         </div>
                     )}
 
                     {!signedOut && (
                         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <aside className="md:col-span-1 bg-white rounded-3xl border border-[var(--border-subtle)] overflow-hidden">
+                            <aside className="md:col-span-1 bg-white rounded-lg border border-[var(--border-subtle)] overflow-hidden">
                                 {selectedPendingRecipientId && (
                                     <button
                                         type="button"
@@ -179,7 +197,7 @@ function MessagesPageInner() {
                                 )}
                             </aside>
 
-                            <section className="md:col-span-2 bg-white rounded-3xl border border-[var(--border-subtle)] p-6 min-h-[500px] flex flex-col">
+                            <section className="md:col-span-2 bg-white rounded-lg border border-[var(--border-subtle)] p-6 min-h-[500px] flex flex-col">
                                 {selectedPendingRecipientId ? (
                                     <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 text-sm text-[var(--text-secondary)]">
                                         <div className="font-bold text-[var(--text-primary)] text-base">
@@ -201,7 +219,7 @@ function MessagesPageInner() {
                                             <div
                                                 key={m._id}
                                                 className={cn(
-                                                    "max-w-[75%] px-4 py-2 rounded-2xl text-sm",
+                                                    "max-w-[75%] px-4 py-2 rounded-lg text-sm",
                                                     m.senderId === viewer?._id
                                                         ? "self-end bg-[var(--accent-primary)] text-white"
                                                         : "self-start bg-[var(--bg-subtle)] text-[var(--text-primary)]"
@@ -234,7 +252,7 @@ function MessagesPageInner() {
                                         }
                                         disabled={!activeCounterpartId || sending}
                                         rows={3}
-                                        className="w-full resize-none rounded-2xl border border-[var(--border-subtle)] bg-white px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 disabled:opacity-50"
+                                        className="w-full resize-none rounded-lg border border-[var(--border-subtle)] bg-white px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 disabled:opacity-50"
                                         onKeyDown={(e) => {
                                             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                                                 e.preventDefault();

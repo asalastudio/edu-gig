@@ -161,7 +161,7 @@ export default function DistrictNeedDetailPage() {
                     />
 
                     {need ? (
-                        <section className="p-8 rounded-3xl bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col gap-4">
+                        <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col gap-4">
                             <div className="flex flex-wrap gap-3">
                                 <StatusPill status={need.status} />
                                 {need.subCategory && (
@@ -195,7 +195,7 @@ export default function DistrictNeedDetailPage() {
                             )}
                         </section>
                     ) : (
-                        <section className="p-8 rounded-3xl bg-white border border-[var(--border-subtle)] shadow-sm text-[var(--text-secondary)]">
+                        <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm text-[var(--text-secondary)]">
                             Loading need…
                         </section>
                     )}
@@ -209,13 +209,13 @@ export default function DistrictNeedDetailPage() {
                             )}
 
                             {proposals === undefined && (
-                                <div className="p-8 rounded-3xl bg-white border border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                                <div className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] text-[var(--text-secondary)]">
                                     Loading proposals…
                                 </div>
                             )}
 
                             {proposals && proposals.length === 0 && (
-                                <div className="p-10 rounded-3xl bg-white border border-[var(--border-subtle)] text-center">
+                                <div className="p-10 rounded-lg bg-white border border-[var(--border-subtle)] text-center">
                                     <h3 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
                                         No proposals yet
                                     </h3>
@@ -246,16 +246,16 @@ export default function DistrictNeedDetailPage() {
                                     return (
                                         <div
                                             key={row.proposal._id}
-                                            className="p-6 rounded-3xl bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col md:flex-row gap-5"
+                                            className="p-6 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col md:flex-row gap-5"
                                         >
                                             <div className="flex flex-col items-center md:items-start gap-2">
-                                                <div className="h-14 w-14 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-center font-heading font-bold text-[var(--text-secondary)]">
+                                                <div className="h-14 w-14 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-center font-heading font-bold text-[var(--text-secondary)]">
                                                     {row.user?.avatarUrl ? (
                                                         // eslint-disable-next-line @next/next/no-img-element
                                                         <img
                                                             src={row.user.avatarUrl}
                                                             alt={educatorName}
-                                                            className="h-14 w-14 rounded-2xl object-cover"
+                                                            className="h-14 w-14 rounded-lg object-cover"
                                                         />
                                                     ) : (
                                                         initials || "?"
@@ -269,7 +269,7 @@ export default function DistrictNeedDetailPage() {
                                                     </h3>
                                                     <span
                                                         className={cn(
-                                                            "px-3 py-1 font-bold rounded-xl text-xs uppercase tracking-widest border inline-block",
+                                                            "px-3 py-1 font-bold rounded-lg text-xs uppercase tracking-widest border inline-block",
                                                             label.color === "emerald"
                                                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                                                 : label.color === "amber"
@@ -364,7 +364,7 @@ function StatusPill({ status }: { status: string }) {
                 ? "Closed"
                 : "Open";
     return (
-        <span className={cn("px-3 py-1 rounded-xl text-xs font-bold uppercase tracking-widest border", color)}>
+        <span className={cn("px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest border", color)}>
             {label}
         </span>
     );
@@ -390,7 +390,7 @@ function ShellEmpty({
                     >
                         <ArrowLeft className="w-4 h-4" /> Back to dashboard
                     </Link>
-                    <div className="p-12 rounded-3xl bg-white border border-[var(--border-subtle)] shadow-sm text-center max-w-xl mx-auto">
+                    <div className="p-12 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm text-center max-w-xl mx-auto">
                         <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-3">
                             {title}
                         </h1>

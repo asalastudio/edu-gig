@@ -508,12 +508,14 @@ export type MockEducatorProfileView = {
     primarySubjectLabel: string;
     gradeLevelsLabel: string;
     certCount: number;
+    startingRate?: number;
+    rateUnit: "hour" | "day";
 };
 
 function initialsFromName(name: string): string {
     const parts = name.replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.)\s+/i, "").split(/\s+/);
     const a = parts[0]?.[0] ?? "";
-    const b = parts[parts.length - 1]?.[0] ?? "";
+    const b = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "";
     return (a + b).toUpperCase() || "EG";
 }
 
@@ -618,6 +620,8 @@ export function getMockEducatorProfileView(educatorId: string): MockEducatorProf
         primarySubjectLabel: areaLabels[0] ?? "General",
         gradeLevelsLabel,
         certCount: e.badges?.length ?? 2,
+        startingRate: e.startingRate,
+        rateUnit: "hour",
     };
 }
 

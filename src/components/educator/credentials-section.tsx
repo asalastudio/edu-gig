@@ -184,7 +184,7 @@ export function CredentialsSection() {
 
     return (
         <section
-            className="p-8 rounded-3xl bg-white border border-[var(--border-subtle)] shadow-sm"
+            className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm"
             data-testid="credentials-section"
         >
             <div className="flex items-start justify-between mb-5 gap-4 flex-wrap">
@@ -219,7 +219,7 @@ export function CredentialsSection() {
             {!isDemo && showForm && (
                 <form
                     onSubmit={handleSubmit}
-                    className="mb-6 p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] grid gap-4"
+                    className="mb-6 p-5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] grid gap-4"
                     data-testid="credential-form"
                 >
                     <div className="grid sm:grid-cols-2 gap-4">
@@ -324,7 +324,7 @@ export function CredentialsSection() {
                     {credentials.map((c) => (
                         <li
                             key={c._id}
-                            className="flex items-start justify-between gap-4 p-4 rounded-2xl border border-[var(--border-subtle)] bg-white"
+                            className="flex items-start justify-between gap-4 p-4 rounded-lg border border-[var(--border-subtle)] bg-white"
                             data-testid="credential-card"
                         >
                             <div className="min-w-0">

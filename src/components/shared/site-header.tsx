@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { PrimaryButton } from "./button";
 import { ArrowRight, List, X } from "@phosphor-icons/react";
-import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
 import { BrandLogo } from "@/components/shared/brand-logo";
 
 export function SiteHeader() {
@@ -30,7 +29,7 @@ export function SiteHeader() {
                     >
                         Sign in
                     </Link>
-                    <Link href={`/sign-up?${AUTH_INTENT_PARAM}=district`}>
+                    <Link href="/sign-up">
                         <PrimaryButton className="text-sm">
                             Get started <ArrowRight weight="bold" className="h-4 w-4" />
                         </PrimaryButton>
@@ -55,7 +54,7 @@ export function SiteHeader() {
                     <Link href="/login" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>
                         Sign in
                     </Link>
-                    <Link href={`/sign-up?${AUTH_INTENT_PARAM}=district`} onClick={() => setMobileMenuOpen(false)}>
+                    <Link href="/sign-up" onClick={() => setMobileMenuOpen(false)}>
                         <PrimaryButton className="w-full mt-2">Get started</PrimaryButton>
                     </Link>
                 </div>

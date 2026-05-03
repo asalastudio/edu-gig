@@ -14,7 +14,6 @@ import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { getMockEducatorProfileView } from "@/lib/mock-educators";
 import { mapConvexEducatorToProfileView } from "@/lib/map-convex-educator-profile";
 import { isDistrictRole } from "@/lib/roles";
 import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
@@ -77,13 +76,34 @@ export default function EducatorProfilePage() {
     const profile =
         useConvexProfile && convexData
             ? mapConvexEducatorToProfileView(convexData.educator, convexData.user)
-            : getMockEducatorProfileView(educatorId);
+            : null;
 
-    // Real Convex user id for the educator (when browsing Convex data). Null for mock demo rows.
     const convexRecipientUserId: string | null =
         useConvexProfile && convexData ? convexData.user._id : null;
 
     const isMockProfile = educatorId.startsWith("e_");
+
+    if (!profile) {
+        const headline = isMockProfile ? "Sample profile retired" : "Profile not available";
+        const body = isMockProfile
+            ? "This profile id was part of an earlier demo dataset that is no longer rendered."
+            : !viewer
+              ? "Sign in with a district account to view real educator profiles."
+              : !districtOK
+                ? "Use a district account to view real educator profiles."
+                : "This profile isn’t available — it may be unpublished or unverified.";
+        return (
+            <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
+                <SiteHeader />
+                <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
+                    <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">{headline}</h1>
+                    <p className="text-[var(--text-secondary)] mb-8">{body}</p>
+                    <PrimaryButton onClick={() => router.push("/browse")}>Back to directory</PrimaryButton>
+                </main>
+                <SiteFooter />
+            </div>
+        );
+    }
 
     const handleMessageEducator = () => {
         const firstName = convexData?.user.firstName ?? "";
@@ -368,59 +388,30 @@ export default function EducatorProfilePage() {
 
                             <TabsContent value="reviews" className="mt-0 outline-none animate-in fade-in duration-300">
                                 <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Ratings & Reviews</h2>
-                                <div className="flex flex-col gap-10">
-                                    <div className="flex flex-col md:flex-row gap-8 items-start md:items-center bg-[var(--bg-subtle)] p-8 rounded-lg border border-[var(--border-subtle)]">
-                                        <div className="flex flex-col gap-1 items-center justify-center p-8 bg-white rounded-lg border border-[var(--border-default)] min-w-[200px] shadow-[var(--shadow-subtle)]">
-                                            <span className="text-5xl font-heading font-bold text-[var(--text-primary)]">{profile.avgRating}</span>
-                                            <div className="flex text-[var(--accent-secondary)] mt-2">
-                                                {[1,2,3,4,5].map(s => <Star weight="fill" key={s} className="w-6 h-6 fill-current" />)}
-                                            </div>
-                                            <span className="text-base font-bold text-[var(--text-secondary)] mt-2">{profile.reviewCount} Reviews</span>
-                                        </div>
-                                        <div className="flex-1 flex flex-col gap-4 w-full">
-                                            {[
-                                                { label: "Subject Expertise", val: 98 },
-                                                { label: "Classroom Management", val: 95 },
-                                                { label: "Communication", val: 100 },
-                                                { label: "Reliability", val: 98 }
-                                            ].map(cat => (
-                                                <div key={cat.label} className="flex flex-col gap-2">
-                                                    <div className="flex justify-between text-base font-bold">
-                                                        <span className="text-[var(--text-secondary)]">{cat.label}</span>
-                                                        <span className="text-[var(--text-primary)]">{cat.val}%</span>
-                                                    </div>
-                                                    <div className="w-full h-3 bg-[var(--border-strong)] rounded-full overflow-hidden">
-                                                        <div className="h-full bg-[var(--accent-secondary)] rounded-full" style={{ width: `${cat.val}%` }} />
-                                                    </div>
+                                {profile.reviewCount > 0 ? (
+                                    <div className="flex flex-col gap-10">
+                                        <div className="flex flex-col md:flex-row gap-8 items-start md:items-center bg-[var(--bg-subtle)] p-8 rounded-lg border border-[var(--border-subtle)]">
+                                            <div className="flex flex-col gap-1 items-center justify-center p-8 bg-white rounded-lg border border-[var(--border-default)] min-w-[200px] shadow-[var(--shadow-subtle)]">
+                                                <span className="text-5xl font-heading font-bold text-[var(--text-primary)]">{profile.avgRating.toFixed(1)}</span>
+                                                <div className="flex text-[var(--accent-secondary)] mt-2">
+                                                    {[1,2,3,4,5].map(s => <Star weight={s <= Math.round(profile.avgRating) ? "fill" : "regular"} key={s} className="w-6 h-6 fill-current" />)}
                                                 </div>
-                                            ))}
+                                                <span className="text-base font-bold text-[var(--text-secondary)] mt-2">{profile.reviewCount} Review{profile.reviewCount === 1 ? "" : "s"}</span>
+                                            </div>
+                                            <div className="flex-1 text-sm text-[var(--text-secondary)] leading-relaxed">
+                                                Individual review excerpts will appear here once districts complete reviews on this educator.
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div className="flex flex-col gap-6">
-                                        <div className="p-8 bg-white border border-[var(--border-default)] rounded-lg shadow-[var(--shadow-subtle)] hover:shadow-[var(--shadow-soft)] transition-shadow">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-[var(--bg-subtle)] flex items-center justify-center font-bold text-[var(--text-tertiary)]">
-                                                        DA
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-[var(--text-primary)] text-lg">District Admin</div>
-                                                        <div className="flex text-[var(--accent-secondary)] mt-1">
-                                                            {[1,2,3,4,5].map(s => <Star weight="fill" key={s} className="w-4 h-4 fill-current" />)}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <span className="text-sm text-[var(--text-tertiary)] font-bold uppercase tracking-wider">Jan 2026</span>
-                                            </div>
-                                            <p className="text-[var(--text-secondary)] text-lg leading-relaxed">
-                                                &ldquo;Exceptional expertise and professionalism. Made an immediate impact on our
-                                                team&apos;s curriculum planning process. Highly recommended for any school looking to
-                                                elevate their math department.&rdquo;
-                                            </p>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center p-12 bg-[var(--bg-subtle)] rounded-lg border border-[var(--border-subtle)] text-center">
+                                        <div className="w-16 h-16 rounded-full bg-white border border-[var(--border-subtle)] flex items-center justify-center mb-4">
+                                            <Star weight="regular" className="w-8 h-8 text-[var(--text-tertiary)]" />
                                         </div>
+                                        <h3 className="text-lg font-heading font-bold text-[var(--text-primary)] mb-2">No reviews yet</h3>
+                                        <p className="text-[var(--text-secondary)] max-w-md">Districts who complete an engagement with this educator can leave a review. Be the first to hire and help build their reputation on K12Gig.</p>
                                     </div>
-                                </div>
+                                )}
                             </TabsContent>
 
                             <TabsContent value="availability" className="mt-0 outline-none animate-in fade-in duration-300">

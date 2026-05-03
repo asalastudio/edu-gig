@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { PrimaryButton } from "@/components/shared/button";
 import { ShieldCheck, Sparkle, TrendUp, Users, Star, Check } from "@phosphor-icons/react";
@@ -8,12 +7,20 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { HeroSearch } from "@/components/shared/hero-search";
 import { CategoryTiles } from "@/components/shared/category-tiles";
-import { MOCK_EDUCATORS } from "@/lib/mock-educators";
 
-const heroMatches = [
-  { educator: MOCK_EDUCATORS[0], focus: "6-8 math", fit: "98%" },
-  { educator: MOCK_EDUCATORS[2], focus: "Bilingual ELA", fit: "96%" },
-  { educator: MOCK_EDUCATORS[4], focus: "STEM/AP", fit: "94%" },
+type HeroSampleMatch = {
+  initials: string;
+  tier: "Verified" | "Premier";
+  role: string;
+  focus: string;
+  fit: string;
+  rateRange: string;
+};
+
+const heroSampleMatches: HeroSampleMatch[] = [
+  { initials: "M·S", tier: "Verified", role: "Math interventionist", focus: "6-8 math", fit: "98%", rateRange: "$60-75/hr" },
+  { initials: "B·E", tier: "Premier", role: "Bilingual ELA coach", focus: "K-5 ELA", fit: "96%", rateRange: "$70-85/hr" },
+  { initials: "S·A", tier: "Verified", role: "STEM specialist", focus: "9-12 AP science", fit: "94%", rateRange: "$80-95/hr" },
 ];
 
 export default function Home() {
@@ -126,9 +133,9 @@ export default function Home() {
 
               <ul className="flex flex-col gap-5 mt-4">
                 {[
-                  { title: "Pre-screened & Vetted", desc: "Every educator passes strict credential verification and background checks before listing their gigs." },
-                  { title: "Transparent Pricing", desc: "No opaque agency markups. You see precisely what the educator charges." },
-                  { title: "Instant Sourcing", desc: "Filter by taxonomy (SpEd, STEM, Sub) to engage professionals exactly when you need them." }
+                  { title: "Credential review", desc: "Educators progress through verification tiers — Basic, Verified, Premier — with credentials reviewed by our team. Background checks via Checkr roll out summer 2026." },
+                  { title: "Transparent pricing", desc: "Educator rates are shown on every profile. The 18% platform fee is added at checkout — no hidden agency markups." },
+                  { title: "Direct sourcing", desc: "Filter by Area of Need, grade level, and coverage region to reach the right educators in your district." }
                 ].map((item, i) => (
                   <li key={i} className="flex gap-4 items-start">
                     <div className="h-6 w-6 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] flex items-center justify-center flex-shrink-0 mt-1">
@@ -193,7 +200,7 @@ export default function Home() {
               <div className="flex flex-col items-center gap-3 p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm hover:shadow-md hover:border-[var(--accent-primary)]/30 transition-all">
                 <TrendUp weight="duotone" className="h-10 w-10 text-[var(--accent-secondary)] mb-2" />
                 <h3 className="font-heading text-2xl font-semibold text-[var(--text-primary)]">Set Your Rate</h3>
-                <p className="text-sm text-[var(--text-secondary)] text-center leading-relaxed">You decide what your time and expertise is worth. No hidden agency cuts from your paycheck.</p>
+                <p className="text-sm text-[var(--text-secondary)] text-center leading-relaxed">You decide what your time and expertise is worth. K12Gig adds an 18% platform fee at checkout, fully disclosed on the pricing page.</p>
               </div>
               <div className="flex flex-col items-center gap-3 p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm hover:shadow-md hover:border-[var(--accent-primary)]/30 transition-all">
                 <Users weight="duotone" className="h-10 w-10 text-[var(--accent-secondary)] mb-2" />
@@ -233,9 +240,9 @@ function HeroMatchBoard() {
         <div className="absolute inset-0 rounded-lg border border-[#F7F1E3]/10" />
         <div className="relative">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <p className="eyebrow text-white/55">District request</p>
+            <p className="eyebrow text-white/55">Sample district request</p>
             <span className="rounded-md border border-[#F4D46A]/25 bg-[#F4D46A]/12 px-2 py-1 text-xs font-bold text-[#F4D46A]">
-              Posted today
+              Illustration
             </span>
           </div>
 
@@ -250,9 +257,9 @@ function HeroMatchBoard() {
 
           <div className="grid grid-cols-3 gap-2 border-y border-white/10 py-3">
             {[
-              ["6", "matches"],
-              ["4.8", "avg rating"],
-              ["0", "agency days"],
+              ["18%", "platform fee"],
+              ["3 tiers", "verification"],
+              ["Net-30", "or card"],
             ].map(([value, label]) => (
               <div key={label} className="rounded-lg border border-white/10 bg-white/[0.045] px-3 py-2">
                 <p className="font-heading text-xl font-bold text-white">{value}</p>
@@ -262,13 +269,13 @@ function HeroMatchBoard() {
           </div>
 
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm font-bold text-white">Best educator matches</p>
-            <p className="text-xs font-semibold text-white/52">Credential reviewed</p>
+            <p className="text-sm font-bold text-white">Sample educator matches</p>
+            <p className="text-xs font-semibold text-white/52">Illustrative only</p>
           </div>
 
           <div className="mt-3 flex flex-col gap-3">
-            {heroMatches.map((match) => (
-              <MatchEducatorRow key={match.educator.id} {...match} />
+            {heroSampleMatches.map((match) => (
+              <SampleMatchRow key={match.role} {...match} />
             ))}
           </div>
         </div>
@@ -277,47 +284,31 @@ function HeroMatchBoard() {
   );
 }
 
-function MatchEducatorRow({ educator, focus, fit }: (typeof heroMatches)[number]) {
-  const tierLabel = educator.verificationTier === "premier" ? "Premier" : "Verified";
-
+function SampleMatchRow({ initials, tier, role, focus, fit, rateRange }: HeroSampleMatch) {
   return (
     <div className="rounded-lg border border-white/12 bg-[#F7F1E3] p-3 text-[var(--text-primary)] shadow-[0_14px_34px_rgba(0,0,0,0.16)]">
       <div className="flex items-center gap-3">
-        {educator.avatarUrl ? (
-          <Image
-            src={educator.avatarUrl}
-            alt=""
-            width={52}
-            height={52}
-            className="h-[52px] w-[52px] rounded-lg object-cover ring-1 ring-[var(--border-subtle)]"
-          />
-        ) : (
-          <div className="flex h-[52px] w-[52px] items-center justify-center rounded-lg bg-[var(--bg-hover)] font-heading text-sm font-bold text-[var(--accent-primary)]">
-            {educator.name.split(" ").map((part) => part[0]).join("")}
-          </div>
-        )}
+        <div className="flex h-[52px] w-[52px] items-center justify-center rounded-lg bg-[var(--bg-hover)] font-heading text-sm font-bold text-[var(--accent-primary)]">
+          {initials}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
-            <p className="truncate font-heading text-sm font-bold">{educator.name}</p>
+            <p className="truncate font-heading text-sm font-bold">{role}</p>
             <span className="rounded-md bg-[var(--accent-primary)] px-2 py-1 text-xs font-bold text-white">
               {fit}
             </span>
           </div>
-          <p className="mt-1 truncate text-xs font-medium text-[var(--text-secondary)]">{educator.headline}</p>
+          <p className="mt-1 truncate text-xs font-medium text-[var(--text-secondary)]">Coverage example for procurement teams</p>
         </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
         <span className="inline-flex items-center gap-1 rounded-md border border-[var(--accent-success)]/20 bg-[var(--accent-success)]/10 px-1.5 py-0.5 text-[var(--accent-success)]">
           <ShieldCheck weight="fill" className="h-3.5 w-3.5" />
-          {tierLabel}
-        </span>
-        <span className="inline-flex items-center gap-1 rounded-md border border-[var(--accent-secondary)]/25 bg-[var(--accent-secondary)]/15 px-1.5 py-0.5">
-          <Star weight="fill" className="h-3.5 w-3.5 text-[var(--accent-secondary)]" />
-          {educator.overallRating.toFixed(1)}
+          {tier}
         </span>
         <span className="rounded-md border border-[var(--border-subtle)] bg-white px-1.5 py-0.5">
-          ${educator.startingRate}/hr
+          {rateRange}
         </span>
         <span className="rounded-md border border-[var(--accent-tertiary)]/20 bg-[var(--accent-tertiary)]/10 px-1.5 py-0.5 text-[var(--accent-tertiary)]">
           {focus}

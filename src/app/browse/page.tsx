@@ -14,7 +14,6 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
 import { cn } from "@/lib/utils";
-import { MOCK_EDUCATORS } from "@/lib/mock-educators";
 import { isDistrictRole } from "@/lib/roles";
 
 const USE_CONVEX_BROWSE = process.env.NEXT_PUBLIC_USE_CONVEX_BROWSE === "true";
@@ -55,7 +54,7 @@ export default function BrowsePage() {
         if (USE_CONVEX_BROWSE && viewer !== undefined && districtOK && convexEducators !== undefined) {
             return convexEducators;
         }
-        return MOCK_EDUCATORS;
+        return [];
     }, [viewer, districtOK, convexEducators]);
 
     const convexLive =

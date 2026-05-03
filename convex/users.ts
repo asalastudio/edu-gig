@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { PRIVACY_VERSION, TERMS_VERSION } from "../src/lib/legal";
 
 const onboardingRoleValidator = v.union(
@@ -158,7 +159,15 @@ export const claimManualSuperadmin = mutation({
     },
 });
 
-/** First-time or returning user onboarding — persists role and creates educator row when needed. */
+/** Roles that own a `districts` row (admin / HR / superintendent of a school district). */
+const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent"] as const;
+type DistrictRole = (typeof DISTRICT_ROLES)[number];
+
+function isDistrictRole(role: string): role is DistrictRole {
+    return (DISTRICT_ROLES as readonly string[]).includes(role);
+}
+
+/** First-time or returning user onboarding — persists role and creates educator/district row when needed. */
 export const completeOnboarding = mutation({
     args: {
         role: onboardingRoleValidator,
@@ -178,6 +187,10 @@ export const completeOnboarding = mutation({
         termsVersion: v.optional(v.string()),
         privacyVersion: v.optional(v.string()),
         legalAcceptedAt: v.optional(v.number()),
+        /** US state code (e.g. "TX", "CA"). Required for district roles when creating a district row. */
+        state: v.optional(v.string()),
+        /** Coverage region (e.g. "region_1"). Defaults to "region_1" until full geographic taxonomy lands. */
+        region: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -188,17 +201,22 @@ export const completeOnboarding = mutation({
             .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
             .first();
 
-        const email = (identity.email as string | undefined) ?? "";
+        const email = normalizeEmail(identity.email as string | undefined);
         const name = (identity.name as string | undefined) ?? "";
         const parts = name.trim().split(/\s+/);
-        const firstName = parts[0] ?? "User";
-        const lastName = parts.length > 1 ? parts.slice(1).join(" ") : parts[0] ?? "Name";
+        const firstName = parts[0] || email.split("@")[0] || "User";
+        const lastName = parts.length > 1 ? parts.slice(1).join(" ") : parts[0] || "Name";
 
         const educatorProfile = educatorProfileFromArgs(args);
-        const isDistrict =
-            args.role === "district_admin" ||
-            args.role === "district_hr" ||
-            args.role === "superintendent";
+        const isDistrict = isDistrictRole(args.role);
+        const districtName = cleanText(args.organizationName);
+        const districtState = cleanText(args.districtState ?? args.state).toUpperCase();
+        const districtRegion = cleanText(args.districtRegion ?? args.region, "region_1");
+        const districtNceaId = cleanText(args.districtNceaId);
+        const wantsDistrictRow = isDistrict && !!districtName;
+        if (wantsDistrictRow && !districtState) {
+            throw new Error("State is required when creating a district");
+        }
         const legalAcceptedAt = args.legalAcceptedAt ?? Date.now();
         const legalPatch = {
             termsAcceptedAt: legalAcceptedAt,
@@ -207,8 +225,33 @@ export const completeOnboarding = mutation({
             privacyVersion: args.privacyVersion ?? PRIVACY_VERSION,
         };
 
+        async function upsertDistrictForAdmin(adminId: Id<"users">) {
+            if (!wantsDistrictRow || !districtState) return;
+            const districts = await ctx.db.query("districts").collect();
+            const existingDistrict = districts.find((district) => district.adminIds.includes(adminId));
+            if (!existingDistrict) {
+                await ctx.db.insert("districts", {
+                    name: districtName,
+                    state: districtState,
+                    region: districtRegion,
+                    ...(districtNceaId ? { nceaId: districtNceaId } : {}),
+                    adminIds: [adminId],
+                    planType: "free",
+                    createdAt: Date.now(),
+                });
+                return;
+            }
+            await ctx.db.patch(existingDistrict._id, {
+                name: districtName,
+                state: districtState,
+                region: districtRegion,
+                ...(districtNceaId ? { nceaId: districtNceaId } : {}),
+            });
+        }
+
         if (existing) {
             if (existing.onboarded) {
+                await upsertDistrictForAdmin(existing._id);
                 return { userId: existing._id, alreadyOnboarded: true as const };
             }
             await ctx.db.patch(existing._id, {
@@ -246,32 +289,7 @@ export const completeOnboarding = mutation({
                 }
             }
 
-            if (isDistrict && args.organizationName) {
-                const districts = await ctx.db.query("districts").collect();
-                const existingDistrict = districts.find((d) => d.adminIds.includes(existing._id));
-                const districtName = cleanText(args.organizationName);
-                const districtState = cleanText(args.districtState, "TX");
-                const districtRegion = cleanText(args.districtRegion, "region_1");
-                const districtNceaId = cleanText(args.districtNceaId);
-                if (!existingDistrict) {
-                    await ctx.db.insert("districts", {
-                        name: districtName,
-                        state: districtState,
-                        region: districtRegion,
-                        ...(districtNceaId ? { nceaId: districtNceaId } : {}),
-                        adminIds: [existing._id],
-                        planType: "free",
-                        createdAt: Date.now(),
-                    });
-                } else {
-                    await ctx.db.patch(existingDistrict._id, {
-                        name: districtName,
-                        state: districtState,
-                        region: districtRegion,
-                        ...(districtNceaId ? { nceaId: districtNceaId } : {}),
-                    });
-                }
-            }
+            await upsertDistrictForAdmin(existing._id);
 
             return { userId: existing._id, alreadyOnboarded: false as const };
         }
@@ -294,12 +312,11 @@ export const completeOnboarding = mutation({
             });
         }
 
-        if (args.organizationName && isDistrict) {
-            const districtNceaId = cleanText(args.districtNceaId);
+        if (wantsDistrictRow && districtState) {
             await ctx.db.insert("districts", {
-                name: cleanText(args.organizationName),
-                state: cleanText(args.districtState, "TX"),
-                region: cleanText(args.districtRegion, "region_1"),
+                name: districtName,
+                state: districtState,
+                region: districtRegion,
                 ...(districtNceaId ? { nceaId: districtNceaId } : {}),
                 adminIds: [userId],
                 planType: "free",

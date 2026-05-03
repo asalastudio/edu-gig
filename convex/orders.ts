@@ -555,3 +555,126 @@ export const getInvoiceContext = query({
         };
     },
 });
+
+export const cancelAndRefund = mutation({
+    args: {
+        orderId: v.id("orders"),
+        refundAmount: v.optional(v.number()),
+        reason: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const user = await requireDistrictViewer(ctx);
+        const order = await ctx.db.get(args.orderId);
+        if (!order) throw new Error("Not found");
+
+        const districts = await ctx.db.query("districts").collect();
+        const district = districts.find((d) => d.adminIds.includes(user._id));
+        if (!district || order.districtId !== district._id) throw new Error("Forbidden");
+        if (!order.stripePaymentIntentId) throw new Error("Order is not Stripe-backed");
+        if (order.status === "cancelled") throw new Error("Order already cancelled");
+
+        const boundedAmount =
+            typeof args.refundAmount === "number"
+                ? Math.max(0, Math.min(args.refundAmount, order.totalAmount))
+                : order.totalAmount;
+
+        await ctx.db.patch(args.orderId, {
+            status: "cancelled",
+        });
+
+        try {
+            await ctx.scheduler.runAfter(0, internal.emails.sendRefundIssued, {
+                orderId: args.orderId,
+                refundAmount: boundedAmount,
+                reason: args.reason,
+            });
+        } catch (err) {
+            console.warn("[orders.cancelAndRefund] refund email schedule skipped:", err);
+        }
+
+        return {
+            orderId: args.orderId,
+            stripePaymentIntentId: order.stripePaymentIntentId,
+            refundAmount: boundedAmount,
+            fullRefund: Math.abs(boundedAmount - order.totalAmount) <= 0.01,
+        };
+    },
+});
+
+export const markRefundedFromWebhook = mutation({
+    args: {
+        webhookSecret: v.string(),
+        stripeEventId: v.string(),
+        stripePaymentIntentId: v.string(),
+        refundAmount: v.number(),
+    },
+    handler: async (ctx, args) => {
+        const expected = process.env.CONVEX_WEBHOOK_SHARED_SECRET;
+        if (!expected || args.webhookSecret !== expected) throw new Error("Forbidden");
+
+        const existing = await ctx.db
+            .query("stripeWebhookEvents")
+            .withIndex("by_stripe_event_id", (q) => q.eq("stripeEventId", args.stripeEventId))
+            .first();
+        if (existing) return existing.orderId ?? null;
+
+        const order = await ctx.db
+            .query("orders")
+            .filter((q) => q.eq(q.field("stripePaymentIntentId"), args.stripePaymentIntentId))
+            .first();
+        if (!order) throw new Error("Order not found");
+
+        await ctx.db.patch(order._id, { status: "cancelled" });
+        await ctx.db.insert("stripeWebhookEvents", {
+            stripeEventId: args.stripeEventId,
+            eventType: "payment_intent.refunded",
+            orderId: order._id,
+            processedAt: Date.now(),
+        });
+
+        return order._id;
+    },
+});
+
+export const markDisputedFromWebhook = mutation({
+    args: {
+        webhookSecret: v.string(),
+        stripeEventId: v.string(),
+        stripePaymentIntentId: v.string(),
+        disputeId: v.string(),
+        amount: v.number(),
+        reason: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const expected = process.env.CONVEX_WEBHOOK_SHARED_SECRET;
+        if (!expected || args.webhookSecret !== expected) throw new Error("Forbidden");
+
+        const existing = await ctx.db
+            .query("stripeWebhookEvents")
+            .withIndex("by_stripe_event_id", (q) => q.eq("stripeEventId", args.stripeEventId))
+            .first();
+        if (existing) return existing.orderId ?? null;
+
+        const order = await ctx.db
+            .query("orders")
+            .filter((q) => q.eq(q.field("stripePaymentIntentId"), args.stripePaymentIntentId))
+            .first();
+        if (!order) throw new Error("Order not found");
+
+        await ctx.db.patch(order._id, { status: "disputed" });
+        await ctx.db.insert("stripeWebhookEvents", {
+            stripeEventId: args.stripeEventId,
+            eventType: "charge.dispute.created",
+            orderId: order._id,
+            processedAt: Date.now(),
+        });
+        await ctx.scheduler.runAfter(0, internal.emails.sendDisputeCreatedAlert, {
+            orderId: order._id,
+            disputeId: args.disputeId,
+            amount: args.amount,
+            reason: args.reason,
+        });
+
+        return order._id;
+    },
+});

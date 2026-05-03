@@ -42,14 +42,13 @@ import {
 } from "@/lib/onboarding";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
+import { US_STATES } from "@/lib/us-states";
 import { cn } from "@/lib/utils";
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 const DISTRICT_STEPS = ["Role", "Organization", "First action"];
 const EDUCATOR_STEPS = ["Identity", "Expertise", "Availability", "Review"];
-
-const STATE_OPTIONS = ["TX", "AL", "AZ", "AR", "CA", "CO", "FL", "GA", "IL", "LA", "NM", "NY", "OK"];
 
 /** Avoid calling `useUser` when Clerk isn't configured (no ClerkProvider) - required for static build. */
 export default function OnboardingPage() {
@@ -215,6 +214,8 @@ function OnboardingWithClerk() {
                 organizationName: intent === "district" ? organizationName.trim() : undefined,
                 districtState: intent === "district" ? districtState.trim().toUpperCase() : undefined,
                 districtRegion: intent === "district" ? districtRegion : undefined,
+                state: intent === "district" ? districtState.trim().toUpperCase() : undefined,
+                region: intent === "district" ? districtRegion : undefined,
                 districtNceaId: intent === "district" ? districtNceaId.trim() || undefined : undefined,
                 headline: intent === "educator" ? headline.trim() : undefined,
                 bio: intent === "educator" ? bio.trim() : undefined,
@@ -520,9 +521,9 @@ function DistrictStep(props: {
                     </Field>
                     <Field label="State">
                         <select value={props.state} onChange={(e) => props.onStateChange(e.target.value)} className="field-control">
-                            {STATE_OPTIONS.map((state) => (
-                                <option key={state} value={state}>
-                                    {state}
+                            {US_STATES.map((state) => (
+                                <option key={state.code} value={state.code}>
+                                    {state.name}
                                 </option>
                             ))}
                         </select>

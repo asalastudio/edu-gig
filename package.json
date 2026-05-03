@@ -6,6 +6,7 @@
     "dev": "next dev",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
+    "vercel:build": "node scripts/vercel-build.mjs",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",

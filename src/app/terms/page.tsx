@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/shared/site-footer";
 import { LEGAL_LAST_UPDATED, SUPPORT_EMAIL, TERMS_VERSION } from "@/lib/legal";
 
 export const metadata: Metadata = {
-    title: "Terms of Service",
+    title: "Terms of Service | K12Gig",
     description: "Terms governing use of the K12Gig platform.",
 };
 

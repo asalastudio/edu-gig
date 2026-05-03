@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/shared/site-footer";
 import { LEGAL_LAST_UPDATED, SUPPORT_EMAIL } from "@/lib/legal";
 
 export const metadata: Metadata = {
-    title: "Privacy Policy",
+    title: "Privacy Policy | K12Gig",
     description: "How K12Gig handles personal information and district data.",
 };
 

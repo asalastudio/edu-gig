@@ -35,6 +35,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.local.example
 
 # vercel
 .vercel
@@ -42,3 +43,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env*.local
+
+# claude code (per-machine config + worktrees)
+.claude/
+
+# playwright local artifacts (screenshots + console logs)
+.playwright-cli/
+.playwright-mcp/
+
+# ux review snapshots (regenerable, not committed)
+ux-review/

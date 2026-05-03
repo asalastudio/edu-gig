@@ -10,15 +10,15 @@ export function HeroSearch() {
     const [area, setArea] = useState("");
     const [spec, setSpec] = useState("");
     const [grade, setGrade] = useState("");
-    const [location, setLocation] = useState("");
+    const [region, setRegion] = useState("");
 
     const handleSearch = () => {
         const params = new URLSearchParams();
         if (area) params.append("area", area);
         if (spec) params.append("spec", spec);
         if (grade) params.append("grade", grade);
-        if (location) params.append("location", location);
-        
+        if (region) params.append("region", region);
+
         router.push(`/browse?${params.toString()}`);
     };
 
@@ -26,10 +26,10 @@ export function HeroSearch() {
     const specs = selectedAreaObj?.subCategories || [];
 
     return (
-        <div className="w-full max-w-4xl mx-auto bg-[--bg-surface]/80 backdrop-blur-xl border border-[--border-default] rounded-2xl p-6 shadow-xl animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out mt-10">
+        <div className="w-full max-w-4xl mx-auto bg-white/95 backdrop-blur-xl border border-white/40 rounded-lg p-5 shadow-[0_22px_70px_rgba(0,0,0,0.24)] animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out mt-4 text-left">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <select 
-                    className="w-full h-12 px-4 rounded-xl border border-[--border-subtle] bg-white text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] transition-all"
+                <select
+                    className="field-control w-full px-4 text-sm"
                     value={area}
                     onChange={(e) => {
                         setArea(e.target.value);
@@ -42,8 +42,8 @@ export function HeroSearch() {
                     ))}
                 </select>
 
-                <select 
-                    className="w-full h-12 px-4 rounded-xl border border-[--border-subtle] bg-white text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] transition-all disabled:opacity-50"
+                <select
+                    className="field-control w-full px-4 text-sm disabled:opacity-50"
                     value={spec}
                     onChange={(e) => setSpec(e.target.value)}
                     disabled={!area || specs.length === 0}
@@ -54,8 +54,8 @@ export function HeroSearch() {
                     ))}
                 </select>
 
-                <select 
-                    className="w-full h-12 px-4 rounded-xl border border-[--border-subtle] bg-white text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] transition-all"
+                <select
+                    className="field-control w-full px-4 text-sm"
                     value={grade}
                     onChange={(e) => setGrade(e.target.value)}
                 >
@@ -65,14 +65,22 @@ export function HeroSearch() {
                     ))}
                 </select>
 
-                <input 
-                    type="text" 
-                    placeholder="City, State or Remote" 
-                    className="w-full h-12 px-4 rounded-xl border border-[--border-subtle] bg-white text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] transition-all"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                />
+                <select
+                    className="field-control w-full px-4 text-sm"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                >
+                    <option value="">Coverage Area</option>
+                    {TAXONOMY.coverageRegions.map(r => (
+                        <option key={r.id} value={r.id}>{r.label}</option>
+                    ))}
+                </select>
             </div>
+            {!area && (
+                <p className="text-xs font-medium text-[var(--text-tertiary)] text-left mb-4">
+                    Choose an area of need first to narrow specializations.
+                </p>
+            )}
             <PrimaryButton className="w-full py-3 text-base shadow-sm" onClick={handleSearch}>
                 Search Educators
             </PrimaryButton>

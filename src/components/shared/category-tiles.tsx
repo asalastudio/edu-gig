@@ -72,39 +72,38 @@ export function CategoryTiles() {
     };
 
     return (
-        <section className="py-24 px-6 lg:px-12 bg-[--bg-subtle]">
+        <section className="py-24 px-6 lg:px-12 bg-[var(--bg-subtle)]">
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16 max-w-3xl mx-auto">
-                    <h2 className="font-heading text-3xl md:text-4xl font-bold text-[--text-primary] mb-4">
+                    <div className="education-rule mx-auto mb-5" />
+                    <h2 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-4">
                         Browse by Area of Need
                     </h2>
-                    <p className="text-lg text-[--text-secondary]">
+                    <p className="text-lg text-[var(--text-secondary)]">
                         Whether you need immediate classroom coverage or long-term operational consulting, find verified professionals ready to step in.
                     </p>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {META_CATEGORIES.map(meta => (
-                        <div key={meta.id} className="flex flex-col bg-white rounded-3xl p-8 border border-[--border-subtle] shadow-sm relative overflow-hidden">
-                            {/* Background accent block */}
+                        <div key={meta.id} className="flex flex-col bg-white rounded-lg p-7 border border-[var(--border-default)] shadow-[var(--shadow-subtle)] relative overflow-hidden hover:shadow-[var(--shadow-soft)] transition-shadow">
                             <div className={cn(
-                                "absolute top-0 right-0 w-32 h-32 rounded-bl-[100px] pointer-events-none opacity-10",
-                                meta.color === "blue" ? "bg-blue-500" :
-                                meta.color === "amber" ? "bg-amber-500" : "bg-emerald-500"
+                                "absolute inset-x-0 top-0 h-1",
+                                meta.color === "blue" ? "bg-[var(--accent-tertiary)]" :
+                                meta.color === "amber" ? "bg-[var(--accent-secondary)]" : "bg-[var(--accent-primary)]"
                             )} />
-
                             <div className="flex items-center gap-4 mb-4 relative z-10">
                                 <div className={cn(
-                                    "w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm",
+                                    "w-12 h-12 rounded-lg flex items-center justify-center shadow-sm",
                                     meta.color === "blue" ? "bg-blue-50 text-blue-600 border border-blue-100" :
                                     meta.color === "amber" ? "bg-amber-50 text-amber-600 border border-amber-100" : 
                                     "bg-emerald-50 text-emerald-600 border border-emerald-100"
                                 )}>
                                     <meta.icon weight="duotone" className="w-6 h-6" />
                                 </div>
-                                <h3 className="font-heading text-2xl font-bold text-[--text-primary]">{meta.title}</h3>
+                                <h3 className="font-heading text-2xl font-bold text-[var(--text-primary)]">{meta.title}</h3>
                             </div>
-                            <p className="text-[--text-secondary] mb-8 relative z-10">{meta.description}</p>
+                            <p className="text-[var(--text-secondary)] mb-8 relative z-10">{meta.description}</p>
 
                             <div className="flex flex-col gap-3 mt-auto relative z-10">
                                 {meta.areas.map(areaId => {
@@ -116,11 +115,11 @@ export function CategoryTiles() {
                                         <button 
                                             key={areaId}
                                             onClick={() => handleCategoryClick(areaId)}
-                                            className="group flex items-center justify-between p-4 rounded-xl border border-[--border-default] bg-[--bg-app] hover:border-[--accent-primary]/40 hover:shadow-sm transition-all text-left"
+                                            className="group flex items-center justify-between p-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-app)] hover:border-[var(--accent-primary)]/40 hover:bg-white hover:shadow-sm transition-all text-left"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <Icon weight="regular" className="w-5 h-5 text-[--text-tertiary] group-hover:text-[--accent-primary] transition-colors" />
-                                                <span className="font-semibold text-[--text-primary] text-sm group-hover:text-[--accent-primary] transition-colors">
+                                                <Icon weight="regular" className="w-5 h-5 text-[var(--text-tertiary)] group-hover:text-[var(--accent-primary)] transition-colors" />
+                                                <span className="font-semibold text-[var(--text-primary)] text-sm group-hover:text-[var(--accent-primary)] transition-colors">
                                                     {areaData.label}
                                                 </span>
                                             </div>

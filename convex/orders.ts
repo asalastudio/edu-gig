@@ -189,6 +189,75 @@ export const markCompleted = mutation({
     },
 });
 
+/** Buyer, educator, or superadmin cancels a non-completed order. */
+export const cancel = mutation({
+    args: { orderId: v.id("orders") },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthorized");
+        const user = await getUserByClerkId(ctx, identity.subject);
+        if (!user) throw new Error("Unauthorized");
+
+        const order = await ctx.db.get(args.orderId);
+        if (!order) throw new Error("Not found");
+
+        const educator = await ctx.db
+            .query("educators")
+            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+            .first();
+        const isBuyer = order.buyerUserId === user._id;
+        const isEducator = educator && order.educatorId === educator._id;
+        if (!isBuyer && !isEducator && user.role !== "superadmin") throw new Error("Forbidden");
+
+        if (order.status === "completed" || order.status === "cancelled") {
+            throw new Error(`Cannot cancel from status '${order.status}'`);
+        }
+
+        await ctx.db.patch(args.orderId, { status: "cancelled" });
+
+        const recipientId = isBuyer ? (await ctx.db.get(order.educatorId))?.userId : order.buyerUserId;
+        if (recipientId) {
+            await ctx.db.insert("notifications", {
+                userId: recipientId,
+                type: "order_cancelled",
+                title: "Booking cancelled",
+                body: "A K12Gig booking was cancelled. Review the order record for details.",
+                read: false,
+                actionUrl: isBuyer ? "/dashboard/educator" : "/dashboard/district",
+                createdAt: Date.now(),
+            });
+        }
+
+        return args.orderId;
+    },
+});
+
+/** Either side flags an order for marketplace review. */
+export const markDisputed = mutation({
+    args: { orderId: v.id("orders") },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthorized");
+        const user = await getUserByClerkId(ctx, identity.subject);
+        if (!user) throw new Error("Unauthorized");
+
+        const order = await ctx.db.get(args.orderId);
+        if (!order) throw new Error("Not found");
+
+        const educator = await ctx.db
+            .query("educators")
+            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+            .first();
+        const isBuyer = order.buyerUserId === user._id;
+        const isEducator = educator && order.educatorId === educator._id;
+        if (!isBuyer && !isEducator && user.role !== "superadmin") throw new Error("Forbidden");
+
+        if (order.status === "cancelled") throw new Error("Cancelled orders cannot be disputed.");
+        await ctx.db.patch(args.orderId, { status: "disputed" });
+        return args.orderId;
+    },
+});
+
 /**
  * Completed orders the viewer still owes a review on.
  * Works for both district (buyer) and educator (seller) viewers.
@@ -371,6 +440,76 @@ export const createFromWebhook = mutation({
         }
 
         return orderId;
+    },
+});
+
+/**
+ * Internal-only: record non-checkout Stripe events that change order state.
+ * Handles refunds and disputes idempotently by Stripe event id.
+ */
+export const recordStripePaymentEvent = mutation({
+    args: {
+        webhookSecret: v.string(),
+        stripeEventId: v.string(),
+        eventType: v.union(
+            v.literal("payment_intent.refunded"),
+            v.literal("charge.dispute.created")
+        ),
+        stripePaymentIntentId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const expected = process.env.CONVEX_WEBHOOK_SHARED_SECRET;
+        if (!expected || args.webhookSecret !== expected) {
+            throw new Error("Forbidden");
+        }
+
+        const existing = await ctx.db
+            .query("stripeWebhookEvents")
+            .withIndex("by_stripe_event_id", (q) => q.eq("stripeEventId", args.stripeEventId))
+            .first();
+        if (existing) return existing.orderId ?? null;
+
+        const orders = await ctx.db.query("orders").collect();
+        const order = orders.find((row) => row.stripePaymentIntentId === args.stripePaymentIntentId);
+        const orderId = order?._id;
+
+        if (order) {
+            await ctx.db.patch(order._id, {
+                status: args.eventType === "charge.dispute.created" ? "disputed" : "cancelled",
+            });
+
+            await ctx.db.insert("notifications", {
+                userId: order.buyerUserId,
+                type: args.eventType === "charge.dispute.created" ? "payment_dispute" : "payment_refund",
+                title: args.eventType === "charge.dispute.created" ? "Payment dispute opened" : "Payment refunded",
+                body: "The payment status for a K12Gig booking changed in Stripe.",
+                read: false,
+                actionUrl: "/dashboard/district",
+                createdAt: Date.now(),
+            });
+
+            const educator = await ctx.db.get(order.educatorId);
+            if (educator) {
+                await ctx.db.insert("notifications", {
+                    userId: educator.userId,
+                    type: args.eventType === "charge.dispute.created" ? "payment_dispute" : "payment_refund",
+                    title: args.eventType === "charge.dispute.created" ? "Payment dispute opened" : "Payment refunded",
+                    body: "The payment status for a K12Gig booking changed in Stripe.",
+                    read: false,
+                    actionUrl: "/dashboard/educator",
+                    createdAt: Date.now(),
+                });
+            }
+        }
+
+        await ctx.db.insert("stripeWebhookEvents", {
+            stripeEventId: args.stripeEventId,
+            eventType: args.eventType,
+            orderId,
+            processedAt: Date.now(),
+        });
+
+        return orderId ?? null;
     },
 });
 

@@ -7,6 +7,15 @@ import type { Id } from "@/convex/_generated/dataModel";
 const hasStripe = !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET;
 const hasConvex = !!process.env.NEXT_PUBLIC_CONVEX_URL;
 
+function stripeObjectId(value: unknown): string {
+    if (typeof value === "string") return value;
+    if (value && typeof value === "object" && "id" in value) {
+        const id = (value as { id?: unknown }).id;
+        return typeof id === "string" ? id : "";
+    }
+    return "";
+}
+
 export async function POST(req: Request) {
     if (!hasStripe) {
         return NextResponse.json({ error: "Stripe webhook is not configured." }, { status: 503 });
@@ -34,7 +43,37 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Signature verification failed" }, { status: 400 });
     }
 
-    if (event.type !== "checkout.session.completed") {
+    const webhookSecret = process.env.CONVEX_WEBHOOK_SHARED_SECRET;
+    if (!webhookSecret) {
+        console.error("CONVEX_WEBHOOK_SHARED_SECRET not configured");
+        return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    }
+
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+    const eventType = event.type as string;
+    if (eventType === "payment_intent.refunded" || eventType === "charge.refunded" || eventType === "charge.dispute.created") {
+        const paymentIntentId =
+            eventType === "payment_intent.refunded"
+                ? (event.data.object as Stripe.PaymentIntent).id
+                : eventType === "charge.refunded"
+                  ? stripeObjectId((event.data.object as Stripe.Charge).payment_intent)
+                  : stripeObjectId((event.data.object as Stripe.Dispute).payment_intent);
+
+        if (!paymentIntentId) {
+            return NextResponse.json({ error: "Missing payment intent" }, { status: 400 });
+        }
+
+        await convex.mutation(api.orders.recordStripePaymentEvent, {
+            webhookSecret,
+            stripeEventId: event.id,
+            eventType: eventType === "charge.dispute.created" ? "charge.dispute.created" : "payment_intent.refunded",
+            stripePaymentIntentId: paymentIntentId,
+        });
+        return NextResponse.json({ received: true });
+    }
+
+    if (eventType !== "checkout.session.completed") {
         return NextResponse.json({ received: true, ignored: event.type });
     }
 
@@ -64,13 +103,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Invalid session metadata" }, { status: 400 });
     }
 
-    const webhookSecret = process.env.CONVEX_WEBHOOK_SHARED_SECRET;
-    if (!webhookSecret) {
-        console.error("CONVEX_WEBHOOK_SHARED_SECRET not configured");
-        return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
-    }
-
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
     try {
         await convex.mutation(api.orders.createFromWebhook, {
             webhookSecret,

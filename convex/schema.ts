@@ -12,6 +12,10 @@ export default defineSchema({
         lastName: v.string(),
         avatarUrl: v.optional(v.string()),
         onboarded: v.boolean(),
+        termsAcceptedAt: v.optional(v.number()),
+        termsVersion: v.optional(v.string()),
+        privacyAcceptedAt: v.optional(v.number()),
+        privacyVersion: v.optional(v.string()),
         createdAt: v.number(),
     }).index("by_clerk_id", ["clerkId"]),
 
@@ -85,6 +89,55 @@ export default defineSchema({
         stripeCustomerId: v.optional(v.string()),
         createdAt: v.number(),
     }),
+
+    // ─── District Procurement / DPA Requests ─────────────────
+    procurementRequests: defineTable({
+        districtId: v.optional(v.id("districts")),
+        requesterUserId: v.optional(v.id("users")),
+        requesterName: v.string(),
+        requesterEmail: v.string(),
+        requesterTitle: v.optional(v.string()),
+        districtName: v.string(),
+        state: v.string(),
+        requestedMaterials: v.array(v.string()),
+        deadline: v.optional(v.string()),
+        procurementContact: v.optional(v.string()),
+        notes: v.optional(v.string()),
+        status: v.union(
+            v.literal("new"),
+            v.literal("in_review"),
+            v.literal("packet_sent"),
+            v.literal("waiting_on_district"),
+            v.literal("approved"),
+            v.literal("closed")
+        ),
+        internalNotes: v.optional(v.string()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    }).index("by_requester_user", ["requesterUserId"])
+        .index("by_district", ["districtId"])
+        .index("by_status", ["status"])
+        .index("by_requester_email", ["requesterEmail"]),
+
+    // ─── Super Admin Notes / Audit Trail ─────────────────────
+    adminNotes: defineTable({
+        entityType: v.string(),
+        entityId: v.string(),
+        authorUserId: v.id("users"),
+        body: v.string(),
+        createdAt: v.number(),
+    }).index("by_entity", ["entityType", "entityId"])
+        .index("by_author", ["authorUserId"]),
+
+    adminAuditEvents: defineTable({
+        actorUserId: v.id("users"),
+        action: v.string(),
+        entityType: v.string(),
+        entityId: v.string(),
+        summary: v.string(),
+        createdAt: v.number(),
+    }).index("by_entity", ["entityType", "entityId"])
+        .index("by_actor", ["actorUserId"]),
 
     // ─── Gigs (Educator Service Listings) ────────────────────
     gigs: defineTable({

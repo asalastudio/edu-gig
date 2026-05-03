@@ -18,6 +18,7 @@ import {
     proposalAcceptedAlert,
 } from "../src/lib/email-templates";
 import { generateInvoicePdf, invoiceNumber } from "../src/lib/invoice-pdf";
+import { SUPPORT_EMAIL } from "../src/lib/legal";
 
 type ResendAttachment = {
     filename: string;
@@ -63,11 +64,11 @@ async function sendViaResend(payload: ResendPayload): Promise<void> {
 }
 
 function fromAddress(): string {
-    return process.env.RESEND_FROM_EMAIL || "K12Gig <hello@edugig.com>";
+    return process.env.RESEND_FROM_EMAIL || `K12Gig <${SUPPORT_EMAIL}>`;
 }
 
 function appUrl(): string {
-    return process.env.NEXT_PUBLIC_APP_URL || "https://edugig.com";
+    return process.env.NEXT_PUBLIC_APP_URL || "https://k12gig.com";
 }
 
 /** Uint8Array → base64 (works in V8 isolates where Buffer may not exist). */

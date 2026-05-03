@@ -8,6 +8,7 @@
  */
 
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { SUPPORT_EMAIL } from "./legal";
 
 export type InvoiceInput = {
     orderId: string;
@@ -29,10 +30,10 @@ const TEXT_RGB = rgb(0.1, 0.1, 0.1);
 const MUTED_RGB = rgb(0.4, 0.42, 0.35);
 const RULE_RGB = rgb(0.85, 0.87, 0.82);
 
-/** Format an invoice id from an order id, matching `EDG-<first 8 chars>`. */
+/** Format an invoice id from an order id, matching `K12G-<first 8 chars>`. */
 export function invoiceNumber(orderId: string): string {
     const slug = (orderId || "").replace(/[^a-zA-Z0-9]/g, "");
-    return `EDG-${(slug.slice(0, 8) || "00000000").toUpperCase()}`;
+    return `K12G-${(slug.slice(0, 8) || "00000000").toUpperCase()}`;
 }
 
 function money(n: number): string {
@@ -318,7 +319,7 @@ export async function generateInvoicePdf(input: InvoiceInput): Promise<Uint8Arra
             maxWidth: W - marginX * 2,
         }
     );
-    page.drawText("Questions? hello@edugig.com", {
+    page.drawText(`Questions? ${SUPPORT_EMAIL}`, {
         x: marginX,
         y: 44,
         size: 9,

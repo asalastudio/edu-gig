@@ -11,7 +11,7 @@ const TEXT_COLOR = "#1a1a1a";
 const MUTED_COLOR = "#5f6b4f";
 const BG_COLOR = "#ffffff";
 const PANEL_COLOR = "#f7f8f5";
-const APP_URL = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_APP_URL) || "https://edugig.com";
+const APP_URL = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_APP_URL) || "https://k12gig.com";
 
 /** Extremely minimal HTML-escape for text that's being embedded into markup. */
 function escapeHtml(input: string): string {

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as credentials from "../credentials.js";
 import type * as dashboards from "../dashboards.js";
 import type * as districts from "../districts.js";
@@ -19,6 +20,7 @@ import type * as needs from "../needs.js";
 import type * as notifications from "../notifications.js";
 import type * as orders from "../orders.js";
 import type * as pricing from "../pricing.js";
+import type * as procurement from "../procurement.js";
 import type * as proposals from "../proposals.js";
 import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
@@ -31,6 +33,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   credentials: typeof credentials;
   dashboards: typeof dashboards;
   districts: typeof districts;
@@ -42,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   orders: typeof orders;
   pricing: typeof pricing;
+  procurement: typeof procurement;
   proposals: typeof proposals;
   reviews: typeof reviews;
   seed: typeof seed;

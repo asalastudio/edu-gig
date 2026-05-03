@@ -125,4 +125,4 @@ then the deployment at that URL does not have your latest functions pushed yet.
 2. **Environment variables (Vercel):** set `NEXT_PUBLIC_CONVEX_URL` to your production Convex URL, plus Clerk keys (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`) and app URL.
 3. **Clerk ↔ Convex:** configure Convex to validate Clerk JWTs so `ctx.auth.getUserIdentity()` works in production (`users.viewer`, onboarding, `educators.listForBrowse`, etc.).
 4. **Browse data:** optional `NEXT_PUBLIC_USE_CONVEX_BROWSE=true` so district-signed-in users load the directory from Convex; otherwise the UI uses demo mocks.
-5. **Seed data (dev only):** run `npx convex run seed:populate` against a dev deployment if you need sample educators; do not expose unauthenticated admin mutations in production.
+5. **Seed data (dev only):** set `ALLOW_DEMO_SEED=true` and `DEMO_SEED_SECRET=<local secret>` on a dev Convex deployment, then run `npx convex run seed:populate '{"seedSecret":"<local secret>"}'` if you need sample educators. Keep both unset in production.

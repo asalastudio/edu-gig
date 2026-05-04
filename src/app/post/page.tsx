@@ -138,6 +138,7 @@ function PostNeedPageInner() {
 
     const signedOut = !hasClerk || viewer === null;
     const wrongRole = !!viewer && !isDistrictRole(viewer.role);
+    const sessionReady = !hasClerk || viewer !== undefined;
 
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
@@ -201,7 +202,7 @@ function PostNeedPageInner() {
                     </div>
                 )}
 
-                {viewer !== undefined && !wrongRole && (!signedOut || previewMode) && !isSuccess ? (
+                {sessionReady && !wrongRole && (!signedOut || previewMode) && !isSuccess ? (
                     <div className="animate-in fade-in duration-500">
                         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                             <div>

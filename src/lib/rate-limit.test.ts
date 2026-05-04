@@ -9,6 +9,8 @@ describe("createRateLimiter", () => {
 
     afterEach(() => {
         vi.useRealTimers();
+        vi.unstubAllEnvs();
+        vi.unstubAllGlobals();
     });
 
     it("allows requests up to the configured limit", async () => {
@@ -64,5 +66,41 @@ describe("createRateLimiter", () => {
     it("throws on invalid options", () => {
         expect(() => createRateLimiter({ maxRequests: 0, windowMs: 1_000 })).toThrow();
         expect(() => createRateLimiter({ maxRequests: 5, windowMs: 0 })).toThrow();
+    });
+
+    it("uses Upstash REST when credentials are present", async () => {
+        vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://example-upstash.io/");
+        vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-token");
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => [{ result: 1 }, { result: 1 }, { result: 60_000 }],
+        });
+        vi.stubGlobal("fetch", fetchMock);
+
+        const limiter = createRateLimiter({ maxRequests: 2, windowMs: 60_000, namespace: "checkout" });
+        const result = await limiter.check("user with spaces");
+
+        expect(result).toEqual({ success: true, remaining: 1 });
+        expect(fetchMock).toHaveBeenCalledWith("https://example-upstash.io/pipeline", expect.any(Object));
+        const [, init] = fetchMock.mock.calls[0];
+        expect(init.headers.Authorization).toBe("Bearer upstash-token");
+        expect(init.body).toContain("k12gig:rl:checkout:user_with_spaces");
+    });
+
+    it("returns retry timing from Upstash when the shared counter is over limit", async () => {
+        vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://example-upstash.io");
+        vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-token");
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => [{ result: 3 }, { result: 1 }, { result: 42_000 }],
+            })
+        );
+
+        const limiter = createRateLimiter({ maxRequests: 2, windowMs: 60_000, namespace: "checkout" });
+        const result = await limiter.check("user_1");
+
+        expect(result).toEqual({ success: false, retryAfterMs: 42_000 });
     });
 });

@@ -1,0 +1,26 @@
+export type EducatorProfileView = {
+    name: string;
+    initials: string;
+    headline: string;
+    verificationTier: "basic" | "verified" | "premier";
+    availabilityStatus: "open" | "limited" | "closed";
+    avatarUrl?: string;
+    bio: string;
+    yearsExperience: number;
+    placements: number;
+    avgRating: number;
+    reviewCount: number;
+    location: string;
+    education: string;
+    areas: string[];
+    badges: string[];
+    licenses: { type: string; issuer: string; status: "Verified" | "Pending"; expiry: string }[];
+    experience: { role: string; district: string; years: string }[];
+    videoIntro: boolean;
+    availableDays: Record<string, { am: boolean; pm: boolean }>;
+    primarySubjectLabel: string;
+    gradeLevelsLabel: string;
+    certCount: number;
+    startingRate?: number;
+    rateUnit: "hour" | "day";
+};

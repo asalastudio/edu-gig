@@ -130,7 +130,7 @@ export default function EducatorNeedsPage() {
                     />
 
                     {isSignedOut && (
-                        <div className="p-10 border border-[var(--border-subtle)] rounded-3xl bg-white text-center">
+                        <div className="p-10 border border-[var(--border-subtle)] rounded-lg bg-white text-center">
                             <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
                                 Sign in as an educator to browse open needs
                             </h2>
@@ -144,7 +144,7 @@ export default function EducatorNeedsPage() {
                     )}
 
                     {wrongRole && (
-                        <div className="p-10 border border-[var(--border-subtle)] rounded-3xl bg-white text-center">
+                        <div className="p-10 border border-[var(--border-subtle)] rounded-lg bg-white text-center">
                             <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
                                 This page is for educators
                             </h2>
@@ -157,13 +157,13 @@ export default function EducatorNeedsPage() {
                     {isEducator && (
                         <div className="flex flex-col gap-5">
                             {needs === undefined && (
-                                <div className="p-10 border border-[var(--border-subtle)] rounded-3xl bg-white text-center text-[var(--text-secondary)]">
+                                <div className="p-10 border border-[var(--border-subtle)] rounded-lg bg-white text-center text-[var(--text-secondary)]">
                                     Loading open needs…
                                 </div>
                             )}
 
                             {needs && needs.length === 0 && (
-                                <div className="p-10 border border-[var(--border-subtle)] rounded-3xl bg-white text-center">
+                                <div className="p-10 border border-[var(--border-subtle)] rounded-lg bg-white text-center">
                                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
                                         No open needs right now
                                     </h2>
@@ -179,7 +179,7 @@ export default function EducatorNeedsPage() {
                                 return (
                                     <div
                                         key={need._id}
-                                        className="p-0 border border-[var(--border-subtle)] shadow-[0_8px_30px_rgba(0,0,0,0.03)] rounded-3xl bg-white overflow-hidden group hover:-translate-y-0.5 hover:border-[var(--accent-primary)]/40 hover:shadow-lg transition-all"
+                                        className="p-0 border border-[var(--border-subtle)] shadow-[0_8px_30px_rgba(0,0,0,0.03)] rounded-lg bg-white overflow-hidden group hover:-translate-y-0.5 hover:border-[var(--accent-primary)]/40 hover:shadow-lg transition-all"
                                     >
                                         <div className="p-8 flex flex-col lg:flex-row justify-between gap-6">
                                             <div className="flex-1 flex flex-col gap-3">
@@ -223,7 +223,7 @@ export default function EducatorNeedsPage() {
 
                                             <div className="flex flex-col items-stretch lg:items-end justify-center gap-2 min-w-[200px]">
                                                 {submitted ? (
-                                                    <span className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                                                    <span className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
                                                         Proposal submitted ✓
                                                     </span>
                                                 ) : (
@@ -271,7 +271,7 @@ export default function EducatorNeedsPage() {
                                 onChange={(e) => setMessage(e.target.value)}
                                 rows={5}
                                 placeholder="Introduce yourself and describe how you can help."
-                                className="w-full p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
+                                className="w-full p-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
                                 required
                             />
                         </div>
@@ -288,7 +288,7 @@ export default function EducatorNeedsPage() {
                                     value={proposedRate}
                                     onChange={(e) => setProposedRate(e.target.value)}
                                     placeholder="75"
-                                    className="w-full h-11 px-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
+                                    className="w-full h-11 px-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
@@ -301,7 +301,7 @@ export default function EducatorNeedsPage() {
                                     onChange={(e) =>
                                         setProposedRateUnit(e.target.value as "hourly" | "daily" | "fixed")
                                     }
-                                    className="w-full h-11 px-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
+                                    className="w-full h-11 px-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
                                 >
                                     <option value="hourly">Hourly</option>
                                     <option value="daily">Daily</option>

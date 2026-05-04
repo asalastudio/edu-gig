@@ -9,6 +9,8 @@
     "vercel:build": "node scripts/vercel-build.mjs",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "check:env": "node scripts/check-env.mjs",
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",

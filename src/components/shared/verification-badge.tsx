@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const tierConfig = {
-    basic: { icon: null, color: "text-[--text-tertiary]", title: "Basic Profile" },
-    verified: { icon: ShieldCheck, color: "text-[--accent-info]", title: "Verified Educator" },
-    premier: { icon: BadgeCheck, color: "text-[--accent-secondary]", title: "Premier Educator" },
+    basic: { icon: null, color: "text-[var(--text-tertiary)]", title: "Basic Profile" },
+    verified: { icon: ShieldCheck, color: "text-[var(--accent-info)]", title: "Verified Educator" },
+    premier: { icon: BadgeCheck, color: "text-[var(--accent-secondary)]", title: "Premier Educator" },
 }
 
 export function VerificationBadge({ tier }: { tier: keyof typeof tierConfig }) {

@@ -12,9 +12,9 @@ describe("bookingConfirmation", () => {
         educatorName: "Jane Educator",
         buyerName: "Sam Buyer",
         orgName: "Harborview District",
-        totalAmount: 1000,
+        totalAmount: 1180,
         platformFee: 180,
-        educatorPayout: 820,
+        educatorPayout: 1000,
         startDate: "2026-05-01",
         paymentMethod: "invoice" as const,
     };
@@ -38,7 +38,8 @@ describe("bookingConfirmation", () => {
         expect(out.text).toContain("2026-05-01");
         expect(out.html).toContain("$1,000.00");
         expect(out.html).toContain("$180.00");
-        expect(out.html).toContain("$820.00");
+        expect(out.html).toContain("$1,180.00");
+        expect(out.text).toContain("Educator services: $1,000.00");
     });
 
     it("mentions the Net-30 invoice flow when paymentMethod is 'invoice'", () => {
@@ -78,12 +79,12 @@ describe("newMessageAlert", () => {
             senderName: "Alex Principal",
             recipientFirstName: "Jordan",
             messagePreview: "Thanks for the quick reply on scheduling!",
-            conversationUrl: "https://edugig.com/dashboard/messages",
+            conversationUrl: "https://k12gig.com/dashboard/messages",
         });
         expect(out.subject).toContain("Alex Principal");
         expect(out.html).toContain("Jordan");
         expect(out.html).toContain("Thanks for the quick reply");
-        expect(out.html).toContain("https://edugig.com/dashboard/messages");
+        expect(out.html).toContain("https://k12gig.com/dashboard/messages");
         expect(out.text).toContain("Alex Principal");
     });
 
@@ -93,7 +94,7 @@ describe("newMessageAlert", () => {
             senderName: "A",
             recipientFirstName: "B",
             messagePreview: long,
-            conversationUrl: "https://edugig.com/dashboard/messages",
+            conversationUrl: "https://k12gig.com/dashboard/messages",
         });
         expect(out.html.length).toBeLessThan(long.length + 10_000);
         expect(out.html).toContain("…");
@@ -108,13 +109,13 @@ describe("newProposalAlert", () => {
             orgName: "Pine Valley Schools",
             proposedRate: 85,
             proposedRateUnit: "hourly",
-            needUrl: "https://edugig.com/needs/abc",
+            needUrl: "https://k12gig.com/needs/abc",
         });
         expect(out.subject).toContain("Middle School Math Interventionist");
         expect(out.html).toContain("Dana Teacher");
         expect(out.html).toContain("Pine Valley Schools");
         expect(out.html).toContain("$85/hr");
-        expect(out.html).toContain("https://edugig.com/needs/abc");
+        expect(out.html).toContain("https://k12gig.com/needs/abc");
     });
 
     it("shows 'Rate not specified' when rate is missing", () => {
@@ -122,7 +123,7 @@ describe("newProposalAlert", () => {
             educatorName: "Dana",
             needTitle: "Open Role",
             orgName: "District",
-            needUrl: "https://edugig.com/needs/x",
+            needUrl: "https://k12gig.com/needs/x",
         });
         expect(out.html).toContain("Rate not specified");
     });
@@ -134,7 +135,7 @@ describe("proposalAcceptedAlert", () => {
             needTitle: "Fall STEM Coach",
             orgName: "Riverside USD",
             educatorFirstName: "Kai",
-            needUrl: "https://edugig.com/dashboard/educator/needs",
+            needUrl: "https://k12gig.com/dashboard/educator/needs",
         });
         expect(out.subject).toContain("Fall STEM Coach");
         expect(out.html).toContain("Riverside USD");

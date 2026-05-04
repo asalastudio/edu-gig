@@ -11,9 +11,9 @@ export function Card({ children, className, onClick, ...props }: CardProps) {
             onClick={onClick}
             className={cn(
                 // Base
-                "rounded-lg bg-[--bg-surface] border border-[--border-default]",
+                "rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-[var(--shadow-subtle)]",
                 // Hover — lifts with shadow, border darkens slightly
-                "hover:border-[--border-strong] hover:shadow-md",
+                "hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-soft)]",
                 // Transition — only what needs to change
                 "transition-[border-color,box-shadow,transform] duration-150 ease-out",
                 // Interactive cursor if clickable

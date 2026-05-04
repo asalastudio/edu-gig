@@ -41,6 +41,7 @@ export type PipelineRow = {
     spec: string;
     status: string;
     daysOpen: number;
+    candidates?: number;
 };
 
 export type EducatorPipelineRow = {
@@ -65,12 +66,11 @@ function formatUsdExact(n: number): string {
 
 export function formatDistrictKpis(kpis: DistrictKpis | null | undefined): DistrictKpiDisplay {
     if (!kpis) {
-        // Signed-out demo fallback — matches prior hardcoded values
         return {
-            activeOpenings: "12",
-            placementsThisMonth: "4",
-            avgTimeToFill: "18 days",
-            totalSpendYtd: "$128.5K",
+            activeOpenings: "0",
+            placementsThisMonth: "0",
+            avgTimeToFill: "—",
+            totalSpendYtd: "$0",
         };
     }
     return {
@@ -84,11 +84,11 @@ export function formatDistrictKpis(kpis: DistrictKpis | null | undefined): Distr
 export function formatEducatorKpis(kpis: EducatorKpis | null | undefined): EducatorKpiDisplay {
     if (!kpis) {
         return {
-            pipelineValue: "$6,200",
-            activeCount: "3 Active Gigs",
-            ytdPayout: "$14,500",
-            completedLabel: "12 completed tasks",
-            greetingName: "Sarah",
+            pipelineValue: "$0",
+            activeCount: "0 Active Gigs",
+            ytdPayout: "$0",
+            completedLabel: "0 completed tasks",
+            greetingName: "there",
         };
     }
     return {

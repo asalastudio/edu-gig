@@ -115,15 +115,15 @@ export default function GigCheckoutPage() {
 
     if (bookedOrderId || checkoutState === "success") {
         return (
-            <div className="min-h-screen bg-[--bg-app] py-12 px-6">
+            <div className="min-h-screen bg-[var(--bg-app)] py-12 px-6">
                 <div className="max-w-xl mx-auto text-center py-24">
                     <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-50 flex items-center justify-center">
                         <CheckIcon className="h-10 w-10 text-emerald-500" />
                     </div>
-                    <h1 className="font-heading text-3xl font-bold text-[--text-primary] mb-3">
+                    <h1 className="font-heading text-3xl font-bold text-[var(--text-primary)] mb-3">
                         Booking confirmed
                     </h1>
-                    <p className="text-[--text-secondary] mb-8">
+                    <p className="text-[var(--text-secondary)] mb-8">
                         We&apos;ve notified the educator and your district workspace has the order on file.
                     </p>
                     <PrimaryButton onClick={() => router.push("/dashboard/district")}>
@@ -135,7 +135,7 @@ export default function GigCheckoutPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[--bg-app] py-12 px-6">
+        <div className="min-h-screen bg-[var(--bg-app)] py-12 px-6">
             <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* Multistep Checkout Form */}
@@ -146,18 +146,18 @@ export default function GigCheckoutPage() {
                     />
 
                     {checkoutState === "cancelled" && (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-sm font-medium">
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-sm font-medium">
                             Stripe checkout was cancelled. Your booking has not been placed.
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit}>
-                        <Card className="p-8 border-[--border-strong] shadow-sm">
+                        <Card className="p-8 border-[var(--border-strong)] shadow-sm">
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="h-8 w-8 rounded-full bg-[--accent-primary]/10 text-[--accent-primary] flex items-center justify-center font-bold text-sm">
+                                <div className="h-8 w-8 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] flex items-center justify-center font-bold text-sm">
                                     1
                                 </div>
-                                <h2 className="text-xl font-heading font-semibold text-[--text-primary]">Scheduling & District Info</h2>
+                                <h2 className="text-xl font-heading font-semibold text-[var(--text-primary)]">Scheduling & District Info</h2>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -179,34 +179,34 @@ export default function GigCheckoutPage() {
                             <div className="divider mb-8" />
 
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="h-8 w-8 rounded-full bg-[--bg-subtle] text-[--text-secondary] flex items-center justify-center font-bold text-sm">
+                                <div className="h-8 w-8 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center font-bold text-sm">
                                     2
                                 </div>
-                                <h2 className="text-xl font-heading font-semibold text-[--text-primary]">Payment Method</h2>
+                                <h2 className="text-xl font-heading font-semibold text-[var(--text-primary)]">Payment Method</h2>
                             </div>
 
                             <div className="flex flex-col gap-3">
-                                <label className={`flex items-center gap-3 p-4 border rounded-md cursor-pointer ${paymentMethod === "invoice" ? "border-[--accent-primary] bg-[--accent-primary]/5" : "border-[--border-default] hover:border-[--border-strong]"}`}>
+                                <label className={`flex items-center gap-3 p-4 border rounded-md cursor-pointer ${paymentMethod === "invoice" ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/5" : "border-[var(--border-default)] hover:border-[var(--border-strong)]"}`}>
                                     <input
                                         type="radio"
                                         name="payment"
-                                        className="accent-[--accent-primary]"
+                                        className="accent-[var(--accent-primary)]"
                                         value="invoice"
                                         checked={paymentMethod === "invoice"}
                                         onChange={() => setPaymentMethod("invoice")}
                                     />
-                                    <span className="font-medium text-[--text-primary]">ACH Bank Transfer (Net-30 Invoice)</span>
+                                    <span className="font-medium text-[var(--text-primary)]">ACH Bank Transfer (Net-30 Invoice)</span>
                                 </label>
-                                <label className={`flex items-center gap-3 p-4 border rounded-md cursor-pointer ${paymentMethod === "card" ? "border-[--accent-primary] bg-[--accent-primary]/5" : "border-[--border-default] hover:border-[--border-strong]"}`}>
+                                <label className={`flex items-center gap-3 p-4 border rounded-md cursor-pointer ${paymentMethod === "card" ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/5" : "border-[var(--border-default)] hover:border-[var(--border-strong)]"}`}>
                                     <input
                                         type="radio"
                                         name="payment"
-                                        className="accent-[--accent-primary]"
+                                        className="accent-[var(--accent-primary)]"
                                         value="card"
                                         checked={paymentMethod === "card"}
                                         onChange={() => setPaymentMethod("card")}
                                     />
-                                    <span className="font-medium text-[--text-primary]">Credit Card (Stripe)</span>
+                                    <span className="font-medium text-[var(--text-primary)]">Credit Card (Stripe)</span>
                                 </label>
                             </div>
 
@@ -218,7 +218,7 @@ export default function GigCheckoutPage() {
                                 <PrimaryButton
                                     type="submit"
                                     disabled={submitting}
-                                    className="w-full md:w-auto px-8 py-3 bg-[--accent-secondary] text-[--text-primary] hover:bg-[--accent-secondary]/90"
+                                    className="w-full md:w-auto px-8 py-3 bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90"
                                 >
                                     {submitting ? "Processing…" : paymentMethod === "card" ? "Pay with Stripe" : "Confirm & Invoice"}
                                 </PrimaryButton>
@@ -231,15 +231,15 @@ export default function GigCheckoutPage() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-6">
                         <Card className="p-6">
-                            <h3 className="text-lg font-heading font-semibold text-[--text-primary] mb-6">Order Summary</h3>
+                            <h3 className="text-lg font-heading font-semibold text-[var(--text-primary)] mb-6">Order Summary</h3>
 
                             <div className="flex flex-col gap-4 mb-6">
                                 <div>
-                                    <h4 className="font-medium text-[--text-primary]">{title}</h4>
-                                    <p className="text-sm text-[--text-secondary]">{educatorName}</p>
+                                    <h4 className="font-medium text-[var(--text-primary)]">{title}</h4>
+                                    <p className="text-sm text-[var(--text-secondary)]">{educatorName}</p>
                                 </div>
 
-                                <div className="flex items-start gap-2 text-sm text-[--text-secondary]">
+                                <div className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
                                     <CalendarIcon className="h-4 w-4 mt-0.5" />
                                     <span>{startDate ? `Starts ${startDate}` : "Half-Day Session"}</span>
                                 </div>
@@ -248,11 +248,11 @@ export default function GigCheckoutPage() {
                             <div className="divider my-4" />
 
                             <div className="flex flex-col gap-3 text-sm">
-                                <div className="flex justify-between text-[--text-secondary]">
+                                <div className="flex justify-between text-[var(--text-secondary)]">
                                     <span>Subtotal</span>
                                     <span className="tabular-nums">${gigPrice.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between text-[--text-secondary]">
+                                <div className="flex justify-between text-[var(--text-secondary)]">
                                     <span>Platform Fee ({Math.round(PLATFORM_FEE_PCT * 100)}%)</span>
                                     <span className="tabular-nums">${platformFee.toFixed(2)}</span>
                                 </div>
@@ -260,12 +260,12 @@ export default function GigCheckoutPage() {
 
                             <div className="divider my-4" />
 
-                            <div className="flex justify-between items-center text-lg font-bold text-[--text-primary]">
+                            <div className="flex justify-between items-center text-lg font-bold text-[var(--text-primary)]">
                                 <span>Total</span>
                                 <span className="tabular-nums">${totalCharged.toFixed(2)}</span>
                             </div>
 
-                            <p className="text-xs text-[--text-tertiary] text-center mt-6 flex items-center justify-center gap-1.5">
+                            <p className="text-xs text-[var(--text-tertiary)] text-center mt-6 flex items-center justify-center gap-1.5">
                                 <CheckIcon className="h-3 w-3" />
                                 No charge until start date is confirmed.
                             </p>

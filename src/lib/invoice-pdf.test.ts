@@ -15,16 +15,16 @@ const baseInput: InvoiceInput = {
 };
 
 describe("invoiceNumber", () => {
-    it("formats as EDG-<upper 8 chars>", () => {
-        expect(invoiceNumber("jd8abc12xyz345def")).toBe("EDG-JD8ABC12");
+    it("formats as K12G-<upper 8 chars>", () => {
+        expect(invoiceNumber("jd8abc12xyz345def")).toBe("K12G-JD8ABC12");
     });
 
     it("pads with zeros when orderId is empty", () => {
-        expect(invoiceNumber("")).toBe("EDG-00000000");
+        expect(invoiceNumber("")).toBe("K12G-00000000");
     });
 
     it("strips non-alphanumerics before slicing", () => {
-        expect(invoiceNumber("jd-8a_b-c-1-2")).toBe("EDG-JD8ABC12");
+        expect(invoiceNumber("jd-8a_b-c-1-2")).toBe("K12G-JD8ABC12");
     });
 });
 

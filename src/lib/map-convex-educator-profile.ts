@@ -1,15 +1,15 @@
 import type { Doc } from "@/convex/_generated/dataModel";
-import type { MockEducatorProfileView } from "@/lib/mock-educators";
+import type { EducatorProfileView } from "@/lib/educator-profile-view";
 import { TAXONOMY, getAreaOfNeedLabel } from "@/lib/taxonomy";
 
 function initialsFromName(name: string): string {
     const parts = name.replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.)\s+/i, "").split(/\s+/);
     const a = parts[0]?.[0] ?? "";
-    const b = parts[parts.length - 1]?.[0] ?? "";
+    const b = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "";
     return (a + b).toUpperCase() || "EG";
 }
 
-function verificationToTier(status: Doc<"educators">["verificationStatus"]): MockEducatorProfileView["verificationTier"] {
+function verificationToTier(status: Doc<"educators">["verificationStatus"]): EducatorProfileView["verificationTier"] {
     if (status === "unverified" || status === "pending") return "basic";
     if (status === "verified") return "verified";
     return "premier";
@@ -22,7 +22,7 @@ const gradeLabelMap: Record<string, string> = Object.fromEntries(
 export function mapConvexEducatorToProfileView(
     educator: Doc<"educators">,
     user: Doc<"users">
-): MockEducatorProfileView {
+): EducatorProfileView {
     const name = `${user.firstName} ${user.lastName}`.trim() || "Educator";
     const tier = verificationToTier(educator.verificationStatus);
     const gradeLevelsLabel = educator.gradeLevelBands.includes("all")
@@ -31,7 +31,7 @@ export function mapConvexEducatorToProfileView(
 
     const areaLabels = educator.areasOfNeed.slice(0, 6).map((id) => getAreaOfNeedLabel(id));
 
-    const licenses: MockEducatorProfileView["licenses"] =
+    const licenses: EducatorProfileView["licenses"] =
         tier === "basic"
             ? [{ type: "Credentials pending review", issuer: "—", status: "Pending", expiry: "—" }]
             : [
@@ -52,20 +52,20 @@ export function mapConvexEducatorToProfileView(
         headline: educator.headline,
         verificationTier: tier,
         availabilityStatus: educator.availabilityStatus,
-        avatarUrl: user.avatarUrl ?? "https://randomuser.me/api/portraits/lego/1.jpg",
+        avatarUrl: user.avatarUrl,
         bio: educator.bio,
         yearsExperience: educator.yearsExperience,
         placements: Math.min(50, Math.max(0, educator.profileCompletePct / 5)),
-        avgRating: 4.5,
+        avgRating: 0,
         reviewCount: 0,
         location: "Texas (see coverage regions)",
         education: "See credentials",
         areas: areaLabels.length ? areaLabels : ["K-12 support"],
         badges:
             tier === "premier"
-                ? ["Background Checked", "Premier educator"]
+                ? ["Credentials reviewed", "Premier educator"]
                 : tier === "verified"
-                  ? ["Background Checked"]
+                  ? ["Credentials reviewed"]
                   : ["Profile in progress"],
         licenses,
         experience: [
@@ -86,5 +86,7 @@ export function mapConvexEducatorToProfileView(
         primarySubjectLabel: areaLabels[0] ?? "General",
         gradeLevelsLabel,
         certCount: licenses.length,
+        startingRate: educator.hourlyRate ?? educator.dailyRate,
+        rateUnit: educator.hourlyRate ? "hour" : "day",
     };
 }

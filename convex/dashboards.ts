@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 
 const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
 
@@ -19,6 +20,33 @@ function startOfYear(now = Date.now()) {
     return new Date(new Date(now).getFullYear(), 0, 1).getTime();
 }
 
+async function findDistrictForUser(ctx: QueryCtx, userId: Doc<"users">["_id"]) {
+    const districts = await ctx.db.query("districts").collect();
+    return districts.find((district) => district.adminIds.includes(userId)) ?? null;
+}
+
+async function listDistrictNeeds(ctx: QueryCtx, user: Doc<"users">) {
+    const district = await findDistrictForUser(ctx, user._id);
+    const byDistrict = district
+        ? await ctx.db
+              .query("needs")
+              .withIndex("by_district", (q) => q.eq("districtId", district._id))
+              .order("desc")
+              .collect()
+        : [];
+    const byUser = await ctx.db
+        .query("needs")
+        .withIndex("by_posted_by", (q) => q.eq("postedByUserId", user._id))
+        .order("desc")
+        .collect();
+    return {
+        district,
+        needs: Array.from(new Map([...byDistrict, ...byUser].map((need) => [need._id, need])).values()).sort(
+            (a, b) => b.createdAt - a.createdAt
+        ),
+    };
+}
+
 export const districtKpis = query({
     args: {},
     handler: async (ctx) => {
@@ -29,13 +57,7 @@ export const districtKpis = query({
             return null;
         }
 
-        const districts = await ctx.db.query("districts").collect();
-        const district = districts.find((d) => d.adminIds.includes(user._id));
-
-        const needs = await ctx.db
-            .query("needs")
-            .withIndex("by_posted_by", (q) => q.eq("postedByUserId", user._id))
-            .collect();
+        const { district, needs } = await listDistrictNeeds(ctx, user);
 
         const orders = district
             ? await ctx.db
@@ -91,19 +113,24 @@ export const districtPipeline = query({
             return [];
         }
 
-        const needs = await ctx.db
-            .query("needs")
-            .withIndex("by_posted_by", (q) => q.eq("postedByUserId", user._id))
-            .order("desc")
-            .collect();
+        const { needs } = await listDistrictNeeds(ctx, user);
 
-        return needs.map((n) => ({
-            id: n._id,
-            role: n.areaOfNeed,
-            spec: n.subCategory ?? n.description?.slice(0, 60) ?? "",
-            status: n.status,
-            daysOpen: Math.max(0, Math.floor((Date.now() - n.createdAt) / (1000 * 60 * 60 * 24))),
-        }));
+        const rows = [];
+        for (const n of needs) {
+            const proposals = await ctx.db
+                .query("proposals")
+                .withIndex("by_need", (q) => q.eq("needId", n._id))
+                .collect();
+            rows.push({
+                id: n._id,
+                role: n.areaOfNeed,
+                spec: n.subCategory ?? n.description?.slice(0, 60) ?? "",
+                status: n.status,
+                daysOpen: Math.max(0, Math.floor((Date.now() - n.createdAt) / (1000 * 60 * 60 * 24))),
+                candidates: proposals.filter((proposal) => proposal.status !== "withdrawn").length,
+            });
+        }
+        return rows;
     },
 });
 

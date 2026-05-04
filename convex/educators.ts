@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 
 function isDistrictRole(role: string): boolean {
@@ -40,6 +41,22 @@ function verificationToTier(
     if (status === "unverified" || status === "pending") return "basic";
     if (status === "verified") return "verified";
     return "premier";
+}
+
+async function reviewSummary(ctx: QueryCtx | MutationCtx, userId: Doc<"users">["_id"]) {
+    const reviews = await ctx.db
+        .query("reviews")
+        .withIndex("by_reviewee", (q) => q.eq("revieweeId", userId))
+        .collect();
+    if (reviews.length === 0) {
+        return { overallRating: 0, reviewCount: 0 };
+    }
+    const average =
+        reviews.reduce((sum, review) => sum + review.overallRating, 0) / reviews.length;
+    return {
+        overallRating: Math.round(average * 10) / 10,
+        reviewCount: reviews.length,
+    };
 }
 
 // ─── Queries ───────────────────────────────────────────────
@@ -93,14 +110,15 @@ export const listForBrowse = query({
             const user = await ctx.db.get(educator.userId);
             if (!user) continue;
             const name = `${user.firstName} ${user.lastName}`.trim();
+            const rating = await reviewSummary(ctx, user._id);
             out.push({
                 id: educator._id,
                 name,
                 headline: educator.headline,
                 avatarUrl: user.avatarUrl,
                 verificationTier: verificationToTier(educator.verificationStatus),
-                overallRating: 4.5,
-                reviewCount: 0,
+                overallRating: rating.overallRating,
+                reviewCount: rating.reviewCount,
                 gradeLevels: educator.gradeLevelBands,
                 areasOfNeed: educator.areasOfNeed,
                 engagementTypes: educator.engagementTypes,
@@ -155,6 +173,18 @@ export const updateMyProfile = mutation({
     args: {
         headline: v.optional(v.string()),
         bio: v.optional(v.string()),
+        availabilityStatus: v.optional(v.union(
+            v.literal("open"),
+            v.literal("limited"),
+            v.literal("closed")
+        )),
+        hourlyRate: v.optional(v.number()),
+        dailyRate: v.optional(v.number()),
+        gradeLevelBands: v.optional(v.array(v.string())),
+        areasOfNeed: v.optional(v.array(v.string())),
+        engagementTypes: v.optional(v.array(v.string())),
+        coverageRegions: v.optional(v.array(v.string())),
+        yearsExperience: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const user = await requireEducatorViewer(ctx);
@@ -166,6 +196,14 @@ export const updateMyProfile = mutation({
         const patch: Record<string, unknown> = {};
         if (args.headline !== undefined) patch.headline = args.headline;
         if (args.bio !== undefined) patch.bio = args.bio;
+        if (args.availabilityStatus !== undefined) patch.availabilityStatus = args.availabilityStatus;
+        if (args.hourlyRate !== undefined) patch.hourlyRate = args.hourlyRate;
+        if (args.dailyRate !== undefined) patch.dailyRate = args.dailyRate;
+        if (args.gradeLevelBands !== undefined) patch.gradeLevelBands = args.gradeLevelBands;
+        if (args.areasOfNeed !== undefined) patch.areasOfNeed = args.areasOfNeed;
+        if (args.engagementTypes !== undefined) patch.engagementTypes = args.engagementTypes;
+        if (args.coverageRegions !== undefined) patch.coverageRegions = args.coverageRegions;
+        if (args.yearsExperience !== undefined) patch.yearsExperience = args.yearsExperience;
         if (Object.keys(patch).length) await ctx.db.patch(edu._id, patch);
         return edu._id;
     },

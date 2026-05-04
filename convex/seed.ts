@@ -1,7 +1,17 @@
 import { mutation } from "./_generated/server";
+import { v } from "convex/values";
 
 export const populate = mutation({
-    handler: async (ctx) => {
+    args: { seedSecret: v.string() },
+    handler: async (ctx, args) => {
+        if (process.env.ALLOW_DEMO_SEED !== "true") {
+            throw new Error("Demo seed is disabled. Set ALLOW_DEMO_SEED=true only on a development Convex deployment.");
+        }
+        const expectedSecret = process.env.DEMO_SEED_SECRET;
+        if (!expectedSecret || args.seedSecret !== expectedSecret) {
+            throw new Error("Forbidden");
+        }
+
         // Idempotent on the seeded educator set: skip only if the dummy clerk IDs already exist.
         const seeded = await ctx.db
             .query("users")

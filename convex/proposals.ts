@@ -31,6 +31,13 @@ async function requireEducatorViewer(ctx: QueryCtx | MutationCtx) {
     return user;
 }
 
+async function canManageNeed(ctx: QueryCtx | MutationCtx, user: Doc<"users">, need: Doc<"needs">) {
+    if (user.role === "superadmin" || need.postedByUserId === user._id) return true;
+    if (!need.districtId) return false;
+    const district = await ctx.db.get(need.districtId);
+    return !!district?.adminIds.includes(user._id);
+}
+
 const proposedRateUnitValidator = v.union(
     v.literal("hourly"),
     v.literal("daily"),
@@ -136,7 +143,7 @@ export const listForNeed = query({
         const user = await requireDistrictViewer(ctx);
         const need = await ctx.db.get(args.needId);
         if (!need) throw new Error("Not found");
-        if (need.postedByUserId !== user._id && user.role !== "superadmin") {
+        if (!(await canManageNeed(ctx, user, need))) {
             throw new Error("Forbidden");
         }
 
@@ -176,7 +183,7 @@ export const accept = mutation({
 
         const need = await ctx.db.get(proposal.needId);
         if (!need) throw new Error("Need not found");
-        if (need.postedByUserId !== user._id && user.role !== "superadmin") {
+        if (!(await canManageNeed(ctx, user, need))) {
             throw new Error("Forbidden");
         }
 
@@ -226,7 +233,7 @@ export const reject = mutation({
 
         const need = await ctx.db.get(proposal.needId);
         if (!need) throw new Error("Need not found");
-        if (need.postedByUserId !== user._id && user.role !== "superadmin") {
+        if (!(await canManageNeed(ctx, user, need))) {
             throw new Error("Forbidden");
         }
 

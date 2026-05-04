@@ -10,48 +10,9 @@ import { PrimaryButton } from "@/components/shared/button";
 import { Card } from "@/components/shared/card";
 import { ArrowLeft, Briefcase, Plus } from "@phosphor-icons/react";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
-import { formatPrice, type PricingType } from "@/lib/map-review";
+import { formatPrice } from "@/lib/map-review";
+import { demoGigCards, formatCreatedAt, mapGigsToCards, type GigCard } from "@/lib/map-gigs";
 import type { Id } from "@/convex/_generated/dataModel";
-
-type GigCard = {
-    id: string;
-    title: string;
-    areaOfNeed: string;
-    pricingType: PricingType;
-    price: number;
-    isActive: boolean;
-    createdAt: number;
-};
-
-const DEMO_CARDS: GigCard[] = [
-    {
-        id: "demo-1",
-        title: "Curriculum Mapping Workshop",
-        areaOfNeed: "instruction_curriculum",
-        pricingType: "fixed",
-        price: 800,
-        isActive: true,
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 10,
-    },
-    {
-        id: "demo-2",
-        title: "Coaching Session",
-        areaOfNeed: "leadership",
-        pricingType: "hourly",
-        price: 75,
-        isActive: true,
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3,
-    },
-];
-
-function formatCreatedAt(ts: number): string {
-    const d = new Date(ts);
-    return d.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-    });
-}
 
 export default function EducatorMyGigsPage() {
     const viewer = useQuery(api.users.viewer, {});
@@ -60,16 +21,8 @@ export default function EducatorMyGigsPage() {
 
     const isDemo = viewer === null;
     const cards: GigCard[] = isDemo
-        ? DEMO_CARDS
-        : (gigs ?? []).map((g) => ({
-              id: g._id as string,
-              title: g.title,
-              areaOfNeed: g.areaOfNeed,
-              pricingType: g.pricingType,
-              price: g.price,
-              isActive: g.isActive,
-              createdAt: g.createdAt,
-          }));
+        ? demoGigCards()
+        : mapGigsToCards(gigs ?? []);
 
     const isEmpty = !isDemo && Array.isArray(gigs) && gigs.length === 0;
 
@@ -114,8 +67,8 @@ export default function EducatorMyGigsPage() {
                         <div className="mt-10 text-[var(--text-secondary)]">Loading your gigs…</div>
                     ) : isEmpty ? (
                         <Card className="mt-10 p-12 flex flex-col items-center text-center">
-                            <div className="h-12 w-12 rounded-xl border border-[--border-default] flex items-center justify-center mb-4 bg-[--bg-subtle]">
-                                <Briefcase className="w-6 h-6 text-[--text-tertiary]" />
+                            <div className="h-12 w-12 rounded-lg border border-[var(--border-default)] flex items-center justify-center mb-4 bg-[var(--bg-subtle)]">
+                                <Briefcase className="w-6 h-6 text-[var(--text-tertiary)]" />
                             </div>
                             <h3 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
                                 You haven&apos;t listed any services yet.

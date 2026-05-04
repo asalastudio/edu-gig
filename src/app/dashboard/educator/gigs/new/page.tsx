@@ -13,15 +13,6 @@ import { TAXONOMY } from "@/lib/taxonomy";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
-const COVERAGE_REGIONS = [
-    { id: "region_1", label: "Region 1" },
-    { id: "region_2", label: "Region 2" },
-    { id: "region_3", label: "Region 3" },
-    { id: "region_4", label: "Region 4" },
-    { id: "region_5", label: "Region 5" },
-    { id: "all", label: "All Regions" },
-] as const;
-
 const gigSchema = z.object({
     title: z.string().trim().min(4, "Title must be at least 4 characters."),
     description: z.string().trim().min(20, "Description must be at least 20 characters."),
@@ -113,7 +104,7 @@ export default function NewGigPage() {
     };
 
     const inputBase =
-        "w-full h-12 px-4 rounded-xl border border-[--border-subtle] bg-[--bg-app] text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] focus:bg-white transition-all";
+        "w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all";
 
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
@@ -134,10 +125,10 @@ export default function NewGigPage() {
 
                     <form
                         onSubmit={handleSubmit}
-                        className="mt-10 bg-white p-8 md:p-10 rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-[--border-subtle] flex flex-col gap-6"
+                        className="mt-10 bg-white p-8 md:p-10 rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-[var(--border-subtle)] flex flex-col gap-6"
                     >
                         <div className="flex flex-col gap-2">
-                            <label htmlFor="title" className="text-sm font-semibold text-[--text-primary]">
+                            <label htmlFor="title" className="text-sm font-semibold text-[var(--text-primary)]">
                                 Title *
                             </label>
                             <input
@@ -151,7 +142,7 @@ export default function NewGigPage() {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            <label htmlFor="description" className="text-sm font-semibold text-[--text-primary]">
+                            <label htmlFor="description" className="text-sm font-semibold text-[var(--text-primary)]">
                                 Description *
                             </label>
                             <textarea
@@ -160,13 +151,13 @@ export default function NewGigPage() {
                                 onChange={(e) => setDescription(e.target.value)}
                                 rows={5}
                                 placeholder="What will you deliver? Who is it for? What makes your service stand out?"
-                                className="w-full p-4 rounded-xl border border-[--border-subtle] bg-[--bg-app] text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] focus:bg-white transition-all resize-y"
+                                className="w-full p-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
                             />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-2">
-                                <label htmlFor="areaOfNeed" className="text-sm font-semibold text-[--text-primary]">
+                                <label htmlFor="areaOfNeed" className="text-sm font-semibold text-[var(--text-primary)]">
                                     Area of Need *
                                 </label>
                                 <select
@@ -188,7 +179,7 @@ export default function NewGigPage() {
                             </div>
 
                             <div className="flex flex-col gap-2">
-                                <label htmlFor="subCategory" className="text-sm font-semibold text-[--text-primary]">
+                                <label htmlFor="subCategory" className="text-sm font-semibold text-[var(--text-primary)]">
                                     Sub-category
                                 </label>
                                 <select
@@ -209,12 +200,12 @@ export default function NewGigPage() {
                         </div>
 
                         <div className="flex flex-col gap-3">
-                            <label className="text-sm font-semibold text-[--text-primary]">Engagement Type *</label>
+                            <label className="text-sm font-semibold text-[var(--text-primary)]">Engagement Type *</label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 {TAXONOMY.engagementTypes.map((eng) => (
                                     <label
                                         key={eng.id}
-                                        className="flex flex-col items-start gap-2 p-4 border border-[--border-subtle] bg-[--bg-app] rounded-xl cursor-pointer hover:border-[--accent-primary]/50 has-[:checked]:bg-[--accent-primary]/5 has-[:checked]:border-[--accent-primary] transition-all"
+                                        className="flex flex-col items-start gap-2 p-4 border border-[var(--border-subtle)] bg-[var(--bg-app)] rounded-lg cursor-pointer hover:border-[var(--accent-primary)]/50 has-[:checked]:bg-[var(--accent-primary)]/5 has-[:checked]:border-[var(--accent-primary)] transition-all"
                                     >
                                         <input
                                             type="radio"
@@ -222,23 +213,23 @@ export default function NewGigPage() {
                                             value={eng.id}
                                             checked={engagementType === eng.id}
                                             onChange={() => setEngagementType(eng.id)}
-                                            className="w-4 h-4 text-[--accent-primary] focus:ring-[--accent-primary]"
+                                            className="w-4 h-4 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                                         />
-                                        <span className="text-[--text-primary] font-semibold text-sm">{eng.label}</span>
+                                        <span className="text-[var(--text-primary)] font-semibold text-sm">{eng.label}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-3">
-                            <label className="text-sm font-semibold text-[--text-primary]">Grade Levels *</label>
+                            <label className="text-sm font-semibold text-[var(--text-primary)]">Grade Levels *</label>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {TAXONOMY.gradeLevelBands
                                     .filter((g) => g.id !== "other")
                                     .map((g) => (
                                         <label
                                             key={g.id}
-                                            className="flex items-center gap-2 p-3 border border-[--border-subtle] bg-[--bg-app] rounded-xl cursor-pointer hover:border-[--accent-primary]/50 has-[:checked]:bg-[--accent-primary]/5 has-[:checked]:border-[--accent-primary] transition-all"
+                                            className="flex items-center gap-2 p-3 border border-[var(--border-subtle)] bg-[var(--bg-app)] rounded-lg cursor-pointer hover:border-[var(--accent-primary)]/50 has-[:checked]:bg-[var(--accent-primary)]/5 has-[:checked]:border-[var(--accent-primary)] transition-all"
                                         >
                                             <input
                                                 type="checkbox"
@@ -247,9 +238,9 @@ export default function NewGigPage() {
                                                 onChange={() =>
                                                     setGradeLevels((prev) => toggleInArray(prev, g.id))
                                                 }
-                                                className="w-4 h-4 text-[--accent-primary] focus:ring-[--accent-primary]"
+                                                className="w-4 h-4 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                                             />
-                                            <span className="text-sm font-semibold text-[--text-primary]">
+                                            <span className="text-sm font-semibold text-[var(--text-primary)]">
                                                 {g.label}
                                             </span>
                                         </label>
@@ -258,12 +249,15 @@ export default function NewGigPage() {
                         </div>
 
                         <div className="flex flex-col gap-3">
-                            <label className="text-sm font-semibold text-[--text-primary]">Coverage Regions *</label>
+                            <label className="text-sm font-semibold text-[var(--text-primary)]">Coverage Areas *</label>
+                            <p className="text-sm text-[var(--text-secondary)]">
+                                Pick where you can serve districts. Use Statewide / Remote if your service does not require travel.
+                            </p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {COVERAGE_REGIONS.map((r) => (
+                                {TAXONOMY.coverageRegions.map((r) => (
                                     <label
                                         key={r.id}
-                                        className="flex items-center gap-2 p-3 border border-[--border-subtle] bg-[--bg-app] rounded-xl cursor-pointer hover:border-[--accent-primary]/50 has-[:checked]:bg-[--accent-primary]/5 has-[:checked]:border-[--accent-primary] transition-all"
+                                        className="flex items-center gap-2 p-3 border border-[var(--border-subtle)] bg-[var(--bg-app)] rounded-lg cursor-pointer hover:border-[var(--accent-primary)]/50 has-[:checked]:bg-[var(--accent-primary)]/5 has-[:checked]:border-[var(--accent-primary)] transition-all"
                                     >
                                         <input
                                             type="checkbox"
@@ -272,16 +266,16 @@ export default function NewGigPage() {
                                             onChange={() =>
                                                 setCoverageRegions((prev) => toggleInArray(prev, r.id))
                                             }
-                                            className="w-4 h-4 text-[--accent-primary] focus:ring-[--accent-primary]"
+                                            className="w-4 h-4 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                                         />
-                                        <span className="text-sm font-semibold text-[--text-primary]">{r.label}</span>
+                                        <span className="text-sm font-semibold text-[var(--text-primary)]">{r.label}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            <label htmlFor="deliverables" className="text-sm font-semibold text-[--text-primary]">
+                            <label htmlFor="deliverables" className="text-sm font-semibold text-[var(--text-primary)]">
                                 Deliverables (one per line)
                             </label>
                             <textarea
@@ -290,12 +284,12 @@ export default function NewGigPage() {
                                 onChange={(e) => setDeliverablesText(e.target.value)}
                                 rows={4}
                                 placeholder={"Scope document\nWeekly coaching session\nFinal report"}
-                                className="w-full p-4 rounded-xl border border-[--border-subtle] bg-[--bg-app] text-[--text-primary] text-sm focus:outline-none focus:ring-2 focus:ring-[--accent-primary]/20 focus:border-[--accent-primary] focus:bg-white transition-all resize-y"
+                                className="w-full p-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
                             />
                         </div>
 
                         <div className="flex flex-col gap-3">
-                            <label className="text-sm font-semibold text-[--text-primary]">Pricing *</label>
+                            <label className="text-sm font-semibold text-[var(--text-primary)]">Pricing *</label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 {(
                                     [
@@ -306,7 +300,7 @@ export default function NewGigPage() {
                                 ).map((t) => (
                                     <label
                                         key={t.id}
-                                        className="flex items-center gap-2 p-4 border border-[--border-subtle] bg-[--bg-app] rounded-xl cursor-pointer hover:border-[--accent-primary]/50 has-[:checked]:bg-[--accent-primary]/5 has-[:checked]:border-[--accent-primary] transition-all"
+                                        className="flex items-center gap-2 p-4 border border-[var(--border-subtle)] bg-[var(--bg-app)] rounded-lg cursor-pointer hover:border-[var(--accent-primary)]/50 has-[:checked]:bg-[var(--accent-primary)]/5 has-[:checked]:border-[var(--accent-primary)] transition-all"
                                     >
                                         <input
                                             type="radio"
@@ -314,9 +308,9 @@ export default function NewGigPage() {
                                             value={t.id}
                                             checked={pricingType === t.id}
                                             onChange={() => setPricingType(t.id)}
-                                            className="w-4 h-4 text-[--accent-primary]"
+                                            className="w-4 h-4 text-[var(--accent-primary)]"
                                         />
-                                        <span className="text-[--text-primary] font-semibold text-sm">{t.label}</span>
+                                        <span className="text-[var(--text-primary)] font-semibold text-sm">{t.label}</span>
                                     </label>
                                 ))}
                             </div>
@@ -324,7 +318,7 @@ export default function NewGigPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-2">
-                                <label htmlFor="price" className="text-sm font-semibold text-[--text-primary]">
+                                <label htmlFor="price" className="text-sm font-semibold text-[var(--text-primary)]">
                                     Price (USD) *
                                 </label>
                                 <input
@@ -341,7 +335,7 @@ export default function NewGigPage() {
                             <div className="flex flex-col gap-2">
                                 <label
                                     htmlFor="estimatedDuration"
-                                    className="text-sm font-semibold text-[--text-primary]"
+                                    className="text-sm font-semibold text-[var(--text-primary)]"
                                 >
                                     Estimated duration
                                 </label>
@@ -362,10 +356,10 @@ export default function NewGigPage() {
                             </p>
                         )}
 
-                        <div className="flex items-center justify-between mt-4 pt-6 border-t border-[--border-subtle]">
+                        <div className="flex items-center justify-between mt-4 pt-6 border-t border-[var(--border-subtle)]">
                             <Link
                                 href="/dashboard/educator/my-gigs"
-                                className="px-6 py-2.5 rounded-lg text-sm font-bold text-[--text-secondary] hover:bg-[--bg-subtle] transition-colors"
+                                className="px-6 py-2.5 rounded-lg text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
                             >
                                 Cancel
                             </Link>

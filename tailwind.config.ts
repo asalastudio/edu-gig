@@ -7,20 +7,20 @@ const config: Config = {
     theme: {
         extend: {
             fontFamily: {
-                heading: ['DM Serif Display', 'Georgia', 'serif'],
-                body: ['Geist', 'IBM Plex Sans', 'system-ui', 'sans-serif'],
-                mono: ['Geist Mono', 'Fira Code', 'monospace'],
-                accent: ['Schoolbell', 'cursive'],
+                heading: ['Georgia', 'ui-serif', 'serif'],
+                body: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+                mono: ['var(--font-geist-mono)', 'Fira Code', 'monospace'],
+                accent: ['Georgia', 'ui-serif', 'serif'],
             },
             colors: {
                 brand: {
                     chalkboard: '#2D4A3E',
                     'chalkboard-h': '#243D33',
-                    pencil: '#E8B84B',
-                    chalk: '#FAFAF9',
-                    apple: '#C0392B',
-                    wood: '#C4A77D',
-                    slate: '#5B7B8A',
+                    pencil: '#DFAE3F',
+                    chalk: '#F6F8F4',
+                    apple: '#B64637',
+                    wood: '#9C815C',
+                    slate: '#486F83',
                     gold: '#D4A843',
                     ink: '#1A1A18',
                     'dark-base': '#111318',

@@ -7,10 +7,10 @@ import {
 } from "./map-dashboard";
 
 describe("formatDistrictKpis", () => {
-    it("returns demo fallbacks when no data", () => {
+    it("returns empty-state fallbacks when no data", () => {
         const d = formatDistrictKpis(null);
-        expect(d.activeOpenings).toBe("12");
-        expect(d.avgTimeToFill).toBe("18 days");
+        expect(d.activeOpenings).toBe("0");
+        expect(d.avgTimeToFill).toBe("—");
     });
 
     it("formats live data", () => {
@@ -45,7 +45,7 @@ describe("formatDistrictKpis", () => {
 describe("formatEducatorKpis", () => {
     it("falls back when empty", () => {
         const d = formatEducatorKpis(null);
-        expect(d.greetingName).toBe("Sarah");
+        expect(d.greetingName).toBe("there");
     });
 
     it("pluralises active gigs and completed tasks", () => {

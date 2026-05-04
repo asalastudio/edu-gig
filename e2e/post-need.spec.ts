@@ -1,8 +1,11 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Post a Need (demo path)", () => {
-    test("fills three-step form and sees confirmation", async ({ page }) => {
+test.describe("Post a Need", () => {
+    test("signed-out users see a real-post intercept and can preview the form", async ({ page }) => {
         await page.goto("/post");
+
+        await expect(page.getByRole("heading", { name: /Sign in to post a real need/i })).toBeVisible();
+        await page.getByRole("button", { name: /Preview the form/i }).click();
 
         // Step 1 — Role
         await expect(page.getByRole("heading", { name: /^The Role$/i })).toBeVisible();
@@ -24,9 +27,9 @@ test.describe("Post a Need (demo path)", () => {
         await page.locator("#compRange").fill("$80-$100/hr");
         await page.locator("#description").fill("Curriculum support for Q4.");
 
-        // Submit — without Clerk configured, button label includes "Post".
+        // Submit preserves the draft and sends the user to account creation.
         await page.locator('button[type="submit"]').click();
 
-        await expect(page.getByRole("heading", { name: /Your need has been posted!/i })).toBeVisible();
+        await expect(page).toHaveURL(/\/sign-up/);
     });
 });

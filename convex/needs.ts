@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 
 const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
@@ -19,6 +20,18 @@ async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
         throw new Error("Forbidden");
     }
     return user;
+}
+
+async function findDistrictForUser(ctx: QueryCtx | MutationCtx, userId: Doc<"users">["_id"]) {
+    const districts = await ctx.db.query("districts").collect();
+    return districts.find((district) => district.adminIds.includes(userId)) ?? null;
+}
+
+async function canManageNeed(ctx: QueryCtx | MutationCtx, user: Doc<"users">, need: Doc<"needs">) {
+    if (user.role === "superadmin" || need.postedByUserId === user._id) return true;
+    if (!need.districtId) return false;
+    const district = await ctx.db.get(need.districtId);
+    return !!district?.adminIds.includes(user._id);
 }
 
 const needStatusValidator = v.union(
@@ -44,12 +57,9 @@ export const create = mutation({
     handler: async (ctx, args) => {
         const user = await requireDistrictViewer(ctx);
 
-        // Best-effort: link to the first district this user administers.
-        const district = await ctx.db
-            .query("districts")
-            .filter((q) => q.eq(q.field("adminIds"), [user._id]))
-            .first();
-
+        // Link to the district this user administers even when the district has
+        // multiple admins. Convex array equality only matched single-admin rows.
+        const district = await findDistrictForUser(ctx, user._id);
         const districtId = district?._id;
 
         return await ctx.db.insert("needs", {
@@ -75,12 +85,22 @@ export const listMine = query({
     args: {},
     handler: async (ctx) => {
         const user = await requireDistrictViewer(ctx);
+        const district = await findDistrictForUser(ctx, user._id);
+        const byDistrict = district
+            ? await ctx.db
+                  .query("needs")
+                  .withIndex("by_district", (q) => q.eq("districtId", district._id))
+                  .order("desc")
+                  .collect()
+            : [];
         const byUser = await ctx.db
             .query("needs")
             .withIndex("by_posted_by", (q) => q.eq("postedByUserId", user._id))
             .order("desc")
             .collect();
-        return byUser;
+        return Array.from(new Map([...byDistrict, ...byUser].map((need) => [need._id, need])).values()).sort(
+            (a, b) => b.createdAt - a.createdAt
+        );
     },
 });
 
@@ -88,8 +108,11 @@ export const listMine = query({
 export const getById = query({
     args: { needId: v.id("needs") },
     handler: async (ctx, args) => {
-        await requireDistrictViewer(ctx);
-        return await ctx.db.get(args.needId);
+        const user = await requireDistrictViewer(ctx);
+        const need = await ctx.db.get(args.needId);
+        if (!need) return null;
+        if (!(await canManageNeed(ctx, user, need))) throw new Error("Forbidden");
+        return need;
     },
 });
 
@@ -120,7 +143,7 @@ export const updateStatus = mutation({
         const user = await requireDistrictViewer(ctx);
         const need = await ctx.db.get(args.needId);
         if (!need) throw new Error("Not found");
-        if (need.postedByUserId !== user._id && user.role !== "superadmin") {
+        if (!(await canManageNeed(ctx, user, need))) {
             throw new Error("Forbidden");
         }
         await ctx.db.patch(args.needId, { status: args.status });

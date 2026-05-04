@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -8,22 +8,34 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { PrimaryButton } from "@/components/shared/button";
 import { VerificationBadge } from "@/components/shared/verification-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, Star, ShieldCheck, Clock } from "@phosphor-icons/react";
+import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, Star, ShieldCheck, Clock, CalendarCheck, CurrencyDollar } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { getMockEducatorProfileView } from "@/lib/mock-educators";
 import { mapConvexEducatorToProfileView } from "@/lib/map-convex-educator-profile";
 import { isDistrictRole } from "@/lib/roles";
+import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
 
 const USE_CONVEX = process.env.NEXT_PUBLIC_USE_CONVEX_BROWSE === "true";
+
+function isSavedEducator(educatorId: string): boolean {
+    if (typeof window === "undefined" || !educatorId) return false;
+    try {
+        const raw = window.localStorage.getItem("k12gig_saved_educators");
+        const ids: string[] = raw ? JSON.parse(raw) : [];
+        return ids.includes(educatorId);
+    } catch {
+        return false;
+    }
+}
 
 export default function EducatorProfilePage() {
     const params = useParams();
     const router = useRouter();
     const educatorId = typeof params.educatorId === "string" ? params.educatorId : params.educatorId?.[0] ?? "";
+    const [saved, setSaved] = useState(() => isSavedEducator(educatorId));
 
     const viewer = useQuery(api.users.viewer, {});
     const districtOK = !!viewer && isDistrictRole(viewer.role);
@@ -37,7 +49,7 @@ export default function EducatorProfilePage() {
 
     if (useConvexProfile && convexData === undefined) {
         return (
-            <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
+            <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
                 <SiteHeader />
                 <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
                     <p className="text-[var(--text-secondary)]">Loading profile…</p>
@@ -49,7 +61,7 @@ export default function EducatorProfilePage() {
 
     if (useConvexProfile && convexData === null) {
         return (
-            <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
+            <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
                 <SiteHeader />
                 <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
                     <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Educator not found</h1>
@@ -64,13 +76,34 @@ export default function EducatorProfilePage() {
     const profile =
         useConvexProfile && convexData
             ? mapConvexEducatorToProfileView(convexData.educator, convexData.user)
-            : getMockEducatorProfileView(educatorId);
+            : null;
 
-    // Real Convex user id for the educator (when browsing Convex data). Null for mock demo rows.
     const convexRecipientUserId: string | null =
         useConvexProfile && convexData ? convexData.user._id : null;
 
     const isMockProfile = educatorId.startsWith("e_");
+
+    if (!profile) {
+        const headline = isMockProfile ? "Sample profile retired" : "Profile not available";
+        const body = isMockProfile
+            ? "This profile id was part of an earlier demo dataset that is no longer rendered."
+            : !viewer
+              ? "Sign in with a district account to view real educator profiles."
+              : !districtOK
+                ? "Use a district account to view real educator profiles."
+                : "This profile isn’t available — it may be unpublished or unverified.";
+        return (
+            <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
+                <SiteHeader />
+                <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
+                    <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">{headline}</h1>
+                    <p className="text-[var(--text-secondary)] mb-8">{body}</p>
+                    <PrimaryButton onClick={() => router.push("/browse")}>Back to directory</PrimaryButton>
+                </main>
+                <SiteFooter />
+            </div>
+        );
+    }
 
     const handleMessageEducator = () => {
         const firstName = convexData?.user.firstName ?? "";
@@ -106,9 +139,39 @@ export default function EducatorProfilePage() {
         router.push(`/dashboard/messages?${query}`);
     };
 
+    const saveEducator = () => {
+        if (typeof window === "undefined") return;
+        const raw = window.localStorage.getItem("k12gig_saved_educators");
+        const ids: string[] = raw ? JSON.parse(raw) : [];
+        const next = ids.includes(educatorId) ? ids.filter((id) => id !== educatorId) : [...ids, educatorId];
+        window.localStorage.setItem("k12gig_saved_educators", JSON.stringify(next));
+        setSaved(next.includes(educatorId));
+    };
+
+    const handleSaveEducator = () => {
+        saveEducator();
+        if (!viewer) {
+            const next = `/browse/${educatorId}`;
+            router.push(`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent(next)}`);
+        }
+    };
+
+    const handleRequestEducator = (slot?: string) => {
+        const next = `/post?educator=${encodeURIComponent(educatorId)}&name=${encodeURIComponent(profile?.name ?? "Educator")}${slot ? `&slot=${encodeURIComponent(slot)}` : ""}`;
+        if (!viewer) {
+            router.push(`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent(next)}`);
+            return;
+        }
+        if (!districtOK) {
+            router.push("/login");
+            return;
+        }
+        router.push(next);
+    };
+
     if (!profile) {
         return (
-            <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
+            <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
                 <SiteHeader />
                 <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
                     <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Educator not found</h1>
@@ -135,6 +198,17 @@ export default function EducatorProfilePage() {
               : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-strong)]";
 
     const signedIn = !!viewer;
+    const pricingLabel = profile.startingRate
+        ? `$${profile.startingRate.toLocaleString("en-US")}/${profile.rateUnit}`
+        : "Rate available by request";
+    const savedLabel = saved ? "Saved" : "Save to List";
+    const availableSlots = ["M", "T", "W", "Th", "F"].flatMap((day) => {
+        const slots = profile.availableDays[day as keyof typeof profile.availableDays];
+        return [
+            ...(slots.am ? [`${day} morning`] : []),
+            ...(slots.pm ? [`${day} afternoon`] : []),
+        ];
+    });
 
     const profileMain = (
             <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
@@ -142,7 +216,8 @@ export default function EducatorProfilePage() {
                     &larr; Back to Browse
                 </button>
 
-                <div className="bg-white rounded-3xl shadow-sm border border-[var(--border-subtle)] overflow-hidden relative">
+                <div className="bg-white rounded-lg shadow-[var(--shadow-soft)] border border-[var(--border-default)] overflow-hidden relative">
+                    <div className="h-1 w-full bg-[linear-gradient(90deg,var(--accent-primary),var(--accent-tertiary),var(--accent-secondary))]" />
                     
                     {/* Hero Profile Header */}
                     <div className="bg-white p-8 md:p-12 flex flex-col md:flex-row items-center md:items-start gap-8 relative border-b border-[var(--border-subtle)]">
@@ -175,12 +250,30 @@ export default function EducatorProfilePage() {
                                 ))}
                             </div>
                             
-                            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto mt-2">
-                                <button onClick={handleMessageEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-xl hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
+                            <div className="w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-subtle)] p-4 flex flex-col sm:flex-row sm:items-center gap-4 mt-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 text-[var(--text-primary)]">
+                                        <CurrencyDollar weight="bold" className="w-5 h-5 text-[var(--accent-primary)]" />
+                                        <span className="font-heading text-2xl font-bold">{pricingLabel}</span>
+                                    </div>
+                                    <p className="text-sm font-medium text-[var(--text-secondary)] mt-1">
+                                        Starting rate. Final scope, platform fees, taxes, and purchase-order details are confirmed before booking.
+                                    </p>
+                                </div>
+                                <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-tertiary)]">
+                                    Minimum engagement: 2 hours
+                                </span>
+                            </div>
+
+                            <div className="hidden md:flex flex-row gap-3 w-full sm:w-auto mt-2">
+                                <button onClick={() => handleRequestEducator()} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-lg hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
+                                    <CalendarCheck weight="fill" className="w-5 h-5" /> Request Availability
+                                </button>
+                                <button onClick={handleMessageEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
                                     <ChatCircle weight="fill" className="w-5 h-5" /> Message Educator
                                 </button>
-                                <button onClick={() => alert("Educator saved to your list.")} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-xl hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
-                                    <BookmarkSimple weight="bold" className="w-5 h-5" /> Save to List
+                                <button onClick={handleSaveEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
+                                    <BookmarkSimple weight={saved ? "fill" : "bold"} className="w-5 h-5" /> {savedLabel}
                                 </button>
                             </div>
                         </div>
@@ -227,7 +320,7 @@ export default function EducatorProfilePage() {
                                 {profile.videoIntro && (
                                     <div>
                                         <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Video Introduction</h2>
-                                        <div className="w-full aspect-video bg-[var(--bg-subtle)] rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-strong)] mt-2 group cursor-pointer hover:border-[var(--accent-primary)] transition-all hover:bg-[var(--accent-primary)]/5">
+                                        <div className="w-full aspect-video bg-[var(--bg-subtle)] rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-strong)] mt-2 group cursor-pointer hover:border-[var(--accent-primary)] transition-all hover:bg-[var(--accent-primary)]/5">
                                             <div className="w-20 h-20 rounded-full bg-white shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                                                 <PlayCircle weight="fill" className="w-10 h-10 text-[var(--accent-primary)]" />
                                             </div>
@@ -239,7 +332,7 @@ export default function EducatorProfilePage() {
 
                             <TabsContent value="credentials" className="mt-0 outline-none animate-in fade-in duration-300">
                                 <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Licenses & Certifications</h2>
-                                <div className="overflow-x-auto border border-[var(--border-subtle)] rounded-2xl">
+                                <div className="overflow-x-auto border border-[var(--border-subtle)] rounded-lg">
                                     <table className="w-full text-left border-collapse">
                                         <thead className="bg-[var(--bg-subtle)] text-[var(--text-secondary)] uppercase tracking-wider font-bold text-sm border-b border-[var(--border-subtle)]">
                                             <tr>
@@ -295,70 +388,46 @@ export default function EducatorProfilePage() {
 
                             <TabsContent value="reviews" className="mt-0 outline-none animate-in fade-in duration-300">
                                 <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Ratings & Reviews</h2>
-                                <div className="flex flex-col gap-10">
-                                    <div className="flex flex-col md:flex-row gap-8 items-start md:items-center bg-[var(--bg-subtle)] p-8 rounded-2xl border border-[var(--border-subtle)]">
-                                        <div className="flex flex-col gap-1 items-center justify-center p-8 bg-white rounded-xl border border-[var(--border-subtle)] min-w-[200px] shadow-sm">
-                                            <span className="text-5xl font-heading font-bold text-[var(--text-primary)]">{profile.avgRating}</span>
-                                            <div className="flex text-[var(--accent-secondary)] mt-2">
-                                                {[1,2,3,4,5].map(s => <Star weight="fill" key={s} className="w-6 h-6 fill-current" />)}
-                                            </div>
-                                            <span className="text-base font-bold text-[var(--text-secondary)] mt-2">{profile.reviewCount} Reviews</span>
-                                        </div>
-                                        <div className="flex-1 flex flex-col gap-4 w-full">
-                                            {[
-                                                { label: "Subject Expertise", val: 98 },
-                                                { label: "Classroom Management", val: 95 },
-                                                { label: "Communication", val: 100 },
-                                                { label: "Reliability", val: 98 }
-                                            ].map(cat => (
-                                                <div key={cat.label} className="flex flex-col gap-2">
-                                                    <div className="flex justify-between text-base font-bold">
-                                                        <span className="text-[var(--text-secondary)]">{cat.label}</span>
-                                                        <span className="text-[var(--text-primary)]">{cat.val}%</span>
-                                                    </div>
-                                                    <div className="w-full h-3 bg-[var(--border-strong)] rounded-full overflow-hidden">
-                                                        <div className="h-full bg-[var(--accent-secondary)] rounded-full" style={{ width: `${cat.val}%` }} />
-                                                    </div>
+                                {profile.reviewCount > 0 ? (
+                                    <div className="flex flex-col gap-10">
+                                        <div className="flex flex-col md:flex-row gap-8 items-start md:items-center bg-[var(--bg-subtle)] p-8 rounded-lg border border-[var(--border-subtle)]">
+                                            <div className="flex flex-col gap-1 items-center justify-center p-8 bg-white rounded-lg border border-[var(--border-default)] min-w-[200px] shadow-[var(--shadow-subtle)]">
+                                                <span className="text-5xl font-heading font-bold text-[var(--text-primary)]">{profile.avgRating.toFixed(1)}</span>
+                                                <div className="flex text-[var(--accent-secondary)] mt-2">
+                                                    {[1,2,3,4,5].map(s => <Star weight={s <= Math.round(profile.avgRating) ? "fill" : "regular"} key={s} className="w-6 h-6 fill-current" />)}
                                                 </div>
-                                            ))}
+                                                <span className="text-base font-bold text-[var(--text-secondary)] mt-2">{profile.reviewCount} Review{profile.reviewCount === 1 ? "" : "s"}</span>
+                                            </div>
+                                            <div className="flex-1 text-sm text-[var(--text-secondary)] leading-relaxed">
+                                                Individual review excerpts will appear here once districts complete reviews on this educator.
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div className="flex flex-col gap-6">
-                                        <div className="p-8 bg-white border border-[var(--border-subtle)] rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-[var(--bg-subtle)] flex items-center justify-center font-bold text-[var(--text-tertiary)]">
-                                                        DA
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-[var(--text-primary)] text-lg">District Admin</div>
-                                                        <div className="flex text-[var(--accent-secondary)] mt-1">
-                                                            {[1,2,3,4,5].map(s => <Star weight="fill" key={s} className="w-4 h-4 fill-current" />)}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <span className="text-sm text-[var(--text-tertiary)] font-bold uppercase tracking-wider">Jan 2026</span>
-                                            </div>
-                                            <p className="text-[var(--text-secondary)] text-lg leading-relaxed">
-                                                &ldquo;Exceptional expertise and professionalism. Made an immediate impact on our
-                                                team&apos;s curriculum planning process. Highly recommended for any school looking to
-                                                elevate their math department.&rdquo;
-                                            </p>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center p-12 bg-[var(--bg-subtle)] rounded-lg border border-[var(--border-subtle)] text-center">
+                                        <div className="w-16 h-16 rounded-full bg-white border border-[var(--border-subtle)] flex items-center justify-center mb-4">
+                                            <Star weight="regular" className="w-8 h-8 text-[var(--text-tertiary)]" />
                                         </div>
+                                        <h3 className="text-lg font-heading font-bold text-[var(--text-primary)] mb-2">No reviews yet</h3>
+                                        <p className="text-[var(--text-secondary)] max-w-md">Districts who complete an engagement with this educator can leave a review. Be the first to hire and help build their reputation on K12Gig.</p>
                                     </div>
-                                </div>
+                                )}
                             </TabsContent>
 
                             <TabsContent value="availability" className="mt-0 outline-none animate-in fade-in duration-300">
-                                <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
-                                    <h2 className="text-2xl font-bold text-[var(--text-primary)]">Current Availability</h2>
-                                    <span className={cn("inline-flex items-center gap-2 px-4 py-2 border rounded-xl font-bold text-sm", availabilityClass)}>
+                                <div className="flex justify-between items-start mb-6 flex-wrap gap-3">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Typical Weekly Availability</h2>
+                                        <p className="text-sm text-[var(--text-secondary)] font-medium mt-1">
+                                            Displayed in Central Time. Pick a window to start a request; exact dates are confirmed before checkout.
+                                        </p>
+                                    </div>
+                                    <span className={cn("inline-flex items-center gap-2 px-4 py-2 border rounded-lg font-bold text-sm", availabilityClass)}>
                                         {profile.availabilityStatus === "open" && <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
                                         {availabilityLabel}
                                     </span>
                                 </div>
-                                <div className="overflow-x-auto bg-white border border-[var(--border-subtle)] rounded-2xl shadow-sm">
+                                <div className="overflow-x-auto bg-white border border-[var(--border-subtle)] rounded-lg shadow-sm">
                                     <div className="grid grid-cols-6 gap-0 min-w-[600px] divide-x divide-y divide-[var(--border-subtle)]">
                                         <div className="p-4 bg-[var(--bg-subtle)]"></div>
                                         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => (
@@ -367,11 +436,11 @@ export default function EducatorProfilePage() {
                                         
                                         <div className="p-6 bg-[var(--bg-subtle)] text-center text-sm font-bold text-[var(--text-secondary)] flex items-center justify-center">Morning<br/>(AM)</div>
                                         {['M','T','W','Th','F'].map((d) => (
-                                            <div key={`am-${d}`} className="p-6 flex items-center justify-center transition-colors">
+                                            <button key={`am-${d}`} type="button" onClick={() => profile.availableDays[d as keyof typeof profile.availableDays].am && handleRequestEducator(`${d} morning`)} className="p-6 flex items-center justify-center transition-colors disabled:cursor-default hover:bg-[var(--bg-hover)]">
                                                 {profile.availableDays[d as keyof typeof profile.availableDays].am ? (
                                                     <div className="flex flex-col items-center gap-1 text-[var(--accent-primary)]">
                                                         <CheckCircle weight="fill" className="w-8 h-8" />
-                                                        <span className="text-xs font-bold uppercase">Available</span>
+                                                        <span className="text-xs font-bold uppercase">Request</span>
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col items-center gap-1 text-[var(--text-tertiary)] opacity-50">
@@ -379,16 +448,16 @@ export default function EducatorProfilePage() {
                                                         <span className="text-xs font-bold uppercase">Busy</span>
                                                     </div>
                                                 )}
-                                            </div>
+                                            </button>
                                         ))}
 
                                         <div className="p-6 bg-[var(--bg-subtle)] text-center text-sm font-bold text-[var(--text-secondary)] flex items-center justify-center">Afternoon<br/>(PM)</div>
                                         {['M','T','W','Th','F'].map((d) => (
-                                            <div key={`pm-${d}`} className="p-6 flex items-center justify-center transition-colors">
+                                            <button key={`pm-${d}`} type="button" onClick={() => profile.availableDays[d as keyof typeof profile.availableDays].pm && handleRequestEducator(`${d} afternoon`)} className="p-6 flex items-center justify-center transition-colors disabled:cursor-default hover:bg-[var(--bg-hover)]">
                                                 {profile.availableDays[d as keyof typeof profile.availableDays].pm ? (
                                                     <div className="flex flex-col items-center gap-1 text-[var(--accent-primary)]">
                                                         <CheckCircle weight="fill" className="w-8 h-8" />
-                                                        <span className="text-xs font-bold uppercase">Available</span>
+                                                        <span className="text-xs font-bold uppercase">Request</span>
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col items-center gap-1 text-[var(--text-tertiary)] opacity-50">
@@ -396,9 +465,19 @@ export default function EducatorProfilePage() {
                                                         <span className="text-xs font-bold uppercase">Busy</span>
                                                     </div>
                                                 )}
-                                            </div>
+                                            </button>
                                         ))}
                                     </div>
+                                </div>
+                                <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
+                                    <p className="text-sm font-medium text-[var(--text-secondary)]">
+                                        {availableSlots.length > 0
+                                            ? `${availableSlots.length} request window${availableSlots.length === 1 ? "" : "s"} shown.`
+                                            : "No request windows are currently shown."}
+                                    </p>
+                                    <PrimaryButton onClick={() => handleRequestEducator()} className="w-full sm:w-auto">
+                                        Request these times
+                                    </PrimaryButton>
                                 </div>
                             </TabsContent>
                         </div>
@@ -417,10 +496,22 @@ export default function EducatorProfilePage() {
     );
 
     const mobileCta = (
-            <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-[--border-subtle] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-50">
-                <PrimaryButton onClick={handleMessageEducator} className="w-full py-3 text-base flex items-center justify-center gap-2">
-                    <ChatCircle weight="bold" className="w-5 h-5" /> Message Educator
-                </PrimaryButton>
+            <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-[var(--border-subtle)] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-50">
+                <div className="flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-tertiary)]">From</p>
+                        <p className="font-heading text-lg font-bold text-[var(--text-primary)] leading-tight">{pricingLabel}</p>
+                    </div>
+                    <button onClick={handleSaveEducator} aria-label={savedLabel} className="h-11 w-11 rounded-lg border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)]">
+                        <BookmarkSimple weight={saved ? "fill" : "bold"} className="w-5 h-5" />
+                    </button>
+                    <button onClick={handleMessageEducator} aria-label="Message educator" className="h-11 w-11 rounded-lg border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)]">
+                        <ChatCircle weight="bold" className="w-5 h-5" />
+                    </button>
+                    <PrimaryButton onClick={() => handleRequestEducator()} className="px-4 py-3 text-sm">
+                        Request
+                    </PrimaryButton>
+                </div>
             </div>
     );
 
@@ -433,7 +524,7 @@ export default function EducatorProfilePage() {
             </div>
         </div>
     ) : (
-        <div className="min-h-screen bg-[--bg-app] flex flex-col font-sans">
+        <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
             <SiteHeader />
             {profileMain}
             {mobileCta}

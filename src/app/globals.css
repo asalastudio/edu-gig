@@ -6,61 +6,68 @@
 
 :root {
   /* — Backgrounds ——————————————————————— */
-  --bg-app: #FAFAF9;
-  /* Warm off-white — not pure white, never sterile */
+  --bg-app: #F6F8F4;
+  /* Soft academic green-white; warm without reading beige */
   --bg-surface: #FFFFFF;
   /* Cards, panels, modals */
   --bg-elevated: #FFFFFF;
   /* Dropdowns, popovers — with shadow only */
-  --bg-subtle: #F4F4F2;
+  --bg-subtle: #EEF3EE;
   /* Sidebar, inactive tabs, table zebra */
-  --bg-hover: #F0EFED;
+  --bg-hover: #E7EEE8;
   /* Row hover, list item hover */
-  --bg-active: #E8E7E4;
+  --bg-active: #DDE7DF;
   /* Pressed state */
 
   /* — Borders ——————————————————————————— */
-  --border-default: #E5E5E2;
+  --border-default: #DCE4DC;
   /* Card edges, section dividers — thin, warm gray */
-  --border-strong: #CCCCC8;
+  --border-strong: #B8C6BA;
   /* Input focus rings, active elements */
-  --border-subtle: #EEEEEB;
+  --border-subtle: #E7ECE6;
   /* The thinnest possible separation */
 
   /* — Text ——————————————————————————————— */
-  --text-primary: #1A1A18;
+  --text-primary: #16201A;
   /* Near-black, warm — headlines */
-  --text-secondary: #5C5C57;
+  --text-secondary: #56615A;
   /* Labels, metadata */
-  --text-tertiary: #9B9B96;
+  --text-tertiary: #879188;
   /* Placeholders, disabled, timestamps */
-  --text-inverse: #FAFAF9;
+  --text-inverse: #F8FAF6;
   /* On dark backgrounds */
 
   /* — Brand Accents ————————————————————— */
-  --accent-primary: #2D4A3E;
+  --accent-primary: #214E3F;
   /* Chalkboard green — primary buttons, active nav */
-  --accent-primary-h: #243D33;
+  --accent-primary-h: #193F32;
   /* Hover */
-  --accent-secondary: #FACC15;
+  --accent-secondary: #DFAE3F;
   /* Flat yellow — CTAs, highlights, badges */
-  --accent-danger: #C0392B;
+  --accent-tertiary: #486F83;
+  /* Slate-blue for district-facing confidence states */
+  --accent-danger: #B64637;
   /* Destructive actions, urgent alerts */
-  --accent-success: #1F7A4B;
+  --accent-success: #2D7A55;
   /* Verified badges, completion states */
-  --accent-warning: #E67E22;
+  --accent-warning: #C9822A;
   /* Expiring credentials, caution states */
-  --accent-info: #2C6E9E;
+  --accent-info: #386F88;
   /* Links, informational badges */
 
   /* — Interactive ——————————————————————— */
-  --focus-ring: rgba(45, 74, 62, 0.35);
+  --focus-ring: rgba(33, 78, 63, 0.35);
   /* Chalkboard green focus */
+
+  /* — Depth ————————————————————————————— */
+  --shadow-soft: 0 12px 36px rgba(28, 48, 38, 0.08), 0 2px 8px rgba(28, 48, 38, 0.04);
+  --shadow-subtle: 0 1px 2px rgba(28, 48, 38, 0.06);
+  --shadow-focus: 0 0 0 4px rgba(33, 78, 63, 0.12);
 
   /* — Spacing & Shape ——————————————————— */
   --radius: 0.5rem;
   --radius-sm: 0.25rem;
-  --radius-lg: 0.75rem;
+  --radius-lg: 0.5rem;
 
   /* — Shadcn Variable Overrides (to map our colors to shadcn defaults if missed) — */
   --background: oklch(0.98 0 0);
@@ -126,8 +133,13 @@
 
   body {
     background-color: var(--bg-app);
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(246, 248, 244, 0) 340px),
+      repeating-linear-gradient(0deg, rgba(33, 78, 63, 0.035) 0 1px, transparent 1px 40px),
+      repeating-linear-gradient(90deg, rgba(72, 111, 131, 0.025) 0 1px, transparent 1px 40px);
+    background-attachment: fixed;
     color: var(--text-primary);
-    font-family: var(--font-body);
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -200,6 +212,51 @@
   /* Monospace numbers */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+
+  .surface-panel {
+    background: color-mix(in srgb, var(--bg-surface) 96%, var(--bg-subtle));
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-subtle);
+  }
+
+  .surface-raised {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .field-control {
+    min-height: 2.75rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-default);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  .field-control:focus {
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-focus);
+    outline: none;
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .education-rule {
+    background-image: linear-gradient(90deg, var(--accent-secondary), var(--accent-tertiary), var(--accent-primary));
+    height: 3px;
+    width: 4rem;
+    border-radius: 999px;
   }
 
   @keyframes draw-line-anim {

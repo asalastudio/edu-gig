@@ -23,15 +23,15 @@ export function TaxonomyFilter({ label, options, selected, onChange }: FilterPro
             <PopoverTrigger asChild>
                 <button className={cn(
                     "inline-flex items-center gap-2 px-3 py-1.5 rounded-md",
-                    "border border-[--border-default] bg-[--bg-surface]",
-                    "text-sm text-[--text-secondary]",
-                    "hover:border-[--border-strong] hover:text-[--text-primary]",
+                    "border border-[var(--border-default)] bg-[var(--bg-surface)]",
+                    "text-sm text-[var(--text-secondary)]",
+                    "hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]",
                     "transition-[border-color,color] duration-100",
-                    selected.length > 0 && "border-[--accent-primary] bg-[--accent-primary]/5 text-[--accent-primary]"
+                    selected.length > 0 && "border-[var(--accent-primary)] bg-[var(--accent-primary)]/5 text-[var(--accent-primary)]"
                 )}>
                     {label}
                     {selected.length > 0 && (
-                        <span className="h-4 w-4 rounded-full bg-[--accent-primary] text-white
+                        <span className="h-4 w-4 rounded-full bg-[var(--accent-primary)] text-white
                              text-[10px] font-bold flex items-center justify-center">
                             {selected.length}
                         </span>
@@ -41,14 +41,14 @@ export function TaxonomyFilter({ label, options, selected, onChange }: FilterPro
             </PopoverTrigger>
 
             <PopoverContent
-                className="w-56 p-1 rounded-lg border border-[--border-default]
+                className="w-56 p-1 rounded-lg border border-[var(--border-default)]
                    bg-white dark:bg-[#1A1A18] shadow-lg z-50"
                 align="start">
                 {options.map(option => (
                     <label key={option.id}
                         className="flex items-center gap-2.5 px-2 py-1.5 rounded-md
-                       cursor-pointer text-sm text-[--text-secondary]
-                       hover:bg-[--bg-hover] hover:text-[--text-primary]
+                       cursor-pointer text-sm text-[var(--text-secondary)]
+                       hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]
                        transition-colors duration-75">
                         <Checkbox
                             checked={selected.includes(option.id)}

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { expectClerkSignIn } from "./helpers";
+import { expectClerkSignIn, hasClerkE2E } from "./helpers";
 
 test.describe("Credentials & Checkr integration", () => {
     test("GET /api/checkr/invite returns 405 (only POST is allowed)", async ({ request }) => {
@@ -17,6 +17,8 @@ test.describe("Credentials & Checkr integration", () => {
     });
 
     test("educator settings is protected by sign-in", async ({ page }) => {
+        test.skip(!hasClerkE2E, "Clerk is not configured in this environment.");
+
         await page.goto("/dashboard/educator/settings");
         await expectClerkSignIn(page);
     });

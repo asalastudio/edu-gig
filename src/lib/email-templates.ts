@@ -119,11 +119,11 @@ export function bookingConfirmation(input: BookingConfirmationInput): EmailPaylo
   <tr><td style="padding:6px 0;color:${MUTED_COLOR};">Payment</td><td style="padding:6px 0;">${escapeHtml(paymentLabel)}</td></tr>
 </table>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background-color:${PANEL_COLOR};border-radius:8px;">
-  <tr><td style="padding:12px 16px;color:${MUTED_COLOR};">Subtotal</td><td style="padding:12px 16px;text-align:right;">${escapeHtml(money(totalAmount))}</td></tr>
+  <tr><td style="padding:12px 16px;color:${MUTED_COLOR};">Educator services</td><td style="padding:12px 16px;text-align:right;">${escapeHtml(money(educatorPayout))}</td></tr>
   <tr><td style="padding:4px 16px;color:${MUTED_COLOR};">Platform fee (18%)</td><td style="padding:4px 16px;text-align:right;">${escapeHtml(money(platformFee))}</td></tr>
-  <tr><td style="padding:4px 16px;color:${MUTED_COLOR};">Educator payout</td><td style="padding:4px 16px;text-align:right;">${escapeHtml(money(educatorPayout))}</td></tr>
   <tr><td style="padding:12px 16px;font-weight:700;color:${BRAND_COLOR};border-top:1px solid #e5e7db;">Total</td><td style="padding:12px 16px;text-align:right;font-weight:700;color:${BRAND_COLOR};border-top:1px solid #e5e7db;">${escapeHtml(money(totalAmount))}</td></tr>
 </table>
+<p style="margin:12px 0 0;color:${MUTED_COLOR};font-size:13px;">The educator receives ${escapeHtml(money(educatorPayout))}; K12Gig adds the disclosed platform fee on top.</p>
 <p style="margin:24px 0 0;">
   <a href="${APP_URL}/dashboard/district/orders" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">View booking</a>
 </p>
@@ -143,10 +143,10 @@ ${paymentMethod === "invoice" ? `<p style="margin:20px 0 0;color:${MUTED_COLOR};
         `Start date: ${startDate}`,
         `Payment: ${paymentLabel}`,
         ``,
-        `Subtotal: ${money(totalAmount)}`,
+        `Educator services: ${money(educatorPayout)}`,
         `Platform fee (18%): ${money(platformFee)}`,
-        `Educator payout: ${money(educatorPayout)}`,
         `Total: ${money(totalAmount)}`,
+        `Educator receives: ${money(educatorPayout)}`,
         ``,
         `View booking: ${APP_URL}/dashboard/district/orders`,
         ``,

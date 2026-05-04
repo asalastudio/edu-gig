@@ -12,9 +12,9 @@ describe("bookingConfirmation", () => {
         educatorName: "Jane Educator",
         buyerName: "Sam Buyer",
         orgName: "Harborview District",
-        totalAmount: 1000,
+        totalAmount: 1180,
         platformFee: 180,
-        educatorPayout: 820,
+        educatorPayout: 1000,
         startDate: "2026-05-01",
         paymentMethod: "invoice" as const,
     };
@@ -38,7 +38,8 @@ describe("bookingConfirmation", () => {
         expect(out.text).toContain("2026-05-01");
         expect(out.html).toContain("$1,000.00");
         expect(out.html).toContain("$180.00");
-        expect(out.html).toContain("$820.00");
+        expect(out.html).toContain("$1,180.00");
+        expect(out.text).toContain("Educator services: $1,000.00");
     });
 
     it("mentions the Net-30 invoice flow when paymentMethod is 'invoice'", () => {

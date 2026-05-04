@@ -27,6 +27,8 @@ const needSchema = z.object({
     description: z.string().optional(),
 });
 
+const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
 export default function PostNeedPage() {
     return (
         <Suspense fallback={null}>
@@ -58,7 +60,7 @@ function PostNeedPageInner() {
     // Errors
     const [errors, setErrors] = useState<{org?: string; area?: string}>({});
 
-    const viewer = useQuery(api.users.viewer, {});
+    const viewer = useQuery(api.users.viewer, hasClerk ? {} : "skip");
     const canPersist = !!viewer && isDistrictRole(viewer.role);
     const createNeed = useMutation(api.needs.create);
     const educatorName = searchParams.get("name");
@@ -134,7 +136,7 @@ function PostNeedPageInner() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    const signedOut = viewer === null;
+    const signedOut = !hasClerk || viewer === null;
     const wrongRole = !!viewer && !isDistrictRole(viewer.role);
 
     return (
@@ -146,7 +148,7 @@ function PostNeedPageInner() {
                     <ArrowLeft className="w-4 h-4" /> Home
                 </Link>
 
-                {viewer === undefined && (
+                {hasClerk && viewer === undefined && (
                     <div className="bg-white p-8 md:p-10 rounded-lg shadow-sm border border-[var(--border-subtle)] text-center">
                         <p className="text-[var(--text-secondary)] font-medium">Checking your session…</p>
                     </div>

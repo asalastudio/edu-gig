@@ -249,9 +249,8 @@ export async function generateInvoicePdf(input: InvoiceInput): Promise<Uint8Arra
 
     // Line items.
     const lineItems: Array<{ label: string; amount: number; bold?: boolean }> = [
-        { label: "Subtotal", amount: totalAmount },
+        { label: "Educator Services", amount: educatorPayout },
         { label: "Platform Fee (18%)", amount: platformFee },
-        { label: "Educator Payout", amount: educatorPayout },
     ];
 
     for (const item of lineItems) {

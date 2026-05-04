@@ -60,8 +60,10 @@ See [convex/schema.ts](convex/schema.ts). Ten tables: `users`, `educators`, `cre
 
 ### Platform economics
 
-- Platform fee: **18%** of `totalAmount`, stored in `orders.platformFee`.
-- Educator payout: `totalAmount − platformFee`, stored in `orders.educatorPayout`.
+- Gig price: educator's listed take-home amount.
+- Platform fee: **18%** of gig price, stored in `orders.platformFee`.
+- District charge: gig price + platform fee, stored in `orders.totalAmount`.
+- Educator payout: gig price, stored in `orders.educatorPayout`.
 
 ### Non-functional
 

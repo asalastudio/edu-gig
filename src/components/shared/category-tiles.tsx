@@ -6,61 +6,52 @@ import {
     ChalkboardTeacher, 
     Student, 
     ChartLineUp, 
-    UsersThree, 
     Target, 
-    Strategy, 
     Database, 
-    Calculator,
     GraduationCap,
     Lightbulb,
-    Buildings
+    ClipboardText,
+    Scales
 } from "@phosphor-icons/react";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { cn } from "@/lib/utils";
 
 // Map the detailed taxonomy IDs to Phosphor Icons
 const CAT_ICONS: Record<string, React.ElementType> = {
+    "ai_edtech": Lightbulb,
+    "data_accountability": Database,
+    "grading_assessment": ClipboardText,
     "instruction_curriculum": ChalkboardTeacher,
-    "developmental_medical": Student,
     "school_improvement": ChartLineUp,
-    
-    "leadership": GraduationCap,
-    "strategic_planning": Target,
-    "project_implementation": Strategy,
-    
-    "data": Database,
-    "mgmt_planning": Buildings,
-    "human_resources": UsersThree,
-    "accounting": Calculator,
-    "meeting_facilitation": UsersThree,
-    "systems_development": Lightbulb
+    "leadership_operations": GraduationCap,
+    "student_support_services": Student,
 };
 
-// Organize the 12 areas into 3 meta-categories for easier cognitive processing
+// Organize support types into 3 meta-categories for easier cognitive processing
 const META_CATEGORIES = [
     {
         id: "meta_instruction",
         title: "Instruction & Direct Support",
-        description: "Teachers, curriculum experts, and specialized student support.",
+        description: "Curriculum, assessment, intervention, and specialized student support.",
         color: "blue",
         icon: ChalkboardTeacher,
-        areas: ["instruction_curriculum", "developmental_medical", "school_improvement"]
+        areas: ["instruction_curriculum", "grading_assessment", "student_support_services"]
     },
     {
         id: "meta_leadership",
-        title: "Leadership & Strategy",
-        description: "Principals, coaches, and strategic planners to guide your schools.",
+        title: "Leadership & Improvement",
+        description: "Administrative, board, planning, and school improvement expertise.",
         color: "amber",
         icon: Target,
-        areas: ["leadership", "strategic_planning", "project_implementation"]
+        areas: ["school_improvement", "leadership_operations"]
     },
     {
         id: "meta_ops",
-        title: "Operations & Admin",
-        description: "Data specialists, HR, accounting, and systems management.",
+        title: "Data & Innovation",
+        description: "Data, accountability, AI governance, and educational technology support.",
         color: "emerald",
-        icon: Buildings,
-        areas: ["data", "mgmt_planning", "human_resources", "accounting", "meeting_facilitation", "systems_development"]
+        icon: Scales,
+        areas: ["data_accountability", "ai_edtech"]
     }
 ];
 
@@ -72,21 +63,21 @@ export function CategoryTiles() {
     };
 
     return (
-        <section className="py-24 px-6 lg:px-12 bg-[var(--bg-subtle)]">
+        <section className="py-16 px-6 lg:px-12 lg:py-20 bg-[var(--bg-subtle)]">
             <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-16 max-w-3xl mx-auto">
-                    <div className="education-rule mx-auto mb-5" />
+                <div className="text-center mb-10 max-w-3xl mx-auto lg:mb-12">
+                    <div className="education-rule mx-auto mb-4" />
                     <h2 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-4">
-                        Browse by Area of Need
+                        Browse by Support Type
                     </h2>
-                    <p className="text-lg text-[var(--text-secondary)]">
+                    <p className="text-base leading-7 text-[var(--text-secondary)] md:text-lg">
                         Whether you need immediate classroom coverage or long-term operational consulting, find verified professionals ready to step in.
                     </p>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {META_CATEGORIES.map(meta => (
-                        <div key={meta.id} className="flex flex-col bg-white rounded-lg p-7 border border-[var(--border-default)] shadow-[var(--shadow-subtle)] relative overflow-hidden hover:shadow-[var(--shadow-soft)] transition-shadow">
+                        <div key={meta.id} className="flex flex-col bg-white rounded-lg p-6 border border-[var(--border-default)] shadow-[var(--shadow-subtle)] relative overflow-hidden hover:shadow-[var(--shadow-soft)] transition-shadow">
                             <div className={cn(
                                 "absolute inset-x-0 top-0 h-1",
                                 meta.color === "blue" ? "bg-[var(--accent-tertiary)]" :
@@ -101,9 +92,9 @@ export function CategoryTiles() {
                                 )}>
                                     <meta.icon weight="duotone" className="w-6 h-6" />
                                 </div>
-                                <h3 className="font-heading text-2xl font-bold text-[var(--text-primary)]">{meta.title}</h3>
+                                <h3 className="font-heading text-xl font-bold text-[var(--text-primary)]">{meta.title}</h3>
                             </div>
-                            <p className="text-[var(--text-secondary)] mb-8 relative z-10">{meta.description}</p>
+                            <p className="text-sm leading-6 text-[var(--text-secondary)] mb-6 relative z-10">{meta.description}</p>
 
                             <div className="flex flex-col gap-3 mt-auto relative z-10">
                                 {meta.areas.map(areaId => {
@@ -115,7 +106,7 @@ export function CategoryTiles() {
                                         <button 
                                             key={areaId}
                                             onClick={() => handleCategoryClick(areaId)}
-                                            className="group flex items-center justify-between p-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-app)] hover:border-[var(--accent-primary)]/40 hover:bg-white hover:shadow-sm transition-all text-left"
+                                            className="group flex items-center justify-between p-3.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-app)] hover:border-[var(--accent-primary)]/40 hover:bg-white hover:shadow-sm transition-all text-left"
                                         >
                                             <div className="flex items-center gap-3">
                                                 <Icon weight="regular" className="w-5 h-5 text-[var(--text-tertiary)] group-hover:text-[var(--accent-primary)] transition-colors" />

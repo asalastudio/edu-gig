@@ -230,12 +230,19 @@
 
   .field-control {
     min-height: 2.75rem;
+    padding-inline: 1rem;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-default);
     background: var(--bg-surface);
     color: var(--text-primary);
+    font-size: 0.875rem;
+    line-height: 1.5rem;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
     transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  textarea.field-control {
+    padding-block: 0.75rem;
   }
 
   .field-control:focus {
@@ -272,5 +279,48 @@
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
     animation: draw-line-anim 1s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
+  }
+
+  @keyframes hero-card-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .hero-float-card {
+    opacity: 0;
+    animation: hero-card-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+    will-change: transform;
+  }
+
+  .hero-float-card-profile {
+    animation-delay: 260ms;
+  }
+
+  .hero-float-card-request {
+    animation-delay: 420ms;
+  }
+
+  .hero-float-card:hover {
+    transform: translate3d(0, -3px, 0);
+    box-shadow: 0 24px 72px rgba(0, 0, 0, 0.26);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .draw-line,
+    .hero-float-card {
+      animation: none;
+      opacity: 1;
+    }
+
+    .hero-float-card {
+      transition: none;
+    }
   }
 }

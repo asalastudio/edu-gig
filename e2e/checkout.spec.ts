@@ -3,6 +3,9 @@ import { test, expect } from "@playwright/test";
 test.describe("Gig checkout (demo ACH path)", () => {
     test("defaults to ACH and confirms booking in demo mode", async ({ page }) => {
         await page.goto("/gigs/sample-gig-123");
+        const futureStartDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 10);
 
         await expect(page.getByRole("heading", { name: /Checkout/i })).toBeVisible();
         await expect(page.getByText(/Order Summary/i)).toBeVisible();
@@ -12,7 +15,7 @@ test.describe("Gig checkout (demo ACH path)", () => {
         await expect(page.getByText(/Please choose a desired start date/i)).toBeVisible();
 
         // Fill date and submit.
-        await page.locator("input[type=date]").fill("2026-05-15");
+        await page.locator("input[type=date]").fill(futureStartDate);
         await page.getByRole("button", { name: /Confirm & Invoice|Pay with Stripe/i }).click();
 
         await expect(page.getByRole("heading", { name: /Booking confirmed/i })).toBeVisible();

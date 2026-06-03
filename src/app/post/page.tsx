@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 const needSchema = z.object({
     orgName: z.string().trim().min(1, "Organization name is required."),
-    areaOfNeed: z.string().min(1, "Please select an area of need."),
+    areaOfNeed: z.string().min(1, "Please select a support type."),
     subCategory: z.string().optional(),
     gradeLevel: z.string().optional(),
     engagementType: z.string().optional(),
@@ -52,6 +52,7 @@ function PostNeedPageInner() {
     const [specId, setSpecId] = useState("");
     const [gradeLevel, setGradeLevel] = useState("");
     const [engagementType, setEngagementType] = useState("");
+    const todayISO = new Date().toISOString().slice(0, 10);
     const [startDate, setStartDate] = useState("");
     const [duration, setDuration] = useState("");
     const [compensationRange, setCompensationRange] = useState("");
@@ -75,7 +76,7 @@ function PostNeedPageInner() {
         if (step === 1) {
             const newErrors: {org?: string; area?: string} = {};
             if (!orgName.trim()) newErrors.org = "Organization name is required.";
-            if (!areaId) newErrors.area = "Please select an area of need.";
+            if (!areaId) newErrors.area = "Please select a support type.";
 
             if (Object.keys(newErrors).length > 0) {
                 setErrors(newErrors);
@@ -259,7 +260,7 @@ function PostNeedPageInner() {
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="areaId" className="text-sm font-semibold text-[var(--text-primary)]">Area of Need *</label>
+                                        <label htmlFor="areaId" className="text-sm font-semibold text-[var(--text-primary)]">Support Type *</label>
                                         <select 
                                             id="areaId"
                                             className={cn(
@@ -273,7 +274,7 @@ function PostNeedPageInner() {
                                                 if (errors.area) setErrors({...errors, area: undefined});
                                             }}
                                         >
-                                            <option value="">Select Area</option>
+                                            <option value="">Select Support Type</option>
                                             {TAXONOMY.areasOfNeed.map(a => (
                                                 <option key={a.id} value={a.id}>{a.label}</option>
                                             ))}
@@ -282,7 +283,7 @@ function PostNeedPageInner() {
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="specId" className="text-sm font-semibold text-[var(--text-primary)]">Specialization</label>
+                                        <label htmlFor="specId" className="text-sm font-semibold text-[var(--text-primary)]">Area of Expertise</label>
                                         <select 
                                             id="specId"
                                             className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all disabled:opacity-50"
@@ -290,7 +291,7 @@ function PostNeedPageInner() {
                                             onChange={(e) => setSpecId(e.target.value)}
                                             disabled={!areaId || specs.length === 0}
                                         >
-                                            <option value="">Select Specialization</option>
+                                            <option value="">Select Area of Expertise</option>
                                             {specs.map(s => (
                                                 <option key={s.id} value={s.id}>{s.label}</option>
                                             ))}
@@ -348,6 +349,7 @@ function PostNeedPageInner() {
                                             <input
                                                 type="date"
                                                 id="startDate"
+                                                min={todayISO}
                                                 value={startDate}
                                                 onChange={(e) => setStartDate(e.target.value)}
                                                 className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"

@@ -45,8 +45,10 @@ yarn-error.log*
 next-env.d.ts
 .env*.local
 
-# claude code (per-machine config + worktrees)
+# local agent/tooling artifacts
 .claude/
+.codex/
+.superpowers/
 
 # playwright local artifacts (screenshots + console logs)
 .playwright-cli/

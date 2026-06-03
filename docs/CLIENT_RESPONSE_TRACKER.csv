@@ -1,0 +1,12 @@
+Item,Priority,Owner,Status,Client response,Due date,Notes
+"Confirm launch mode: controlled beta or paid production marketplace",P0,Chris Brown,Pending,,2026-05-28,"Recommendation: controlled beta unless all P0 items cleared"
+"Provide production Stripe configuration (owner + webhook approval for /api/stripe/webhook)",P0,Stripe account owner,Pending,,2026-05-28,"Do not paste API keys in this sheet — name the owner only; use secure handoff"
+"Confirm production Clerk issuer/domain",P0,Clerk account owner,Pending,,2026-05-28,"Convex production currently points at dev Clerk issuer"
+"Confirm canonical production app URL/domain",P0,Chris Brown / domain owner,Pending,,2026-05-28,"Auth redirects Stripe return URLs emails sitemap"
+"Approve legal and payment posture (Terms Privacy DPA refunds)",P0,Chris Brown + counsel,Pending,,2026-05-28,"K-12 procurement and student-data posture"
+"Confirm support inbox and sender email",P0,Ops owner,Pending,,2026-05-28,"Transactional email and DPA request path"
+"Decide Checkr: launch now or defer",P0,Chris Brown / ops owner,Pending,,2026-05-28,"If deferred hide or mark background-check CTAs unavailable"
+"Approve production seed data (districts educators gigs)",P0,Chris Brown / project owner,Pending,,2026-05-28,"Review before sharing production link"
+"Provide monitoring owner and Sentry DSN",P1,Technical owner,Pending,,2026-05-29,"Name accountable incident owner"
+"Provide Upstash Redis credentials owner",P1,Technical owner,Pending,,2026-05-29,"Only required if checkout enabled at launch"
+"Confirm finance ops owner (payouts refunds disputes invoices)",P1,Finance owner,Pending,,2026-05-29,"Connect payouts not fully automated — manual process if payments on"

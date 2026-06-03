@@ -10,10 +10,34 @@ import { Card } from "@/components/shared/card";
 import { PrimaryButton } from "@/components/shared/button";
 import { Input } from "@/components/shared/input";
 import { CheckIcon, CalendarIcon } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft } from "@phosphor-icons/react";
+import { SiteHeader } from "@/components/shared/site-header";
+import { SiteFooter } from "@/components/shared/site-footer";
 import { isDistrictRole } from "@/lib/roles";
 import { PLATFORM_FEE_PCT, computePricing } from "@/convex/pricing";
 
 type PaymentMethod = "card" | "invoice";
+
+function CheckoutShell({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
+            <SiteHeader />
+            <main className="flex-1 py-12 px-6">
+                <div className="max-w-5xl mx-auto w-full">
+                    <Link
+                        href="/browse"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-8 w-fit"
+                    >
+                        <ArrowLeft className="w-4 h-4" /> Back to directory
+                    </Link>
+                    {children}
+                </div>
+            </main>
+            <SiteFooter />
+        </div>
+    );
+}
 
 export default function GigCheckoutPage() {
     const params = useParams<{ gigId: string }>();
@@ -22,6 +46,7 @@ export default function GigCheckoutPage() {
     const checkoutState = searchParams.get("checkout");
     const gigId = typeof params.gigId === "string" ? params.gigId : "";
 
+    const todayISO = new Date().toISOString().slice(0, 10);
     const [startDate, setStartDate] = useState("");
     const [poNumber, setPoNumber] = useState("");
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("invoice");
@@ -115,8 +140,8 @@ export default function GigCheckoutPage() {
 
     if (bookedOrderId || checkoutState === "success") {
         return (
-            <div className="min-h-screen bg-[var(--bg-app)] py-12 px-6">
-                <div className="max-w-xl mx-auto text-center py-24">
+            <CheckoutShell>
+                <div className="max-w-xl mx-auto text-center py-16">
                     <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-50 flex items-center justify-center">
                         <CheckIcon className="h-10 w-10 text-emerald-500" />
                     </div>
@@ -130,13 +155,13 @@ export default function GigCheckoutPage() {
                         Back to dashboard
                     </PrimaryButton>
                 </div>
-            </div>
+            </CheckoutShell>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[var(--bg-app)] py-12 px-6">
-            <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <CheckoutShell>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* Multistep Checkout Form */}
                 <div className="lg:col-span-2 flex flex-col gap-8">
@@ -164,7 +189,7 @@ export default function GigCheckoutPage() {
                                 <Input
                                     label="Desired Start Date"
                                     type="date"
-                                    placeholder="MM/DD/YYYY"
+                                    min={todayISO}
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
                                 />
@@ -274,6 +299,6 @@ export default function GigCheckoutPage() {
                 </div>
 
             </div>
-        </div>
+        </CheckoutShell>
     );
 }

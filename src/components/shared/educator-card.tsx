@@ -29,7 +29,7 @@ export function EducatorCard({ educator }: { educator: EducatorCardProps }) {
     const coverage = educator.coverageRegions[0] ? getCoverageRegionLabel(educator.coverageRegions[0]) : "Coverage varies";
 
     return (
-        <Card className="p-0 flex flex-col group hover:-translate-y-1 transition-all duration-300 bg-white overflow-hidden">
+        <Card className="p-0 flex flex-col group hover:-translate-y-1 transition-all duration-300 bg-[var(--bg-surface)] overflow-hidden">
             <div className="h-1 w-full bg-[linear-gradient(90deg,var(--accent-primary),var(--accent-tertiary),var(--accent-secondary))]" />
             
             <div className="p-6 flex flex-col gap-5 flex-1">
@@ -44,7 +44,7 @@ export function EducatorCard({ educator }: { educator: EducatorCardProps }) {
                         </Avatar>
                         {educator.hasVideoIntro && (
                             <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full 
-                              bg-[var(--accent-primary)] flex items-center justify-center border-2 border-white shadow-sm">
+                              bg-[var(--accent-primary)] flex items-center justify-center border-2 border-[var(--bg-surface)] shadow-sm">
                                 <PlayCircle weight="fill" className="h-3 w-3 text-white" />
                             </div>
                         )}
@@ -123,7 +123,7 @@ export function EducatorCard({ educator }: { educator: EducatorCardProps }) {
                 ) : <span />}
                 
                 <Link href={`/browse/${educator.id}`}>
-                    <button className="px-4 py-2 text-sm font-bold text-[var(--text-primary)] bg-white border border-[var(--border-strong)] rounded-lg hover:bg-[var(--accent-primary)] hover:text-white hover:border-[var(--accent-primary)] transition-all shadow-sm">
+                    <button className="px-4 py-2 text-sm font-bold text-[var(--text-primary)] bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-lg hover:bg-[var(--accent-primary)] hover:text-white hover:border-[var(--accent-primary)] transition-all shadow-sm cursor-pointer">
                         View Profile
                     </button>
                 </Link>

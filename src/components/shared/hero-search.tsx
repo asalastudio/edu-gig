@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PrimaryButton } from "./button";
 import { TAXONOMY } from "@/lib/taxonomy";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 
 export function HeroSearch() {
     const router = useRouter();
@@ -26,64 +26,89 @@ export function HeroSearch() {
     const specs = selectedAreaObj?.subCategories || [];
 
     return (
-        <div className="w-full max-w-4xl mx-auto bg-white/95 backdrop-blur-xl border border-white/40 rounded-lg p-5 shadow-[0_22px_70px_rgba(0,0,0,0.24)] animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out mt-4 text-left">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <select
-                    className="field-control w-full px-4 text-sm"
+        <div className="w-full rounded-lg border border-[#F7F1E3]/65 bg-[#FBF8EF]/96 p-3 text-left text-[var(--text-primary)] shadow-[0_20px_56px_rgba(4,18,12,0.26)] backdrop-blur-xl">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(2,minmax(0,1fr))_3.5rem] 2xl:grid-cols-[repeat(4,minmax(0,1fr))_3.5rem]">
+                <HeroSelect
+                    label="Support Type"
                     value={area}
-                    onChange={(e) => {
-                        setArea(e.target.value);
+                    onChange={(value) => {
+                        setArea(value);
                         setSpec("");
                     }}
-                >
-                    <option value="">Area of Need</option>
-                    {TAXONOMY.areasOfNeed.map(a => (
-                        <option key={a.id} value={a.id}>{a.label}</option>
-                    ))}
-                </select>
+                    options={TAXONOMY.areasOfNeed}
+                    placeholder="Support Type"
+                />
 
-                <select
-                    className="field-control w-full px-4 text-sm disabled:opacity-50"
+                <HeroSelect
+                    label="Area of Expertise"
                     value={spec}
-                    onChange={(e) => setSpec(e.target.value)}
+                    onChange={setSpec}
+                    options={specs}
+                    placeholder="Area of Expertise"
                     disabled={!area || specs.length === 0}
-                >
-                    <option value="">Specialization</option>
-                    {specs.map(s => (
-                        <option key={s.id} value={s.id}>{s.label}</option>
-                    ))}
-                </select>
+                />
 
-                <select
-                    className="field-control w-full px-4 text-sm"
+                <HeroSelect
+                    label="Grade Level"
                     value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                >
-                    <option value="">Grade Level</option>
-                    {TAXONOMY.gradeLevelBands.filter(g => g.id !== "other").map(g => (
-                        <option key={g.id} value={g.id}>{g.label}</option>
-                    ))}
-                </select>
+                    onChange={setGrade}
+                    options={TAXONOMY.gradeLevelBands.filter(g => g.id !== "other")}
+                    placeholder="Grade Level"
+                />
 
-                <select
-                    className="field-control w-full px-4 text-sm"
+                <HeroSelect
+                    label="Coverage Area"
                     value={region}
-                    onChange={(e) => setRegion(e.target.value)}
+                    onChange={setRegion}
+                    options={TAXONOMY.coverageRegions}
+                    placeholder="Coverage Area"
+                />
+
+                <button
+                    type="button"
+                    onClick={handleSearch}
+                    aria-label="Search educators"
+                    className="flex min-h-12 items-center justify-center rounded-lg bg-[var(--accent-primary)] text-white shadow-[0_10px_22px_rgba(20,48,38,0.22)] transition hover:bg-[var(--accent-primary-h)] sm:col-start-3 sm:row-span-2 sm:row-start-1 2xl:col-start-auto 2xl:row-span-1 2xl:row-start-auto"
                 >
-                    <option value="">Coverage Area</option>
-                    {TAXONOMY.coverageRegions.map(r => (
-                        <option key={r.id} value={r.id}>{r.label}</option>
-                    ))}
-                </select>
+                    <MagnifyingGlass className="h-6 w-6" weight="bold" />
+                </button>
             </div>
-            {!area && (
-                <p className="text-xs font-medium text-[var(--text-tertiary)] text-left mb-4">
-                    Choose an area of need first to narrow specializations.
-                </p>
-            )}
-            <PrimaryButton className="w-full py-3 text-base shadow-sm" onClick={handleSearch}>
-                Search Educators
-            </PrimaryButton>
         </div>
+    );
+}
+
+function HeroSelect({
+    label,
+    value,
+    onChange,
+    options,
+    placeholder,
+    disabled,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    options: readonly { id: string; label: string }[];
+    placeholder: string;
+    disabled?: boolean;
+}) {
+    return (
+        <label className="block min-w-0 rounded-lg border border-[var(--border-default)] bg-white px-3 shadow-[var(--shadow-subtle)]">
+            <span className="sr-only">
+                {label}
+            </span>
+            <select
+                aria-label={label}
+                className="h-12 w-full truncate bg-transparent text-sm font-medium text-[var(--text-secondary)] outline-none disabled:opacity-45"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                disabled={disabled}
+            >
+                <option value="">{placeholder}</option>
+                {options.map(option => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                ))}
+            </select>
+        </label>
     );
 }

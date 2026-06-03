@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { mapConvexEducatorToProfileView } from "@/lib/map-convex-educator-profile";
 import { isDistrictRole } from "@/lib/roles";
 import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
+import { formatPrice } from "@/lib/map-review";
 
 const USE_CONVEX = process.env.NEXT_PUBLIC_USE_CONVEX_BROWSE === "true";
 
@@ -36,6 +38,7 @@ export default function EducatorProfilePage() {
     const router = useRouter();
     const educatorId = typeof params.educatorId === "string" ? params.educatorId : params.educatorId?.[0] ?? "";
     const [saved, setSaved] = useState(() => isSavedEducator(educatorId));
+    const [messageError, setMessageError] = useState<string | null>(null);
 
     const viewer = useQuery(api.users.viewer, {});
     const districtOK = !!viewer && isDistrictRole(viewer.role);
@@ -44,6 +47,10 @@ export default function EducatorProfilePage() {
 
     const convexData = useQuery(
         api.educators.getProfileForDistrict,
+        useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
+    );
+    const educatorGigs = useQuery(
+        api.gigs.listActiveByEducatorForDistrict,
         useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
     );
 
@@ -106,6 +113,7 @@ export default function EducatorProfilePage() {
     }
 
     const handleMessageEducator = () => {
+        setMessageError(null);
         const firstName = convexData?.user.firstName ?? "";
         const lastName = convexData?.user.lastName ?? "";
         const displayName = `${firstName} ${lastName}`.trim();
@@ -121,15 +129,16 @@ export default function EducatorProfilePage() {
         }
 
         if (isMockProfile) {
-            alert(
-                "This is a sample profile from the public demo and can't receive messages. Use Directory in the sidebar to find real educators."
+            setMessageError(
+                "This sample profile cannot receive messages. Return to the directory and choose a live educator profile."
             );
-            router.push("/browse");
             return;
         }
 
         if (!convexRecipientUserId) {
-            alert("Couldn't load this educator's account. Try returning to Directory and picking another profile.");
+            setMessageError(
+                "Couldn't load this educator's account. Try returning to the directory and picking another profile."
+            );
             return;
         }
 
@@ -215,6 +224,12 @@ export default function EducatorProfilePage() {
                 <button onClick={() => router.back()} className="text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8 inline-flex items-center gap-2 transition-colors">
                     &larr; Back to Browse
                 </button>
+
+                {messageError && (
+                    <div role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+                        {messageError}
+                    </div>
+                )}
 
                 <div className="bg-white rounded-lg shadow-[var(--shadow-soft)] border border-[var(--border-default)] overflow-hidden relative">
                     <div className="h-1 w-full bg-[linear-gradient(90deg,var(--accent-primary),var(--accent-tertiary),var(--accent-secondary))]" />
@@ -304,6 +319,7 @@ export default function EducatorProfilePage() {
                         <div className="px-6 md:px-12 border-b border-[var(--border-subtle)] overflow-x-auto no-scrollbar bg-white">
                             <TabsList className="h-16 bg-transparent p-0 flex gap-8" variant="line">
                                 <TabsTrigger value="about" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">About</TabsTrigger>
+                                <TabsTrigger value="services" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Services</TabsTrigger>
                                 <TabsTrigger value="credentials" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Credentials</TabsTrigger>
                                 <TabsTrigger value="experience" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Experience</TabsTrigger>
                                 <TabsTrigger value="reviews" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Reviews</TabsTrigger>
@@ -326,6 +342,46 @@ export default function EducatorProfilePage() {
                                             </div>
                                             <span className="mt-4 font-bold text-[var(--text-primary)] text-lg">Play Video</span>
                                         </div>
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="services" className="mt-0 outline-none animate-in fade-in duration-300">
+                                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Services &amp; booking</h2>
+                                <p className="text-sm text-[var(--text-secondary)] mb-8">
+                                    Book a listed service directly, or send a custom request if nothing here fits.
+                                </p>
+                                {educatorGigs === undefined ? (
+                                    <p className="text-[var(--text-secondary)]">Loading services…</p>
+                                ) : educatorGigs.length === 0 ? (
+                                    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-8 text-center">
+                                        <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-2">No bookable services yet</h3>
+                                        <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
+                                            This educator hasn&apos;t published a fixed service listing. You can still send a custom availability request.
+                                        </p>
+                                        <PrimaryButton onClick={() => handleRequestEducator()}>
+                                            Request availability
+                                        </PrimaryButton>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {educatorGigs.map((gig) => (
+                                            <div
+                                                key={gig.id}
+                                                className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-subtle)] p-5 flex flex-col gap-4"
+                                            >
+                                                <div>
+                                                    <h3 className="font-heading text-lg font-bold text-[var(--text-primary)]">{gig.title}</h3>
+                                                    <p className="text-sm font-semibold text-[var(--accent-primary)] mt-1">
+                                                        {formatPrice(gig.price, gig.pricingType)}
+                                                        {gig.estimatedDuration ? ` · ${gig.estimatedDuration}` : ""}
+                                                    </p>
+                                                </div>
+                                                <Link href={`/gigs/${gig.id}`} className="mt-auto">
+                                                    <PrimaryButton className="w-full">Book this service</PrimaryButton>
+                                                </Link>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </TabsContent>

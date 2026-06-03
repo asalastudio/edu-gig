@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 const gigSchema = z.object({
     title: z.string().trim().min(4, "Title must be at least 4 characters."),
     description: z.string().trim().min(20, "Description must be at least 20 characters."),
-    areaOfNeed: z.string().min(1, "Please select an area of need."),
+    areaOfNeed: z.string().min(1, "Please select a support type."),
     subCategory: z.string().optional(),
     engagementType: z.string().min(1, "Please choose an engagement type."),
     gradeLevels: z.array(z.string()).min(1, "Pick at least one grade level."),
@@ -158,7 +158,7 @@ export default function NewGigPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-2">
                                 <label htmlFor="areaOfNeed" className="text-sm font-semibold text-[var(--text-primary)]">
-                                    Area of Need *
+                                    Support Type *
                                 </label>
                                 <select
                                     id="areaOfNeed"
@@ -169,7 +169,7 @@ export default function NewGigPage() {
                                     }}
                                     className={inputBase}
                                 >
-                                    <option value="">Select area</option>
+                                    <option value="">Select support type</option>
                                     {TAXONOMY.areasOfNeed.map((a) => (
                                         <option key={a.id} value={a.id}>
                                             {a.label}
@@ -180,7 +180,7 @@ export default function NewGigPage() {
 
                             <div className="flex flex-col gap-2">
                                 <label htmlFor="subCategory" className="text-sm font-semibold text-[var(--text-primary)]">
-                                    Sub-category
+                                    Area of Expertise
                                 </label>
                                 <select
                                     id="subCategory"

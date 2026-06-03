@@ -42,7 +42,7 @@ describe("mapConvexEducatorToProfileView", () => {
         expect(view.name).toBe("Dr. Sarah Jenkins");
         expect(view.initials).toBe("SJ");
         expect(view.verificationTier).toBe("premier");
-        expect(view.primarySubjectLabel).toBe("Instruction and Curriculum");
+        expect(view.primarySubjectLabel).toBe("Instruction & Curriculum");
         expect(view.gradeLevelsLabel).toBe("6–8, 9–12");
         expect(view.startingRate).toBe(95);
         expect(view.rateUnit).toBe("hour");

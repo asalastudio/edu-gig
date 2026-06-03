@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -15,6 +15,8 @@ import { demoGigCards, formatCreatedAt, mapGigsToCards, type GigCard } from "@/l
 import type { Id } from "@/convex/_generated/dataModel";
 
 export default function EducatorMyGigsPage() {
+    const [actionError, setActionError] = useState<string | null>(null);
+    const [actionNotice, setActionNotice] = useState<string | null>(null);
     const viewer = useQuery(api.users.viewer, {});
     const gigs = useQuery(api.gigs.listMine, viewer ? {} : "skip");
     const deactivate = useMutation(api.gigs.deactivate);
@@ -27,8 +29,10 @@ export default function EducatorMyGigsPage() {
     const isEmpty = !isDemo && Array.isArray(gigs) && gigs.length === 0;
 
     const handleDeactivate = async (id: string) => {
+        setActionError(null);
+        setActionNotice(null);
         if (isDemo) {
-            window.alert("Demo mode — sign in to deactivate a real gig.");
+            setActionNotice("Sign in with an educator account to deactivate a real gig.");
             return;
         }
         if (!window.confirm("Deactivate this gig? Buyers will no longer be able to find it.")) return;
@@ -36,7 +40,7 @@ export default function EducatorMyGigsPage() {
             await deactivate({ gigId: id as Id<"gigs"> });
         } catch (err) {
             console.error(err);
-            window.alert(err instanceof Error ? err.message : "Could not deactivate gig.");
+            setActionError(err instanceof Error ? err.message : "Could not deactivate gig.");
         }
     };
 
@@ -62,6 +66,17 @@ export default function EducatorMyGigsPage() {
                             </Link>
                         }
                     />
+
+                    {actionError && (
+                        <p role="alert" className="mt-6 text-sm text-red-600 font-medium">
+                            {actionError}
+                        </p>
+                    )}
+                    {actionNotice && (
+                        <p role="status" className="mt-6 text-sm text-[var(--text-secondary)] font-medium">
+                            {actionNotice}
+                        </p>
+                    )}
 
                     {gigs === undefined && !isDemo ? (
                         <div className="mt-10 text-[var(--text-secondary)]">Loading your gigs…</div>

@@ -5,6 +5,7 @@ const envPath = path.join(process.cwd(), ".env.local");
 const fileEnv = fs.existsSync(envPath) ? parseEnv(fs.readFileSync(envPath, "utf8")) : {};
 const env = { ...fileEnv, ...process.env };
 const target = process.argv.includes("--production") ? "production" : "local";
+const betaMode = process.argv.includes("--beta");
 
 const required = [
   "NEXT_PUBLIC_APP_URL",
@@ -12,8 +13,7 @@ const required = [
   "CONVEX_WEBHOOK_SHARED_SECRET",
   "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
   "CLERK_SECRET_KEY",
-  "STRIPE_SECRET_KEY",
-  "STRIPE_WEBHOOK_SECRET",
+  ...(betaMode ? [] : ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]),
 ];
 
 const productionRequired = ["CONVEX_DEPLOY_KEY"];
@@ -70,7 +70,10 @@ if (target === "production") {
     warnings.push("NEXT_PUBLIC_APP_URL points at localhost.");
   }
   if (/edugig/i.test(env.NEXT_PUBLIC_APP_URL ?? "")) {
-    warnings.push("NEXT_PUBLIC_APP_URL still references an EduGig domain.");
+    warnings.push("NEXT_PUBLIC_APP_URL still references edugig.xyz — use https://k12gig.com for launch.");
+  }
+  if (betaMode && !/k12gig\.com/i.test(env.NEXT_PUBLIC_APP_URL ?? "")) {
+    warnings.push("Beta launch expects NEXT_PUBLIC_APP_URL=https://k12gig.com");
   }
   if (/unique-eagle-379/.test(env.NEXT_PUBLIC_CONVEX_URL ?? "")) {
     warnings.push("NEXT_PUBLIC_CONVEX_URL points at the known dev Convex deployment.");
@@ -86,7 +89,7 @@ if (target === "production") {
   }
 }
 
-console.log(`K12Gig env audit (${target})`);
+console.log(`K12Gig env audit (${target}${betaMode ? ", invoice-only beta" : ""})`);
 console.log("");
 for (const name of [...required, ...productionRequired, ...recommended]) {
   console.log(`${present(name) ? "OK" : "NO"} ${name}: ${masked(name)}`);

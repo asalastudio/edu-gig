@@ -1,9 +1,9 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
 import { cn } from "@/lib/utils";
 import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
+import { ChatCircleText, MagnifyingGlass, PaperPlaneRight, UserCircle } from "@phosphor-icons/react";
 
 export default function MessagesPage() {
     return (
@@ -21,6 +22,7 @@ export default function MessagesPage() {
 }
 
 function MessagesPageInner() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const pendingRecipientId = searchParams.get("to") ?? null;
     const pendingRecipientName = searchParams.get("name") ?? null;
@@ -38,13 +40,27 @@ function MessagesPageInner() {
     const [composerValue, setComposerValue] = useState("");
     const [sending, setSending] = useState(false);
     const [sendError, setSendError] = useState<string | null>(null);
+    const messageEndRef = useRef<HTMLDivElement | null>(null);
 
     // When a ?to=... pending recipient is supplied, pre-select that "virtual" thread on first mount.
     useEffect(() => {
-        if (pendingRecipientId && !selectedConversationId && !selectedPendingRecipientId) {
+        if (!pendingRecipientId || selectedConversationId || selectedPendingRecipientId) return;
+        const existingConversation = convList.find((c) => c.counterpartId === pendingRecipientId);
+        if (existingConversation) {
+            setSelectedConversationId(existingConversation.conversationId);
+        } else {
             setSelectedPendingRecipientId(pendingRecipientId);
         }
-    }, [pendingRecipientId, selectedConversationId, selectedPendingRecipientId]);
+    }, [convList, pendingRecipientId, selectedConversationId, selectedPendingRecipientId]);
+
+    // If conversations load after a pending deep link, swap the placeholder for the real thread.
+    useEffect(() => {
+        if (!selectedPendingRecipientId) return;
+        const existingConversation = convList.find((c) => c.counterpartId === selectedPendingRecipientId);
+        if (!existingConversation) return;
+        setSelectedConversationId(existingConversation.conversationId);
+        setSelectedPendingRecipientId(null);
+    }, [convList, selectedPendingRecipientId]);
 
     const activeConversationId = selectedPendingRecipientId
         ? null
@@ -74,9 +90,26 @@ function MessagesPageInner() {
           ? (activeConversationRow.counterpartId as Id<"users">)
           : null;
 
+    useEffect(() => {
+        setComposerValue("");
+        setSendError(null);
+    }, [activeCounterpartId]);
+
     const pendingRecipientLabel = selectedPendingRecipientId
         ? pendingRecipientName?.trim() || "New conversation"
         : null;
+    const activeThreadName = pendingRecipientLabel ?? activeConversationRow?.counterpartName ?? "Messages";
+    const hasMessages = (activeConversation?.length ?? 0) > 0;
+
+    useEffect(() => {
+        messageEndRef.current?.scrollIntoView({ block: "end" });
+    }, [activeConversation?.length, activeConversationId, selectedPendingRecipientId]);
+
+    const starterMessages = [
+        `Hi ${activeThreadName}, we'd like to confirm your availability for an upcoming need.`,
+        `Hi ${activeThreadName}, can you share a bit more about your fit for this role?`,
+        `Hi ${activeThreadName}, what details would help you decide if this request is a good match?`,
+    ];
 
     async function handleSend() {
         if (!activeCounterpartId) return;
@@ -110,7 +143,15 @@ function MessagesPageInner() {
                 <div className="max-w-[1200px] w-full mx-auto px-8 lg:px-12 py-10">
                     <PageHeader
                         title="Messages"
-                        description="District ↔ educator conversations happen here."
+                        description="Coordinate availability, request details, and next steps with educators."
+                        actions={
+                            <Link href="/browse">
+                                <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
+                                    <MagnifyingGlass className="h-4 w-4" />
+                                    Find educators
+                                </button>
+                            </Link>
+                        }
                     />
 
                     {signedOut && (
@@ -135,8 +176,16 @@ function MessagesPageInner() {
                     )}
 
                     {!signedOut && (
-                        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <aside className="md:col-span-1 bg-white rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+                        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-[320px_minmax(0,1fr)]">
+                            <aside className="bg-white rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+                                <div className="border-b border-[var(--border-subtle)] px-5 py-4">
+                                    <p className="font-heading text-lg font-bold text-[var(--text-primary)]">
+                                        Conversations
+                                    </p>
+                                    <p className="mt-1 text-xs font-medium text-[var(--text-secondary)]">
+                                        {convList.length} active {convList.length === 1 ? "thread" : "threads"}
+                                    </p>
+                                </div>
                                 {selectedPendingRecipientId && (
                                     <button
                                         type="button"
@@ -145,9 +194,7 @@ function MessagesPageInner() {
                                             setSelectedPendingRecipientId(selectedPendingRecipientId);
                                             setSelectedConversationId(null);
                                         }}
-                                        className={cn(
-                                            "w-full text-left px-5 py-4 border-b border-[var(--border-subtle)] hover:bg-[var(--bg-subtle)] transition-colors flex flex-col gap-1 bg-[var(--bg-subtle)]"
-                                        )}
+                                        className="w-full text-left px-5 py-4 border-b border-[var(--border-subtle)] hover:bg-[var(--bg-subtle)] transition-colors flex flex-col gap-1 bg-[var(--bg-subtle)]"
                                     >
                                         <div className="flex items-center justify-between">
                                             <span className="font-bold text-[var(--text-primary)]">
@@ -163,8 +210,9 @@ function MessagesPageInner() {
                                     </button>
                                 )}
                                 {convList.length === 0 && !selectedPendingRecipientId ? (
-                                    <div className="p-6 text-sm text-[var(--text-secondary)]">
-                                        No conversations yet. Start one from an educator profile.
+                                    <div className="p-6 text-sm leading-6 text-[var(--text-secondary)]">
+                                        <ChatCircleText className="mb-3 h-8 w-8 text-[var(--accent-primary)]" />
+                                        Start from an educator profile, then your district thread will appear here.
                                     </div>
                                 ) : (
                                     convList.map((c) => (
@@ -173,6 +221,10 @@ function MessagesPageInner() {
                                             onClick={() => {
                                                 setSelectedConversationId(c.conversationId);
                                                 setSelectedPendingRecipientId(null);
+                                                router.replace(
+                                                    `/dashboard/messages?to=${encodeURIComponent(c.counterpartId)}&name=${encodeURIComponent(c.counterpartName)}`,
+                                                    { scroll: false }
+                                                );
                                             }}
                                             className={cn(
                                                 "w-full text-left px-5 py-4 border-b border-[var(--border-subtle)] hover:bg-[var(--bg-subtle)] transition-colors flex flex-col gap-1",
@@ -197,47 +249,97 @@ function MessagesPageInner() {
                                 )}
                             </aside>
 
-                            <section className="md:col-span-2 bg-white rounded-lg border border-[var(--border-subtle)] p-6 min-h-[500px] flex flex-col">
+                            <section className="bg-white rounded-lg border border-[var(--border-subtle)] min-h-[560px] flex flex-col overflow-hidden">
+                                <div className="flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] px-5 py-4">
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-subtle)] text-[var(--accent-primary)]">
+                                            <UserCircle className="h-6 w-6" weight="fill" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h2 className="truncate font-heading text-lg font-bold text-[var(--text-primary)]">
+                                                {activeThreadName}
+                                            </h2>
+                                            <p className="text-xs font-medium text-[var(--text-secondary)]">
+                                                K12Gig internal message thread
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {activeConversationRow?.unread ? (
+                                        <span className="rounded-full bg-[var(--accent-primary)] px-2.5 py-1 text-xs font-bold text-white">
+                                            {activeConversationRow.unread} unread
+                                        </span>
+                                    ) : null}
+                                </div>
+
+                                <div className="flex-1 p-5">
                                 {selectedPendingRecipientId ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 text-sm text-[var(--text-secondary)]">
-                                        <div className="font-bold text-[var(--text-primary)] text-base">
+                                    <div className="flex h-full flex-col items-center justify-center text-center gap-3 text-sm text-[var(--text-secondary)]">
+                                        <ChatCircleText className="h-10 w-10 text-[var(--accent-primary)]" />
+                                        <div className="font-heading font-bold text-[var(--text-primary)] text-lg">
                                             {pendingRecipientLabel}
                                         </div>
-                                        <p>No messages yet — send the first one below.</p>
+                                        <p>Start with a short note about availability, fit, or request details.</p>
                                     </div>
                                 ) : !activeConversationId ? (
-                                    <div className="flex-1 flex items-center justify-center text-sm text-[var(--text-secondary)]">
-                                        Pick a conversation to view.
+                                    <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-sm text-[var(--text-secondary)]">
+                                        <ChatCircleText className="h-10 w-10 text-[var(--accent-primary)]" />
+                                        <p>Select a conversation or message an educator from the directory.</p>
                                     </div>
                                 ) : activeConversation === undefined ? (
-                                    <div className="flex-1 flex items-center justify-center text-sm text-[var(--text-secondary)]">
+                                    <div className="flex h-full items-center justify-center text-sm text-[var(--text-secondary)]">
                                         Loading…
                                     </div>
                                 ) : (
-                                    <div className="flex-1 flex flex-col gap-3 overflow-y-auto">
+                                    <div className="flex h-full max-h-[430px] flex-col gap-3 overflow-y-auto pr-1">
                                         {activeConversation.map((m) => (
                                             <div
                                                 key={m._id}
                                                 className={cn(
-                                                    "max-w-[75%] px-4 py-2 rounded-lg text-sm",
+                                                    "max-w-[78%] px-4 py-3 rounded-lg text-sm shadow-[0_1px_2px_rgba(22,32,26,0.08)]",
                                                     m.senderId === viewer?._id
                                                         ? "self-end bg-[var(--accent-primary)] text-white"
                                                         : "self-start bg-[var(--bg-subtle)] text-[var(--text-primary)]"
                                                 )}
                                             >
-                                                {m.content}
+                                                <p className="leading-6">{m.content}</p>
+                                                <p
+                                                    className={cn(
+                                                        "mt-1 text-[11px] font-medium",
+                                                        m.senderId === viewer?._id
+                                                            ? "text-white/70"
+                                                            : "text-[var(--text-tertiary)]"
+                                                    )}
+                                                >
+                                                    {formatMessageTime(m.createdAt)}
+                                                </p>
                                             </div>
                                         ))}
+                                        <div ref={messageEndRef} />
                                     </div>
                                 )}
+                                </div>
 
                                 <form
-                                    className="mt-4 flex flex-col gap-2"
+                                    className="border-t border-[var(--border-subtle)] bg-[var(--bg-app)] p-5 flex flex-col gap-3"
                                     onSubmit={(e) => {
                                         e.preventDefault();
                                         void handleSend();
                                     }}
                                 >
+                                    {(selectedPendingRecipientId || !hasMessages) && activeCounterpartId && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {starterMessages.map((message) => (
+                                                <button
+                                                    key={message}
+                                                    type="button"
+                                                    onClick={() => setComposerValue(message)}
+                                                    className="rounded-full border border-[var(--border-subtle)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/40 hover:text-[var(--accent-primary)]"
+                                                >
+                                                    {message.startsWith(`Hi ${activeThreadName}, we'd`) ? "Ask availability" : message.includes("fit") ? "Ask about fit" : "Ask what they need"}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                     <label htmlFor="message-composer" className="sr-only">
                                         Write a message
                                     </label>
@@ -268,6 +370,7 @@ function MessagesPageInner() {
                                             Press ⌘/Ctrl + Enter to send.
                                         </p>
                                         <PrimaryButton type="submit" disabled={composerDisabled}>
+                                            <PaperPlaneRight className="h-4 w-4" weight="fill" />
                                             {sending ? "Sending…" : "Send"}
                                         </PrimaryButton>
                                     </div>
@@ -279,4 +382,13 @@ function MessagesPageInner() {
             </main>
         </div>
     );
+}
+
+function formatMessageTime(timestamp: number) {
+    return new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+    }).format(new Date(timestamp));
 }

@@ -8,6 +8,11 @@ This audit supports Linear Lane 1: production/env/vendor readiness.
 
 The codebase has production-readiness support for env auditing, Upstash-backed checkout rate limiting, and Convex/Stripe webhook secret checks. The remaining launch risk is vendor/account configuration: the linked Vercel production project and Convex production deployment are not yet fully production-shaped.
 
+## Related runbooks
+
+- **`BETA_LAUNCH_RUNBOOK.md`** — step-by-step for `k12gig.com` controlled beta (DNS → Clerk → deploy → data)
+- **`LAUNCH_EXECUTION_RUNBOOK.md`** — client ops / HubSpot / ClickUp
+
 ## Vercel production env
 
 Checked with:

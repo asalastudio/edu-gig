@@ -73,7 +73,7 @@ export function ProcurementRequestForm() {
     }
 
     return (
-        <form onSubmit={onSubmit} className="rounded-lg border border-[var(--border-default)] bg-white p-6 shadow-[var(--shadow-soft)]">
+        <form onSubmit={onSubmit} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-soft)]">
             <div className="mb-6">
                 <p className="eyebrow mb-2">Procurement intake</p>
                 <h2 className="font-heading text-2xl font-bold text-[var(--text-primary)]">Request DPA and review materials</h2>

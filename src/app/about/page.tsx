@@ -12,13 +12,13 @@ export default function AboutPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)]">
             <SiteHeader />
-            <main className="mx-auto flex max-w-6xl flex-col gap-14 px-6 py-16 lg:px-12">
+            <main className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-12 lg:px-12 lg:py-14">
                 <section className="max-w-3xl">
-                    <div className="education-rule mb-5" />
-                    <h1 className="font-heading text-4xl font-bold leading-tight md:text-6xl">
+                    <div className="education-rule mb-4" />
+                    <h1 className="font-heading text-4xl font-bold leading-tight md:text-5xl">
                         A clearer marketplace for K-12 talent.
                     </h1>
-                    <p className="mt-6 text-lg leading-8 text-[var(--text-secondary)]">
+                    <p className="mt-5 text-base leading-7 text-[var(--text-secondary)] md:text-lg">
                         K12Gig is built for districts that need trusted educator support without opaque staffing markups, and for educators who want direct, professional access to district opportunities.
                     </p>
                 </section>
@@ -29,14 +29,14 @@ export default function AboutPage() {
                         ["Educator-respecting", "Profiles foreground credentials, expertise, rates, and engagement preferences."],
                         ["Procurement-aware", "Legal, privacy, DPA, invoice, and purchase-order workflows are treated as part of the product."],
                     ].map(([title, body]) => (
-                        <div key={title} className="rounded-lg border border-[var(--border-default)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+                        <div key={title} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-subtle)] md:p-6">
                             <h2 className="font-heading text-xl font-bold">{title}</h2>
                             <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
                         </div>
                     ))}
                 </section>
 
-                <section className="rounded-lg border border-[var(--border-default)] bg-white p-8 shadow-[var(--shadow-soft)]">
+                <section className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-soft)] md:p-8">
                     <h2 className="font-heading text-2xl font-bold">Who K12Gig serves</h2>
                     <div className="mt-6 grid gap-6 md:grid-cols-2">
                         <div>

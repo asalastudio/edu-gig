@@ -30,6 +30,19 @@ const pricingTypeValidator = v.union(
     v.literal("fixed")
 );
 
+async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    const user = await getUserByClerkId(ctx, identity.subject);
+    if (
+        !user ||
+        !["district_admin", "district_hr", "superintendent", "superadmin"].includes(user.role)
+    ) {
+        throw new Error("Forbidden");
+    }
+    return user;
+}
+
 /** Educator creates a new service listing. */
 export const create = mutation({
     args: {
@@ -94,6 +107,29 @@ export const getById = query({
         if (!educator) return null;
         const user = await ctx.db.get(educator.userId);
         return { gig, educator, user };
+    },
+});
+
+/** District viewers: active bookable gigs for an educator profile. */
+export const listActiveByEducatorForDistrict = query({
+    args: { educatorId: v.id("educators") },
+    handler: async (ctx, args) => {
+        await requireDistrictViewer(ctx);
+        const gigs = await ctx.db
+            .query("gigs")
+            .withIndex("by_educator", (q) => q.eq("educatorId", args.educatorId))
+            .collect();
+        return gigs
+            .filter((gig) => gig.isActive)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .map((gig) => ({
+                id: gig._id,
+                title: gig.title,
+                price: gig.price,
+                pricingType: gig.pricingType,
+                estimatedDuration: gig.estimatedDuration,
+                engagementType: gig.engagementType,
+            }));
     },
 });
 

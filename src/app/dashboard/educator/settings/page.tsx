@@ -134,7 +134,7 @@ export default function EducatorSettingsPage() {
                                         </div>
                                     </div>
                                     {[
-                                        { label: "Areas of need", values: TAXONOMY.areasOfNeed, selected: areas, setter: setAreas },
+                                        { label: "Support types", values: TAXONOMY.areasOfNeed, selected: areas, setter: setAreas },
                                         { label: "Grade levels", values: TAXONOMY.gradeLevelBands.filter((g) => g.id !== "other"), selected: gradeLevels, setter: setGradeLevels },
                                         { label: "Engagement types", values: TAXONOMY.engagementTypes, selected: engagementTypes, setter: setEngagementTypes },
                                         { label: "Coverage areas", values: TAXONOMY.coverageRegions, selected: coverageRegions, setter: setCoverageRegions },

@@ -18,11 +18,11 @@ export default function PricingPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)]">
             <SiteHeader />
-            <main className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16 lg:px-12">
+            <main className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-12 lg:px-12 lg:py-14">
                 <section className="max-w-3xl">
-                    <div className="education-rule mb-5" />
-                    <h1 className="font-heading text-4xl font-bold md:text-6xl">Transparent marketplace pricing.</h1>
-                    <p className="mt-6 text-lg leading-8 text-[var(--text-secondary)]">
+                    <div className="education-rule mb-4" />
+                    <h1 className="font-heading text-4xl font-bold leading-tight md:text-5xl">Transparent marketplace pricing.</h1>
+                    <p className="mt-5 text-base leading-7 text-[var(--text-secondary)] md:text-lg">
                         Districts see educator rates before requesting availability. K12Gig adds a flat <strong>{PLATFORM_FEE_PERCENT_LABEL} platform fee</strong> at checkout — fully disclosed before payment.
                     </p>
                 </section>
@@ -33,14 +33,14 @@ export default function PricingPage() {
                         ["Platform fee", `Flat ${PLATFORM_FEE_PERCENT_LABEL} of the educator's rate, added at checkout and shown line-item in the final booking total before payment.`],
                         ["District payment", "Card checkout via Stripe today. Net-30 invoice with PO number is supported for eligible district bookings. ACH from districts is on the roadmap."],
                     ].map(([title, body]) => (
-                        <div key={title} className="rounded-lg border border-[var(--border-default)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+                        <div key={title} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-subtle)] md:p-6">
                             <h2 className="font-heading text-xl font-bold">{title}</h2>
                             <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
                         </div>
                     ))}
                 </section>
 
-                <section className="rounded-lg border border-[var(--border-default)] bg-white p-8 shadow-[var(--shadow-subtle)]">
+                <section className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-subtle)] md:p-8">
                     <h2 className="font-heading text-2xl font-bold">Sample booking</h2>
                     <p className="mt-2 text-sm text-[var(--text-secondary)]">For an educator who lists ${SAMPLE_HOURLY_RATE.toFixed(2)}/hour:</p>
                     <dl className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
@@ -64,7 +64,7 @@ export default function PricingPage() {
                     <p className="mt-4 text-xs text-[var(--text-tertiary)]">Educators are paid weekly via ACH during the K12Gig private beta. A 1099 is issued at year-end.</p>
                 </section>
 
-                <section className="rounded-lg border border-[var(--border-default)] bg-white p-8 shadow-[var(--shadow-soft)]">
+                <section className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-soft)] md:p-8">
                     <h2 className="font-heading text-2xl font-bold">District procurement notes</h2>
                     <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
                         Purchase orders, invoice routing, tax-exemption documentation, refund review, and contract requirements depend on the district and engagement scope. K12Gig keeps booking records, invoice PDFs, and marketplace messages available for district audit trails.

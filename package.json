@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3010",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
     "vercel:build": "node scripts/vercel-build.mjs",
@@ -11,6 +11,9 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "check:env": "node scripts/check-env.mjs",
+    "check:env:beta": "node scripts/check-env.mjs --production --beta",
+    "beta-launch:cleanup": "node scripts/beta-launch.mjs cleanup",
+    "beta-launch:seed": "node scripts/beta-launch.mjs seed",
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",

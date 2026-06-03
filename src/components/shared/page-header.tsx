@@ -8,20 +8,20 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
     return (
-        <div className="flex flex-col items-start justify-between gap-3">
-            <div className="education-rule" />
-            <div>
-                <h1 className="font-heading text-4xl font-bold text-[var(--text-primary)] tracking-tight mb-2">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-3xl">
+                <div className="education-rule mb-4" />
+                <h1 className="font-heading text-3xl font-bold text-[var(--text-primary)] tracking-tight md:text-4xl">
                     {title}
                 </h1>
                 {description && (
-                    <p className="text-lg text-[var(--text-secondary)] font-medium max-w-3xl">
+                    <p className="mt-2 text-base leading-7 text-[var(--text-secondary)]">
                         {description}
                     </p>
                 )}
             </div>
             {actions && (
-                <div className="flex items-center gap-4">
+                <div className="flex w-full flex-wrap items-center gap-3 md:w-auto md:justify-end">
                     {actions}
                 </div>
             )}

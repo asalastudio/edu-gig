@@ -7,7 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { PageHeader } from "@/components/shared/page-header";
 import { TaxonomyFilter } from "@/components/shared/taxonomy-filter";
 import { EducatorCard, type EducatorCardProps } from "@/components/shared/educator-card";
-import { TAXONOMY, getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxonomy";
+import { TAXONOMY, getAreaOfNeedLabel, getAreaOfNeedMatchIds, getCoverageRegionLabel } from "@/lib/taxonomy";
 import { PrimaryButton } from "@/components/shared/button";
 import { ArrowLeft, FadersHorizontal, Lightning, Star, Clock, MapPin, Funnel } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
@@ -15,6 +15,7 @@ import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
 import { cn } from "@/lib/utils";
 import { isDistrictRole } from "@/lib/roles";
+import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
 
 const USE_CONVEX_BROWSE = process.env.NEXT_PUBLIC_USE_CONVEX_BROWSE === "true";
 
@@ -45,6 +46,7 @@ const QUICK_FILTERS = [
 export default function BrowsePage() {
     const viewer = useQuery(api.users.viewer, {});
     const districtOK = !!viewer && isDistrictRole(viewer.role);
+    const districtMine = useQuery(api.districts.getMine, districtOK ? {} : "skip");
     const convexEducators = useQuery(
         api.educators.listForBrowse,
         USE_CONVEX_BROWSE && districtOK ? {} : "skip"
@@ -61,6 +63,9 @@ export default function BrowsePage() {
         USE_CONVEX_BROWSE && viewer !== undefined && districtOK && convexEducators !== undefined;
     const convexLoading =
         USE_CONVEX_BROWSE && viewer !== undefined && districtOK && convexEducators === undefined;
+    const sessionChecking = USE_CONVEX_BROWSE && viewer === undefined;
+    const needsDistrictSignIn = USE_CONVEX_BROWSE && viewer === null;
+    const wrongAccountType = USE_CONVEX_BROWSE && !!viewer && !districtOK;
 
     const [selectedAreas, setSelectedAreas] = useState<string[]>(() => searchParamList("area"));
     const [selectedGrades, setSelectedGrades] = useState<string[]>(() => searchParamList("grade"));
@@ -81,6 +86,7 @@ export default function BrowsePage() {
     };
 
     const handleQuickFilter = (id: string) => {
+        if (!convexLive) return;
         if (activeQuickFilter === id) {
             setActiveQuickFilter(null);
             setAvailableNow(false);
@@ -92,7 +98,12 @@ export default function BrowsePage() {
 
     // Filter logic
     const filteredEducators = roster.filter((educator) => {
-        if (selectedAreas.length > 0 && !selectedAreas.some(area => educator.areasOfNeed.includes(area))) return false;
+        if (
+            selectedAreas.length > 0 &&
+            !selectedAreas.some((area) =>
+                getAreaOfNeedMatchIds(area).some((matchId) => educator.areasOfNeed.includes(matchId))
+            )
+        ) return false;
         if (selectedGrades.length > 0 && !selectedGrades.some(grade => educator.gradeLevels.includes(grade))) return false;
         if (selectedRegions.length > 0 && !selectedRegions.some(region => educator.coverageRegions.includes(region))) return false;
         if (selectedEngagements.length > 0 && !selectedEngagements.some(eng => educator.engagementTypes.includes(eng))) return false;
@@ -100,7 +111,11 @@ export default function BrowsePage() {
         if (verifiedOnly && (educator.verificationTier as string) === 'basic') return false; 
         if (availableNow && educator.availabilityStatus !== 'open') return false;
         if (activeQuickFilter === "quick_top" && educator.overallRating < 4.8) return false;
-        if (activeQuickFilter === "quick_local" && !educator.coverageRegions.some((region) => region === "all" || region === "region_1")) return false;
+        if (activeQuickFilter === "quick_local") {
+            const districtRegion = districtMine?.region;
+            if (!districtRegion) return false;
+            if (!educator.coverageRegions.some((region) => region === "all" || region === districtRegion)) return false;
+        }
         if (activeQuickFilter === "quick_instant" && (!educator.startingRate || educator.availabilityStatus !== "open")) return false;
         return true;
     });
@@ -127,26 +142,117 @@ export default function BrowsePage() {
         filteredEducators.sort((a, b) => (a.startingRate ?? 0) - (b.startingRate ?? 0));
     }
 
+    const canUseDirectory = convexLive;
+    const showLocalQuickFilter = districtOK && !!districtMine?.region;
+    const visibleQuickFilters = QUICK_FILTERS.filter((f) => f.id !== "quick_local" || showLocalQuickFilter);
+
     const signedIn = !!viewer;
+    const emptyState = (() => {
+        if (sessionChecking) {
+            return {
+                title: "Preparing the directory",
+                body: "We’re checking your session before loading district-ready educator profiles.",
+                action: null,
+            };
+        }
+        if (needsDistrictSignIn) {
+            return {
+                title: "Sign in to view the live directory",
+                body: "The educator directory is available to district hiring teams. Sign in or create a district account to browse verified profiles, save favorites, and start booking.",
+                action: (
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <Link href="/login">
+                            <PrimaryButton>Sign in to browse</PrimaryButton>
+                        </Link>
+                        <Link href={`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent("/browse")}`}>
+                            <button className="w-full sm:w-auto px-6 py-3 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
+                                Create district account
+                            </button>
+                        </Link>
+                    </div>
+                ),
+            };
+        }
+        if (wrongAccountType) {
+            return {
+                title: "Use a district account",
+                body: "Educator accounts can manage profiles and gigs. Browse access is reserved for district hiring teams.",
+                action: (
+                    <Link href="/login">
+                        <PrimaryButton>Choose another account</PrimaryButton>
+                    </Link>
+                ),
+            };
+        }
+        return {
+            title: "No educators found",
+            body: "Try removing a filter or broadening the coverage area to see more profiles.",
+            action: (
+                <PrimaryButton
+                    className="px-6 shadow-sm bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90"
+                    onClick={() => {
+                        setSelectedAreas([]);
+                        setSelectedGrades([]);
+                        setSelectedRegions([]);
+                        setSelectedEngagements([]);
+                        setVerifiedOnly(false);
+                        setAvailableNow(false);
+                        setActiveQuickFilter(null);
+                    }}
+                >
+                    Clear filters
+                </PrimaryButton>
+            ),
+        };
+    })();
+
     const directoryBody = (
-            <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 pt-8 pb-16 px-6 lg:px-12">
+            <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 px-6 pb-14 pt-6 lg:px-12 lg:pb-16 lg:pt-8">
 
                 {!signedIn && (
-                    <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-6 w-fit">
+                    <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-5 w-fit">
                         <ArrowLeft className="w-4 h-4" /> Home
                     </Link>
                 )}
 
                 <PageHeader
                     title="Find K-12 Educators"
-                    description="Browse and connect with verified specialists for your district's needs."
-                    actions={<PrimaryButton onClick={() => setShowSavedOnly((v) => !v)}>{showSavedOnly ? "Show All" : `Saved Educators (${savedEducatorIds.length})`}</PrimaryButton>}
+                    description={
+                        needsDistrictSignIn
+                            ? "The live educator directory is available to district hiring teams."
+                            : "Browse and connect with verified specialists for your district's needs."
+                    }
+                    actions={
+                        districtOK ? (
+                            <PrimaryButton onClick={() => setShowSavedOnly((v) => !v)}>
+                                {showSavedOnly ? "Show All" : `Saved Educators (${savedEducatorIds.length})`}
+                            </PrimaryButton>
+                        ) : undefined
+                    }
                 />
 
-                {USE_CONVEX_BROWSE && (
+                {USE_CONVEX_BROWSE && needsDistrictSignIn && (
+                    <div className="mt-4 rounded-lg border border-[var(--accent-primary)]/25 bg-[var(--accent-primary)]/5 px-4 py-4 md:flex md:items-center md:justify-between md:gap-4">
+                        <p className="text-sm font-medium text-[var(--text-secondary)]">
+                            Sign in with a district account to browse verified educators and use filters on the live roster.
+                        </p>
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row md:mt-0 md:shrink-0">
+                            <Link href="/login">
+                                <PrimaryButton className="w-full sm:w-auto text-sm min-h-9 h-9">Sign in</PrimaryButton>
+                            </Link>
+                            <Link href={`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent("/browse")}`}>
+                                <button className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[var(--border-strong)] text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
+                                    Create district account
+                                </button>
+                            </Link>
+                        </div>
+                    </div>
+                )}
+
+                {USE_CONVEX_BROWSE && !needsDistrictSignIn && (
                     <div
                         className={cn(
-                            "mt-4 rounded-lg border px-4 py-3 text-sm font-medium",
+                            "mt-4 inline-flex w-fit max-w-full rounded-lg border px-3 py-2 text-xs font-semibold",
                             convexLive
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                                 : convexLoading
@@ -162,7 +268,7 @@ export default function BrowsePage() {
                     </div>
                 )}
 
-                <div className="flex flex-col lg:flex-row gap-8 mt-8">
+                <div className="flex flex-col lg:flex-row gap-6 mt-7">
                     
                     {/* Mobile Filter Toggle */}
                     <button 
@@ -174,17 +280,17 @@ export default function BrowsePage() {
 
                     {/* Facet Panel */}
                     <aside className={`w-full lg:w-[280px] flex-shrink-0 flex-col gap-6 lg:flex ${mobileFilterOpen ? 'flex' : 'hidden'}`}>
-                        <div className="surface-raised p-6 flex flex-col gap-6 sticky top-24">
+                        <div className="surface-raised p-5 flex flex-col gap-5 sticky top-24">
                             <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
                                 <FadersHorizontal weight="bold" className="w-4 h-4 text-[var(--text-tertiary)]" /> Filters
                             </h3>
 
                             <div className="flex flex-col gap-3">
                                 <span className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
-                                    Area of Need
+                                    Support Type
                                 </span>
                                 <TaxonomyFilter
-                                    label="Select Areas"
+                                    label="Select Support"
                                     options={TAXONOMY.areasOfNeed}
                                     selected={selectedAreas}
                                     onChange={(id) => toggleFilter(setSelectedAreas, id)}
@@ -273,13 +379,17 @@ export default function BrowsePage() {
                     <main className="flex-1 flex flex-col">
                         
                         {/* Quick Action Filter Chips */}
-                        <div className="flex flex-wrap gap-3 mb-6">
-                            {QUICK_FILTERS.map(f => (
+                        <div className="flex flex-wrap gap-2.5 mb-5">
+                            {visibleQuickFilters.map(f => (
                                 <button 
                                     key={f.id}
+                                    type="button"
+                                    disabled={!canUseDirectory}
+                                    title={!canUseDirectory ? "Sign in with a district account to filter the live roster" : undefined}
                                     onClick={() => handleQuickFilter(f.id)}
                                     className={cn(
-                                        "flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold transition-all duration-200",
+                                        "flex items-center gap-2 px-3.5 py-2 rounded-full border text-sm font-semibold transition-all duration-200",
+                                        !canUseDirectory && "cursor-not-allowed opacity-50",
                                         activeQuickFilter === f.id
                                             ? `${f.active} ring-2 ring-offset-2`
                                             : "bg-white border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:shadow-sm"
@@ -292,7 +402,7 @@ export default function BrowsePage() {
                         </div>
 
                         {activeFilterChips.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-6">
+                            <div className="flex flex-wrap gap-2 mb-5">
                                 {activeFilterChips.map((chip) => (
                                     <button
                                         key={chip.id}
@@ -305,9 +415,15 @@ export default function BrowsePage() {
                             </div>
                         )}
 
-                        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
                             <span className="text-sm font-semibold text-[var(--text-secondary)]">
-                                Showing {filteredEducators.length} result{filteredEducators.length !== 1 ? 's' : ''}
+                                {canUseDirectory
+                                    ? `Showing ${filteredEducators.length} result${filteredEducators.length !== 1 ? "s" : ""}`
+                                    : needsDistrictSignIn
+                                      ? "Sign in to see educator results"
+                                      : sessionChecking
+                                        ? "Checking your session…"
+                                        : `Showing ${filteredEducators.length} result${filteredEducators.length !== 1 ? "s" : ""}`}
                             </span>
 
                             <select 
@@ -329,26 +445,13 @@ export default function BrowsePage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center p-16 surface-raised text-center">
-                                <div className="w-20 h-20 bg-[var(--bg-subtle)] rounded-full flex items-center justify-center mb-5">
-                                    <Funnel weight="regular" className="w-10 h-10 text-[var(--text-tertiary)]" />
+                            <div className="flex min-h-[360px] flex-col items-center justify-center surface-raised p-8 text-center md:p-10">
+                                <div className="w-16 h-16 bg-[var(--bg-subtle)] rounded-full flex items-center justify-center mb-4">
+                                    <Funnel weight="regular" className="w-8 h-8 text-[var(--text-tertiary)]" />
                                 </div>
-                                <h3 className="text-2xl font-heading font-bold text-[var(--text-primary)] mb-2">No educators found</h3>
-                                <p className="text-[var(--text-secondary)] max-w-sm mb-8">We couldn&apos;t find any educators matching your exact criteria. Try removing some filters to see more results.</p>
-                                <PrimaryButton 
-                                    className="px-8 shadow-sm bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90"
-                                    onClick={() => {
-                                        setSelectedAreas([]);
-                                        setSelectedGrades([]);
-                                        setSelectedRegions([]);
-                                        setSelectedEngagements([]);
-                                        setVerifiedOnly(false);
-                                        setAvailableNow(false);
-                                        setActiveQuickFilter(null);
-                                    }}
-                                >
-                                    Clear All Filters
-                                </PrimaryButton>
+                                <h3 className="text-xl font-heading font-bold text-[var(--text-primary)] mb-2">{emptyState.title}</h3>
+                                <p className="text-sm leading-6 text-[var(--text-secondary)] max-w-sm mb-6">{emptyState.body}</p>
+                                {emptyState.action}
                             </div>
                         )}
                     </main>

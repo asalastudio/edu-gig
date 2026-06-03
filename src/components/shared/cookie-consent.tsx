@@ -38,27 +38,27 @@ export function CookieConsent() {
     };
 
     return (
-        <div className="fixed left-4 right-4 top-20 z-[80] pointer-events-none sm:left-auto sm:max-w-md">
-            <div className="flex flex-col gap-4 rounded-lg border border-[var(--border-default)] bg-white p-5 shadow-[0_18px_60px_rgba(22,32,26,0.22)] pointer-events-auto">
+        <div className="fixed inset-x-3 bottom-2 z-[80] pointer-events-none sm:inset-x-auto sm:bottom-5 sm:right-5 sm:max-w-sm">
+            <div className="flex flex-col gap-2 rounded-lg border border-[var(--border-default)] bg-white p-3 shadow-[0_14px_44px_rgba(22,32,26,0.18)] pointer-events-auto sm:gap-3 sm:p-4">
                 <div>
-                    <p className="font-heading text-base font-bold text-[var(--text-primary)]">
-                        Cookies for sign-in, security, and product improvement
+                    <p className="font-heading text-sm font-bold text-[var(--text-primary)]">
+                        Cookies for sign-in and security
                     </p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-                        K12Gig uses required cookies for authentication and account security. Optional analytics cookies help us improve hiring workflows for districts and educators.
-                        See our <Link href="/privacy" className="font-bold text-[var(--accent-primary)] hover:underline">Privacy Policy</Link>
-                        {" "}and <Link href="/terms" className="font-bold text-[var(--accent-primary)] hover:underline">Terms of Service</Link>.
+                    <p className="mt-1 text-xs leading-4 text-[var(--text-secondary)] sm:leading-5">
+                        We use required cookies for secure sign-in and optional analytics. See{" "}
+                        <Link href="/privacy" className="font-bold text-[var(--accent-primary)] hover:underline">Privacy</Link>
+                        {" "}and <Link href="/terms" className="font-bold text-[var(--accent-primary)] hover:underline">Terms</Link>.
                     </p>
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row">
                     <button
                         type="button"
                         onClick={() => accept("essential")}
-                        className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border-strong)] bg-white px-4 py-2 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
+                        className="inline-flex min-h-8 items-center justify-center rounded-lg border border-[var(--border-strong)] bg-white px-3 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] sm:min-h-9"
                     >
                         Essential only
                     </button>
-                    <PrimaryButton type="button" onClick={() => accept("all")}>
+                    <PrimaryButton type="button" onClick={() => accept("all")} className="min-h-8 px-3 py-2 text-xs sm:min-h-9">
                         Accept all
                     </PrimaryButton>
                 </div>

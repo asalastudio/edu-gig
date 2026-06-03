@@ -9,6 +9,8 @@
  */
 const domain = process.env.CLERK_JWT_ISSUER_DOMAIN;
 
-export default {
+const authConfig = {
     providers: domain ? [{ domain, applicationID: "convex" }] : [],
 };
+
+export default authConfig;

@@ -49,19 +49,30 @@ export default function SignInPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
-            <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-                <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md text-center">
-                    {intent === "district" && "Signing in as a district, principal, or HR — you’ll finish setup on the next screen."}
-                    {intent === "educator" && "Signing in as an educator — you’ll finish setup on the next screen."}
-                    {!intent && "Choose your path after you sign in, or go back to pick hire vs educator first."}
-                </p>
-                <SignIn
-                    forceRedirectUrl={afterAuthUrl}
-                    signUpUrl={authPagePath("/sign-up", intent, safeNext)}
-                />
-                <Link href="/login" className="mt-8 text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
-                    ← Other sign-in options
-                </Link>
+            <main className="flex-1 px-6 py-10 md:py-14">
+                <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(360px,1fr)] lg:items-start">
+                    <section className="rounded-lg border border-[var(--border-subtle)] bg-white p-6 shadow-[var(--shadow-subtle)] md:p-8">
+                        <div className="education-rule mb-4" />
+                        <h1 className="font-heading text-3xl font-bold tracking-tight text-[var(--text-primary)] md:text-4xl">
+                            Sign in to K12Gig
+                        </h1>
+                        <p className="mt-3 text-base leading-7 text-[var(--text-secondary)]">
+                            {intent === "district" && "Use your district, principal, or HR account to post needs, browse educators, and manage bookings."}
+                            {intent === "educator" && "Use your educator account to manage your profile, gigs, proposals, messages, and payments."}
+                            {!intent && "Choose your path, then continue with the account tied to your district or educator profile."}
+                        </p>
+                        <Link href="/login" className="mt-6 inline-flex text-sm font-bold text-[var(--accent-primary)] hover:underline">
+                            Other sign-in options
+                        </Link>
+                    </section>
+
+                    <section className="flex justify-center rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
+                        <SignIn
+                            forceRedirectUrl={afterAuthUrl}
+                            signUpUrl={authPagePath("/sign-up", intent, safeNext)}
+                        />
+                    </section>
+                </div>
             </main>
             <SiteFooter />
         </div>

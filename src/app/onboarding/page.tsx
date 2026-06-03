@@ -162,7 +162,7 @@ function OnboardingWithClerk() {
             if (bio.trim().length < 40) return "Add a short bio so districts know what outcomes you support.";
         }
         if (targetStep === 1) {
-            if (areasOfNeed.length === 0) return "Choose at least one area of need.";
+            if (areasOfNeed.length === 0) return "Choose at least one support type.";
             if (gradeLevelBands.length === 0) return "Choose at least one grade band.";
         }
         if (targetStep === 2) {
@@ -644,7 +644,7 @@ function EducatorStep(props: {
                     description="These choices power search, profile chips, and the first filtering pass for hiring teams."
                 />
                 <MultiSelectGroup
-                    label="Areas of need"
+                    label="Support types"
                     values={TAXONOMY.areasOfNeed}
                     selected={props.areasOfNeed}
                     onChange={props.onAreasOfNeedChange}
@@ -702,7 +702,7 @@ function EducatorStep(props: {
                                 value={props.hourlyRate}
                                 onChange={(e) => props.onHourlyRateChange(e.target.value)}
                                 placeholder="95"
-                                className="field-control pl-8"
+                                className="field-control !pl-8"
                             />
                         </div>
                     </Field>

@@ -101,6 +101,53 @@ export const viewer = query({
     },
 });
 
+/**
+ * Links a pre-seeded demo Convex user (clerkId `seed:<email>`) to the signed-in Clerk account.
+ * Safe no-op when no seed row exists for the current email.
+ */
+export const claimSeededDemoAccount = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+
+        const existing = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+            .first();
+        if (existing) {
+            return { claimed: false as const, userId: existing._id };
+        }
+
+        const email = normalizeEmail(identity.email as string | undefined);
+        if (!email) {
+            return { claimed: false as const, reason: "no_email" as const };
+        }
+
+        const seeded = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", `seed:${email}`))
+            .first();
+        if (!seeded) {
+            return { claimed: false as const, reason: "no_seed_row" as const };
+        }
+
+        const name = (identity.name as string | undefined) ?? "";
+        const parts = name.trim().split(/\s+/).filter(Boolean);
+        const firstName = parts[0] || seeded.firstName;
+        const lastName = parts.length > 1 ? parts.slice(1).join(" ") : seeded.lastName;
+
+        await ctx.db.patch(seeded._id, {
+            clerkId: identity.subject,
+            email,
+            firstName,
+            lastName,
+        });
+
+        return { claimed: true as const, userId: seeded._id };
+    },
+});
+
 /** Launch setup escape hatch: only emails in Convex MANUAL_SUPERADMIN_EMAILS can self-claim superadmin. */
 export const claimManualSuperadmin = mutation({
     args: {},

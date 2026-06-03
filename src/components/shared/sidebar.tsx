@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/shared/brand-logo";
+import { UserButton } from "@clerk/nextjs";
 import {
     Briefcase,
     Buildings,
@@ -32,7 +33,10 @@ export function Sidebar() {
     const viewer = useQuery(api.users.viewer, {});
     const isAdminWorkspace = pathname.includes('/dashboard/admin');
     const showAdminNav = isAdminWorkspace && viewer?.role === "superadmin";
-    const isEducator = pathname.includes('/educator');
+    // Derive workspace from the signed-in user's role, not the URL, so shared
+    // pages like /browse always reflect the correct role (fixes educator seeing
+    // a "District" label on the directory).
+    const isEducator = viewer?.role === "educator";
     const basePath = showAdminNav ? '/dashboard/admin' : isEducator ? '/dashboard/educator' : '/dashboard/district';
     const settingsHref = showAdminNav ? '' : isEducator ? '/dashboard/educator/settings' : '/dashboard/district/settings';
 
@@ -82,6 +86,33 @@ export function Sidebar() {
                     <SidebarItem key={item.label} item={item} basePath={basePath} settingsHref={settingsHref} />
                 ))}
             </nav>
+
+            {/* Bottom Profile Block */}
+            {viewer && (
+                <div className="mt-auto border-t border-[#2B4338] pt-4 flex items-center gap-3 px-2">
+                    <div className="shrink-0 flex items-center justify-center p-0.5 bg-white/10 rounded-full border border-white/5 shadow-inner">
+                        <UserButton />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-white truncate leading-tight">
+                            {viewer.firstName} {viewer.lastName}
+                        </p>
+                        <p className="text-[10px] text-white/50 font-bold uppercase tracking-wider mt-0.5 truncate">
+                            {viewer.role === "superadmin"
+                                ? "Super Admin"
+                                : viewer.role === "educator"
+                                  ? "Educator"
+                                  : viewer.role === "district_admin"
+                                    ? "District Admin"
+                                    : viewer.role === "district_hr"
+                                      ? "District HR"
+                                      : viewer.role === "superintendent"
+                                        ? "Superintendent"
+                                        : "User"}
+                        </p>
+                    </div>
+                </div>
+            )}
 
         </aside>
     )

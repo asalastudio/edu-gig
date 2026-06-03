@@ -13,10 +13,10 @@ export default function LoginHubPage() {
             <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-16 text-center">
                 <div className="education-rule mx-auto mb-5" />
                 <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-3">
-                    Sign in to K12Gig
+                    Sign in or create your account
                 </h1>
                 <p className="text-lg text-[var(--text-secondary)] font-medium mb-12 max-w-xl mx-auto">
-                    Choose how you use the platform. You can always switch roles later in account settings.
+                    Choose how you use K12Gig to continue. New or returning, this is where you start — you can switch roles later in account settings.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
@@ -38,7 +38,7 @@ export default function LoginHubPage() {
                             </div>
                         </div>
                         <span className="text-sm font-bold text-[var(--accent-primary)] group-hover:underline">
-                            Continue to sign in →
+                            Continue →
                         </span>
                     </Link>
 
@@ -60,17 +60,13 @@ export default function LoginHubPage() {
                             </div>
                         </div>
                         <span className="text-sm font-bold text-[var(--accent-primary)] group-hover:underline">
-                            Continue to sign in →
+                            Continue →
                         </span>
                     </Link>
                 </div>
 
                 <p className="mt-10 text-sm text-[var(--text-tertiary)]">
-                    New here?{" "}
-                    <Link href="/sign-up" className="font-bold text-[var(--accent-primary)] hover:underline">
-                        Create an account
-                    </Link>{" "}
-                    — you&apos;ll choose your role on the next step.
+                    New to K12Gig? Pick the path above that fits you — you&apos;ll create your account on the next step.
                 </p>
             </main>
             <SiteFooter />

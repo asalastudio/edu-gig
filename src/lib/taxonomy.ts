@@ -111,12 +111,13 @@ export const TAXONOMY = {
         { id: "other", label: "Other", allowTextInput: true },
     ],
 
+    // Michigan-first controlled beta: region ids are stable, labels map to Michigan.
     coverageRegions: [
-        { id: "region_1", label: "North Texas / DFW" },
-        { id: "region_2", label: "Central Texas / Austin" },
-        { id: "region_3", label: "Gulf Coast / Houston" },
-        { id: "region_4", label: "South Texas / San Antonio" },
-        { id: "region_5", label: "West Texas / Remote" },
+        { id: "region_1", label: "Southeast Michigan / Detroit Metro" },
+        { id: "region_2", label: "West Michigan / Grand Rapids" },
+        { id: "region_3", label: "Mid-Michigan / Lansing & Flint" },
+        { id: "region_4", label: "Northern Michigan / Traverse City" },
+        { id: "region_5", label: "Upper Peninsula" },
         { id: "all", label: "Statewide / Remote" },
     ],
 

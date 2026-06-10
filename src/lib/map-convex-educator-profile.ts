@@ -58,7 +58,7 @@ export function mapConvexEducatorToProfileView(
         placements: Math.min(50, Math.max(0, educator.profileCompletePct / 5)),
         avgRating: 0,
         reviewCount: 0,
-        location: "Texas (see coverage regions)",
+        location: "Michigan (see coverage regions)",
         education: "See credentials",
         areas: areaLabels.length ? areaLabels : ["K-12 support"],
         badges:

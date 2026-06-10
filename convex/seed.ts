@@ -43,10 +43,10 @@ export const populate = mutation({
         });
 
         await ctx.db.insert("districts", {
-            name: "Austin ISD (Demo)",
-            state: "TX",
-            region: "region_2",
-            nceaId: "demo-austin-isd",
+            name: "Ann Arbor Public Schools (Demo)",
+            state: "MI",
+            region: "region_1",
+            nceaId: "demo-ann-arbor-ps",
             adminIds: [districtUserId],
             planType: "professional",
             createdAt: now,
@@ -219,7 +219,7 @@ export const clearDemo = mutation({
 
         const districts = await ctx.db.query("districts").collect();
         for (const district of districts) {
-            if (district.name.includes("(Demo)") || district.nceaId === "demo-austin-isd") {
+            if (district.name.includes("(Demo)") || district.nceaId === "demo-austin-isd" || district.nceaId === "demo-ann-arbor-ps") {
                 await ctx.db.delete(district._id);
                 removedDistricts++;
             }

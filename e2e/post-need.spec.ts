@@ -9,7 +9,7 @@ test.describe("Post a Need", () => {
 
         // Step 1 — Role
         await expect(page.getByRole("heading", { name: /^The Role$/i })).toBeVisible();
-        await page.locator("#orgName").fill("Austin ISD");
+        await page.locator("#orgName").fill("Ann Arbor Public Schools");
         await page.locator("#areaId").selectOption("instruction_curriculum");
 
         // Use nth(0) since there's only one Continue button visible per step.

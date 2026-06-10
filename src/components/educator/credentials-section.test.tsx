@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CredentialsSection } from "./credentials-section";
 
 vi.mock("convex/react", () => ({
@@ -26,7 +26,12 @@ vi.mock("@/convex/_generated/api", () => ({
 }));
 
 describe("CredentialsSection", () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
     it("defers Checkr by default for the controlled beta", () => {
+        vi.stubEnv("NEXT_PUBLIC_ENABLE_CHECKR", "");
         render(<CredentialsSection />);
 
         expect(screen.getByText(/background checks are deferred/i)).toBeInTheDocument();

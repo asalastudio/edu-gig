@@ -88,7 +88,7 @@ Completed June 7, 2026:
 | Check | Result | Notes |
 |---|---|---|
 | TypeScript typecheck | Passed | No type errors found. |
-| Unit tests | Passed | 111 tests passed across 23 files. |
+| Unit tests | Passed | 112 tests passed across 23 files. |
 | Production build | Passed | Next 16.2.7 build completed locally. |
 | Lint | Passed | `npm run lint` passed. |
 | Browser smoke | Passed locally | District demo account reaches dashboard; browse shows seeded educators; Sarah invoice booking confirms. |

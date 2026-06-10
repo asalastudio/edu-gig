@@ -1,6 +1,7 @@
 # K12Gig Controlled Beta Launch Runbook (`k12gig.com`)
 
 **Audience:** Jordan (engineering)  
+**Target date:** June 15, 2026  
 **Launch mode:** Controlled beta · invoice/PO only · no live card payments  
 **Blocked on:** Chris DNS access for `k12gig.com`
 
@@ -114,6 +115,12 @@ printf '%s' 'https://k12gig.com' | vercel env add NEXT_PUBLIC_APP_URL production
 ```
 
 **Invoice-only beta — Stripe NOT required.** Leave `STRIPE_*` unset; checkout uses PO/invoice path.
+Set or keep these public flags unset/false unless Chris explicitly re-approves the lane:
+
+```bash
+printf '%s' 'false' | vercel env add NEXT_PUBLIC_ENABLE_CARD_CHECKOUT production
+printf '%s' 'false' | vercel env add NEXT_PUBLIC_ENABLE_CHECKR production
+```
 
 **Optional before invite wave:**
 

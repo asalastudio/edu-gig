@@ -14,6 +14,7 @@ import Link from "next/link";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
+import { isCardCheckoutEnabled } from "@/lib/launch-flags";
 import { isDistrictRole } from "@/lib/roles";
 import { PLATFORM_FEE_PCT, computePricing } from "@/convex/pricing";
 
@@ -53,6 +54,7 @@ export default function GigCheckoutPage() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [bookedOrderId, setBookedOrderId] = useState<string | null>(null);
+    const cardCheckoutEnabled = isCardCheckoutEnabled();
 
     const viewer = useQuery(api.users.viewer, {});
     const canPersist = !!viewer && isDistrictRole(viewer.role);
@@ -108,7 +110,12 @@ export default function GigCheckoutPage() {
             return;
         }
 
-        // paymentMethod === "card" → Stripe path
+        if (!cardCheckoutEnabled) {
+            setError("Card checkout is disabled for the controlled beta. Use invoice / PO booking.");
+            return;
+        }
+
+        // paymentMethod === "card" -> Stripe path
         setSubmitting(true);
         try {
             const res = await fetch("/api/stripe/checkout", {
@@ -222,17 +229,23 @@ export default function GigCheckoutPage() {
                                     />
                                     <span className="font-medium text-[var(--text-primary)]">ACH Bank Transfer (Net-30 Invoice)</span>
                                 </label>
-                                <label className={`flex items-center gap-3 p-4 border rounded-md cursor-pointer ${paymentMethod === "card" ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/5" : "border-[var(--border-default)] hover:border-[var(--border-strong)]"}`}>
-                                    <input
-                                        type="radio"
-                                        name="payment"
-                                        className="accent-[var(--accent-primary)]"
-                                        value="card"
-                                        checked={paymentMethod === "card"}
-                                        onChange={() => setPaymentMethod("card")}
-                                    />
-                                    <span className="font-medium text-[var(--text-primary)]">Credit Card (Stripe)</span>
-                                </label>
+                                {cardCheckoutEnabled ? (
+                                    <label className={`flex items-center gap-3 p-4 border rounded-md cursor-pointer ${paymentMethod === "card" ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/5" : "border-[var(--border-default)] hover:border-[var(--border-strong)]"}`}>
+                                        <input
+                                            type="radio"
+                                            name="payment"
+                                            className="accent-[var(--accent-primary)]"
+                                            value="card"
+                                            checked={paymentMethod === "card"}
+                                            onChange={() => setPaymentMethod("card")}
+                                        />
+                                        <span className="font-medium text-[var(--text-primary)]">Credit Card (Stripe)</span>
+                                    </label>
+                                ) : (
+                                    <p className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+                                        Invoice / PO is the active payment path for this controlled beta. Card checkout is hidden until Stripe production is verified.
+                                    </p>
+                                )}
                             </div>
 
                             {error && (

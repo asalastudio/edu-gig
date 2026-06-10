@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { PrimaryButton } from "@/components/shared/button";
+import { isCheckrEnabled } from "@/lib/launch-flags";
 import {
     formatCredentialType,
     formatExpiry,
@@ -91,6 +92,7 @@ export function CredentialsSection() {
     const [issueDate, setIssueDate] = useState("");
     const [expiryDate, setExpiryDate] = useState("");
     const [file, setFile] = useState<File | null>(null);
+    const checkrEnabled = isCheckrEnabled();
 
     const canSubmit = useMemo(
         () => !isDemo && title.trim().length > 0 && issuingBody.trim().length > 0 && issueDate.length > 0,
@@ -370,7 +372,12 @@ export function CredentialsSection() {
                 <h3 className="font-heading text-base font-bold text-[var(--text-primary)] mb-1">
                     Background check
                 </h3>
-                {isDemo && (
+                {!checkrEnabled && (
+                    <p className="text-sm text-[var(--text-secondary)]">
+                        Background checks are deferred for the controlled beta. K12Gig will enable Checkr after launch configuration is approved.
+                    </p>
+                )}
+                {checkrEnabled && isDemo && (
                     <>
                         <p className="text-sm text-[var(--text-secondary)] mb-3">
                             Sign in as an educator to start a Checkr background check.
@@ -384,17 +391,17 @@ export function CredentialsSection() {
                         </button>
                     </>
                 )}
-                {!isDemo && (verificationStatus === "verified" || verificationStatus === "premier") && (
+                {checkrEnabled && !isDemo && (verificationStatus === "verified" || verificationStatus === "premier") && (
                     <p className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-md">
                         Background check complete
                     </p>
                 )}
-                {!isDemo && verificationStatus === "pending" && (
+                {checkrEnabled && !isDemo && verificationStatus === "pending" && (
                     <p className="inline-flex items-center gap-2 text-sm font-bold text-amber-700 bg-amber-50 px-3 py-2 rounded-md">
                         Background check in progress
                     </p>
                 )}
-                {!isDemo && verificationStatus === "unverified" && (
+                {checkrEnabled && !isDemo && verificationStatus === "unverified" && (
                     <>
                         <p className="text-sm text-[var(--text-secondary)] mb-3">
                             Unlock the Verified tier by completing a Checkr background check.

@@ -107,8 +107,8 @@ After sign-in you should land on the **District dashboard** (`/dashboard/distric
 |------|-------|-----------|
 | 2.6 | Sarah’s profile → **Services** tab | Two bookable gigs from seed data |
 | 2.7 | **Curriculum Mapping Workshop** ($450 fixed) → **Book this service** | Checkout page with order summary, platform fee breakdown |
-| 2.8 | Fill checkout form | Start date, optional PO number, payment method (invoice vs card) |
-| 2.9 | Submit booking | Confirmation state; order created in Convex |
+| 2.8 | Fill checkout form | Start date, optional PO number, invoice / PO payment path |
+| 2.9 | Submit booking | Confirmation state; order created in Convex when signed in as district |
 
 **Sarah’s seeded services:**
 
@@ -225,7 +225,7 @@ Only show if Chris asks about first-time signup.
 |--------------------|-----|-------------|
 | Empty pipeline on dashboards | No orders booked yet in this session | “Pipeline fills once bookings exist — we can create one live in the district flow.” |
 | No messages | No threads started | “Messaging UI is in place; threads appear after district–educator contact.” |
-| Card payment disabled | Stripe keys may be unset in dev | “Invoice / PO path works; card is configured per environment.” |
+| Card payment hidden | Controlled beta is invoice / PO-first | “Card checkout is intentionally deferred until production Stripe is verified.” |
 | Brief “Choose your workspace” after sign-in | Seed link takes a moment, or sign-in without `?intent=` | “Seeded accounts auto-redirect; use intent URLs to skip.” |
 | Admin dashboard | Requires superadmin account | “Admin is internal-only — not part of today’s district/educator demo.” |
 

@@ -6,6 +6,10 @@ const fileEnv = fs.existsSync(envPath) ? parseEnv(fs.readFileSync(envPath, "utf8
 const env = { ...fileEnv, ...process.env };
 const target = process.argv.includes("--production") ? "production" : "local";
 const betaMode = process.argv.includes("--beta");
+const cardCheckoutEnabled = flagEnabled(env.NEXT_PUBLIC_ENABLE_CARD_CHECKOUT);
+const checkrEnabled = flagEnabled(env.NEXT_PUBLIC_ENABLE_CHECKR);
+const stripeRequired = !betaMode || cardCheckoutEnabled;
+const checkrRequired = checkrEnabled;
 
 const required = [
   "NEXT_PUBLIC_APP_URL",
@@ -13,10 +17,11 @@ const required = [
   "CONVEX_WEBHOOK_SHARED_SECRET",
   "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
   "CLERK_SECRET_KEY",
-  ...(betaMode ? [] : ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]),
+  ...(stripeRequired ? ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"] : []),
+  ...(checkrRequired ? ["CHECKR_API_KEY", "CHECKR_WEBHOOK_SECRET", "CHECKR_PACKAGE"] : []),
 ];
 
-const productionRequired = ["CONVEX_DEPLOY_KEY"];
+const productionRequired = ["CONVEX_DEPLOY_KEY", "CLERK_JWT_ISSUER_DOMAIN"];
 const recommended = [
   "NEXT_PUBLIC_CONVEX_SITE_URL",
   "NEXT_PUBLIC_CLERK_SIGN_IN_URL",
@@ -27,9 +32,6 @@ const recommended = [
   "UPSTASH_REDIS_REST_TOKEN",
   "RESEND_API_KEY",
   "RESEND_FROM_EMAIL",
-  "CHECKR_API_KEY",
-  "CHECKR_WEBHOOK_SECRET",
-  "CHECKR_PACKAGE",
   "NEXT_PUBLIC_SENTRY_DSN",
 ];
 
@@ -52,6 +54,10 @@ function parseEnv(raw) {
 
 function present(name) {
   return typeof env[name] === "string" && env[name].trim().length > 0;
+}
+
+function flagEnabled(value) {
+  return /^(1|true|yes|on)$/i.test((value ?? "").trim());
 }
 
 function masked(name) {
@@ -87,9 +93,14 @@ if (target === "production") {
   if (/^sk_test_|^pk_test_/.test(env.STRIPE_SECRET_KEY ?? "")) {
     warnings.push("STRIPE_SECRET_KEY is a Stripe test-mode key.");
   }
+  if (betaMode && present("CLERK_JWT_ISSUER_DOMAIN") && env.CLERK_JWT_ISSUER_DOMAIN !== "https://clerk.k12gig.com") {
+    warnings.push("Beta launch expects CLERK_JWT_ISSUER_DOMAIN=https://clerk.k12gig.com");
+  }
 }
 
 console.log(`K12Gig env audit (${target}${betaMode ? ", invoice-only beta" : ""})`);
+console.log(`Payment lane: ${cardCheckoutEnabled ? "card + invoice" : "invoice / PO only"}`);
+console.log(`Checkr lane: ${checkrEnabled ? "enabled" : "deferred"}`);
 console.log("");
 for (const name of [...required, ...productionRequired, ...recommended]) {
   console.log(`${present(name) ? "OK" : "NO"} ${name}: ${masked(name)}`);
@@ -106,7 +117,7 @@ if (warnings.length) {
   console.warn(`Production warnings: ${warnings.join(" ")}`);
 }
 
-if (target === "production") {
+if (target === "production" && !present("CLERK_JWT_ISSUER_DOMAIN")) {
   console.log("");
   console.log("Convex production also needs CLERK_JWT_ISSUER_DOMAIN set in the Convex dashboard/env.");
 }

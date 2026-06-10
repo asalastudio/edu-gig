@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const isProd = process.env.NODE_ENV === "production";
+
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
@@ -7,7 +9,8 @@ const securityHeaders = [
       "default-src 'self'",
       "base-uri 'self'",
       "object-src 'none'",
-      "frame-ancestors 'none'",
+      // Frame-blocking stays production-only: local preview panes embed the dev server in an iframe.
+      ...(isProd ? ["frame-ancestors 'none'"] : []),
       "form-action 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.k12gig.com https://challenges.cloudflare.com https://*.stripe.com",
       "style-src 'self' 'unsafe-inline' https://clerk.k12gig.com",
@@ -16,12 +19,12 @@ const securityHeaders = [
       "connect-src 'self' https://*.convex.cloud https://*.convex.site wss://*.convex.cloud https://*.clerk.accounts.dev https://*.clerk.com https://clerk.k12gig.com https://clerk-telemetry.com https://*.clerk-telemetry.com https://api.stripe.com https://*.stripe.com https://*.sentry.io",
       "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.k12gig.com https://challenges.cloudflare.com https://*.stripe.com",
       "worker-src 'self' blob:",
-      ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
+      ...(isProd ? ["upgrade-insecure-requests"] : []),
     ].join("; "),
   },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
+  ...(isProd ? [{ key: "X-Frame-Options", value: "DENY" }] : []),
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
 ];
 

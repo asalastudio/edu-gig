@@ -93,8 +93,8 @@ function OnboardingWithClerk() {
 
     const [districtRole, setDistrictRole] = useState<DistrictOnboardingRole>("superintendent");
     const [organizationName, setOrganizationName] = useState("");
-    const [districtState, setDistrictState] = useState("TX");
-    const [districtRegion, setDistrictRegion] = useState("region_2");
+    const [districtState, setDistrictState] = useState("MI");
+    const [districtRegion, setDistrictRegion] = useState("region_1");
     const [districtNceaId, setDistrictNceaId] = useState("");
     const [districtAction, setDistrictAction] = useState<DistrictFirstAction>("post_need");
 
@@ -514,7 +514,7 @@ function DistrictStep(props: {
                         <input
                             value={props.organizationName}
                             onChange={(e) => props.onOrganizationNameChange(e.target.value)}
-                            placeholder="Austin ISD"
+                            placeholder="Ann Arbor Public Schools"
                             autoFocus
                             className="field-control"
                         />

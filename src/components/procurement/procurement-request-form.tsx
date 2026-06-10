@@ -7,7 +7,7 @@ import { PrimaryButton } from "@/components/shared/button";
 import { SUPPORT_EMAIL, supportMailto } from "@/lib/legal";
 import { PROCUREMENT_MATERIALS } from "@/lib/procurement";
 
-const STATE_OPTIONS = ["TX", "AL", "AZ", "AR", "CA", "CO", "FL", "GA", "IL", "LA", "NM", "NY", "OK", "Other"];
+const STATE_OPTIONS = ["MI", "OH", "IN", "IL", "WI", "MN", "NY", "TX", "CA", "FL", "Other"];
 
 const DEFAULT_MATERIALS = ["dpa", "privacy_policy", "subprocessors", "security_overview"];
 
@@ -18,7 +18,7 @@ export function ProcurementRequestForm() {
     const [requesterEmail, setRequesterEmail] = useState("");
     const [requesterTitle, setRequesterTitle] = useState("");
     const [districtName, setDistrictName] = useState("");
-    const [state, setState] = useState("TX");
+    const [state, setState] = useState("MI");
     const [deadline, setDeadline] = useState("");
     const [procurementContact, setProcurementContact] = useState("");
     const [notes, setNotes] = useState("");
@@ -138,7 +138,7 @@ export function ProcurementRequestForm() {
                     <input
                         value={districtName}
                         onChange={(event) => setDistrictName(event.target.value)}
-                        placeholder="Austin ISD"
+                        placeholder="Ann Arbor Public Schools"
                         required
                         className="field-control"
                     />

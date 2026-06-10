@@ -72,7 +72,8 @@ export const cleanupPreLaunch = mutation({
             const isTest =
                 district.name.trim().toUpperCase() === "TEST" ||
                 district.name.includes("(Demo)") ||
-                district.nceaId === "demo-austin-isd";
+                district.nceaId === "demo-austin-isd" ||
+                district.nceaId === "demo-ann-arbor-ps";
             if (isTest) {
                 await ctx.db.delete(district._id);
                 removedDistricts++;

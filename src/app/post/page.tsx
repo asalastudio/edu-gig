@@ -245,7 +245,7 @@ function PostNeedPageInner() {
                                         <input 
                                             id="orgName"
                                             type="text" 
-                                            placeholder="e.g. Austin ISD"
+                                            placeholder="e.g. Ann Arbor Public Schools"
                                             className={cn(
                                                 "w-full h-12 px-4 rounded-lg border bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all",
                                                 errors.org ? "border-red-500" : "border-[var(--border-subtle)]"

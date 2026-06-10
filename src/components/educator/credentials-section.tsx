@@ -39,8 +39,8 @@ const DEMO_CREDENTIALS: CredentialRow[] = [
         _id: "demo-1",
         type: "state_license",
         title: "Standard Teaching Certificate",
-        issuingBody: "Texas TEA",
-        state: "TX",
+        issuingBody: "Michigan Department of Education",
+        state: "MI",
         issueDate: "2018-08-15",
         expiryDate: "2028-08-15",
         verified: true,
@@ -256,7 +256,7 @@ export function CredentialsSection() {
                                 onChange={(e) => setIssuingBody(e.target.value)}
                                 required
                                 className="h-10 px-3 rounded-md border border-[var(--border-subtle)] bg-white font-normal"
-                                placeholder="e.g. Texas TEA"
+                                placeholder="e.g. Michigan Department of Education"
                             />
                         </label>
                         <label className="flex flex-col gap-1 text-sm font-semibold">
@@ -265,7 +265,7 @@ export function CredentialsSection() {
                                 value={stateField}
                                 onChange={(e) => setStateField(e.target.value)}
                                 className="h-10 px-3 rounded-md border border-[var(--border-subtle)] bg-white font-normal"
-                                placeholder="e.g. TX"
+                                placeholder="e.g. MI"
                             />
                         </label>
                         <label className="flex flex-col gap-1 text-sm font-semibold">

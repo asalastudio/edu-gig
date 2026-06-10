@@ -298,7 +298,11 @@ export const completeOnboarding = mutation({
 
         if (existing) {
             if (existing.onboarded) {
-                await upsertDistrictForAdmin(existing._id);
+                // Role is locked after onboarding: an onboarded educator re-running the
+                // district flow must not gain a district workspace row (and vice versa).
+                if (isDistrictRole(existing.role)) {
+                    await upsertDistrictForAdmin(existing._id);
+                }
                 return { userId: existing._id, alreadyOnboarded: true as const };
             }
             await ctx.db.patch(existing._id, {

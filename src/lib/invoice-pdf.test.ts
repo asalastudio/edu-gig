@@ -3,7 +3,7 @@ import { generateInvoicePdf, invoiceNumber, type InvoiceInput } from "./invoice-
 
 const baseInput: InvoiceInput = {
     orderId: "jd8abc12xyz345def",
-    orgName: "Austin ISD",
+    orgName: "Ann Arbor Public Schools",
     buyerName: "Jane Buyer",
     educatorName: "Dr. Sarah Jenkins",
     gigTitle: "Curriculum Mapping Workshop",

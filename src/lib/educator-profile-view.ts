@@ -23,4 +23,5 @@ export type EducatorProfileView = {
     certCount: number;
     startingRate?: number;
     rateUnit: "hour" | "day";
+    rateLabel: string;
 };

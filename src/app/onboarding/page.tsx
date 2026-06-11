@@ -30,16 +30,19 @@ import {
     type AuthIntent,
 } from "@/lib/auth-intent";
 import {
+    DEFAULT_ENGAGEMENT_TYPES,
     DISTRICT_FIRST_ACTIONS,
     DISTRICT_ROLE_OPTIONS,
     EDUCATOR_AVAILABILITY_OPTIONS,
     defaultDestinationForIntent,
     destinationForFirstAction,
     educatorProfileCompletionScore,
+    formatEducatorRateSummary,
     roleForDistrictOnboarding,
     type DistrictFirstAction,
     type DistrictOnboardingRole,
 } from "@/lib/onboarding";
+import { RateField } from "@/components/educator/rate-field";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { US_STATES } from "@/lib/us-states";
@@ -94,19 +97,23 @@ function OnboardingWithClerk() {
     const [districtRole, setDistrictRole] = useState<DistrictOnboardingRole>("superintendent");
     const [organizationName, setOrganizationName] = useState("");
     const [districtState, setDistrictState] = useState("MI");
-    const [districtRegion, setDistrictRegion] = useState("region_1");
+    const [districtRegion, setDistrictRegion] = useState("region_6");
     const [districtNceaId, setDistrictNceaId] = useState("");
     const [districtAction, setDistrictAction] = useState<DistrictFirstAction>("post_need");
 
     const [headline, setHeadline] = useState("");
     const [bio, setBio] = useState("");
     const [yearsExperience, setYearsExperience] = useState("5");
-    const [hourlyRate, setHourlyRate] = useState("");
+    const [rateAmount, setRateAmount] = useState("");
+    const [rateHourly, setRateHourly] = useState(true);
+    const [rateDaily, setRateDaily] = useState(false);
     const [availabilityStatus, setAvailabilityStatus] = useState<"open" | "limited" | "closed">("open");
     const [gradeLevelBands, setGradeLevelBands] = useState<string[]>([]);
     const [areasOfNeed, setAreasOfNeed] = useState<string[]>([]);
-    const [engagementTypes, setEngagementTypes] = useState<string[]>([]);
     const [coverageRegions, setCoverageRegions] = useState<string[]>([]);
+
+    const hourlyRate = rateHourly && rateAmount ? Number(rateAmount) : undefined;
+    const dailyRate = rateDaily && rateAmount ? Number(rateAmount) : undefined;
 
     const isEducator = intent === "educator";
     const steps = isEducator ? EDUCATOR_STEPS : DISTRICT_STEPS;
@@ -119,13 +126,13 @@ function OnboardingWithClerk() {
                 headline,
                 bio,
                 yearsExperience: Number(yearsExperience) || 0,
-                hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
+                hourlyRate,
+                dailyRate,
                 gradeLevelBands,
                 areasOfNeed,
-                engagementTypes,
                 coverageRegions,
             }),
-        [areasOfNeed, bio, coverageRegions, engagementTypes, gradeLevelBands, headline, hourlyRate, yearsExperience]
+        [areasOfNeed, bio, coverageRegions, dailyRate, gradeLevelBands, headline, hourlyRate, yearsExperience]
     );
 
     useEffect(() => {
@@ -166,9 +173,11 @@ function OnboardingWithClerk() {
             if (gradeLevelBands.length === 0) return "Choose at least one grade band.";
         }
         if (targetStep === 2) {
-            if (engagementTypes.length === 0) return "Choose at least one engagement type.";
             if (coverageRegions.length === 0) return "Choose at least one coverage area.";
-            if (!hourlyRate || Number(hourlyRate) < 20) return "Add a starting hourly rate of $20 or more.";
+            if (!rateAmount || Number(rateAmount) <= 0) return "Add your starting rate.";
+            if (!rateHourly && !rateDaily) return "Choose whether your rate is hourly, daily, or both.";
+            if (rateHourly && Number(rateAmount) < 20) return "Hourly rates should be $20 or more.";
+            if (rateDaily && Number(rateAmount) < 100) return "Daily rates should be $100 or more.";
         }
         return null;
     }
@@ -220,10 +229,11 @@ function OnboardingWithClerk() {
                 headline: intent === "educator" ? headline.trim() : undefined,
                 bio: intent === "educator" ? bio.trim() : undefined,
                 yearsExperience: intent === "educator" ? Number(yearsExperience) || 0 : undefined,
-                hourlyRate: intent === "educator" && hourlyRate ? Number(hourlyRate) : undefined,
+                hourlyRate: intent === "educator" ? hourlyRate : undefined,
+                dailyRate: intent === "educator" ? dailyRate : undefined,
                 gradeLevelBands: intent === "educator" ? gradeLevelBands : undefined,
                 areasOfNeed: intent === "educator" ? areasOfNeed : undefined,
-                engagementTypes: intent === "educator" ? engagementTypes : undefined,
+                engagementTypes: intent === "educator" ? [...DEFAULT_ENGAGEMENT_TYPES] : undefined,
                 coverageRegions: intent === "educator" ? coverageRegions : undefined,
                 availabilityStatus: intent === "educator" ? availabilityStatus : undefined,
                 termsVersion: TERMS_VERSION,
@@ -317,16 +327,18 @@ function OnboardingWithClerk() {
                                     onBioChange={setBio}
                                     yearsExperience={yearsExperience}
                                     onYearsExperienceChange={setYearsExperience}
-                                    hourlyRate={hourlyRate}
-                                    onHourlyRateChange={setHourlyRate}
+                                    rateAmount={rateAmount}
+                                    onRateAmountChange={setRateAmount}
+                                    rateHourly={rateHourly}
+                                    onRateHourlyChange={setRateHourly}
+                                    rateDaily={rateDaily}
+                                    onRateDailyChange={setRateDaily}
                                     availabilityStatus={availabilityStatus}
                                     onAvailabilityStatusChange={setAvailabilityStatus}
                                     gradeLevelBands={gradeLevelBands}
                                     onGradeLevelBandsChange={setGradeLevelBands}
                                     areasOfNeed={areasOfNeed}
                                     onAreasOfNeedChange={setAreasOfNeed}
-                                    engagementTypes={engagementTypes}
-                                    onEngagementTypesChange={setEngagementTypes}
                                     coverageRegions={coverageRegions}
                                     onCoverageRegionsChange={setCoverageRegions}
                                     completion={educatorCompletion}
@@ -400,7 +412,7 @@ function RoleChoice({ firstName }: { firstName: string }) {
                         className="group rounded-lg border border-[var(--border-default)] bg-white p-7 shadow-[var(--shadow-subtle)] hover:border-[var(--accent-primary)]/40 hover:shadow-[var(--shadow-soft)] transition-all"
                     >
                         <Buildings weight="duotone" className="h-11 w-11 text-[var(--accent-primary)] mb-5" />
-                        <h2 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-2">I hire for a district or school</h2>
+                        <h2 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-2">I represent a school or district</h2>
                         <p className="text-sm font-medium leading-6 text-[var(--text-secondary)]">
                             For superintendents, HR teams, principals, and school leaders posting needs or comparing educators.
                         </p>
@@ -580,16 +592,18 @@ function EducatorStep(props: {
     onBioChange: (value: string) => void;
     yearsExperience: string;
     onYearsExperienceChange: (value: string) => void;
-    hourlyRate: string;
-    onHourlyRateChange: (value: string) => void;
+    rateAmount: string;
+    onRateAmountChange: (value: string) => void;
+    rateHourly: boolean;
+    onRateHourlyChange: (value: boolean) => void;
+    rateDaily: boolean;
+    onRateDailyChange: (value: boolean) => void;
     availabilityStatus: "open" | "limited" | "closed";
     onAvailabilityStatusChange: (value: "open" | "limited" | "closed") => void;
     gradeLevelBands: string[];
     onGradeLevelBandsChange: (value: string[]) => void;
     areasOfNeed: string[];
     onAreasOfNeedChange: (value: string[]) => void;
-    engagementTypes: string[];
-    onEngagementTypesChange: (value: string[]) => void;
     coverageRegions: string[];
     onCoverageRegionsChange: (value: string[]) => void;
     completion: number;
@@ -668,19 +682,13 @@ function EducatorStep(props: {
                     description="Transparent availability and pricing reduce back-and-forth for district teams."
                 />
                 <MultiSelectGroup
-                    label="Engagement types"
-                    values={TAXONOMY.engagementTypes}
-                    selected={props.engagementTypes}
-                    onChange={props.onEngagementTypesChange}
-                />
-                <MultiSelectGroup
                     label="Coverage areas"
                     values={TAXONOMY.coverageRegions}
                     selected={props.coverageRegions}
                     onChange={props.onCoverageRegionsChange}
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="Request status">
+                    <Field label="Availability">
                         <select
                             value={props.availabilityStatus}
                             onChange={(e) => props.onAvailabilityStatusChange(e.target.value as typeof props.availabilityStatus)}
@@ -693,19 +701,14 @@ function EducatorStep(props: {
                             ))}
                         </select>
                     </Field>
-                    <Field label="Starting hourly rate">
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[var(--text-tertiary)]">$</span>
-                            <input
-                                type="number"
-                                min={20}
-                                value={props.hourlyRate}
-                                onChange={(e) => props.onHourlyRateChange(e.target.value)}
-                                placeholder="95"
-                                className="field-control !pl-8"
-                            />
-                        </div>
-                    </Field>
+                    <RateField
+                        amount={props.rateAmount}
+                        onAmountChange={props.onRateAmountChange}
+                        hourly={props.rateHourly}
+                        onHourlyChange={props.onRateHourlyChange}
+                        daily={props.rateDaily}
+                        onDailyChange={props.onRateDailyChange}
+                    />
                 </div>
             </div>
         );
@@ -737,7 +740,13 @@ function EducatorStep(props: {
                     ["Areas", props.areasOfNeed.length ? `${props.areasOfNeed.length} selected` : "None selected"],
                     ["Grades", props.gradeLevelBands.length ? `${props.gradeLevelBands.length} selected` : "None selected"],
                     ["Coverage", props.coverageRegions.length ? `${props.coverageRegions.length} selected` : "None selected"],
-                    ["Rate", props.hourlyRate ? `$${props.hourlyRate}/hr` : "Not set"],
+                    [
+                        "Rate",
+                        formatEducatorRateSummary({
+                            hourlyRate: props.rateHourly && props.rateAmount ? Number(props.rateAmount) : undefined,
+                            dailyRate: props.rateDaily && props.rateAmount ? Number(props.rateAmount) : undefined,
+                        }),
+                    ],
                 ]}
             />
         </div>

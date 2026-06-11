@@ -111,13 +111,15 @@ export const TAXONOMY = {
         { id: "other", label: "Other", allowTextInput: true },
     ],
 
-    // Michigan-first controlled beta: region ids are stable, labels map to Michigan.
+    // Michigan ISDs: region ids match the official map (see Regions Google Doc).
+    // Region 6 splits Wayne, Oakland, and Macomb out of Region 5.
     coverageRegions: [
-        { id: "region_1", label: "Southeast Michigan / Detroit Metro" },
-        { id: "region_2", label: "West Michigan / Grand Rapids" },
-        { id: "region_3", label: "Mid-Michigan / Lansing & Flint" },
-        { id: "region_4", label: "Northern Michigan / Traverse City" },
-        { id: "region_5", label: "Upper Peninsula" },
+        { id: "region_1", label: "Region 1 — Upper Peninsula" },
+        { id: "region_2", label: "Region 2 — Northwest Lower Michigan" },
+        { id: "region_3", label: "Region 3 — Northeast Lower Michigan" },
+        { id: "region_4", label: "Region 4 — West & Central Michigan" },
+        { id: "region_5", label: "Region 5 — Southeast Michigan" },
+        { id: "region_6", label: "Metro Detroit (Wayne, Oakland, Macomb)" },
         { id: "all", label: "Statewide / Remote" },
     ],
 

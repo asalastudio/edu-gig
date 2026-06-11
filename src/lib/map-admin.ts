@@ -56,11 +56,11 @@ export function verificationStatusTone(status: string): AdminBadgeTone {
 export function availabilityStatusLabel(status: string) {
     switch (status) {
         case "open":
-            return "Open";
+            return "Open to New Clients";
         case "limited":
-            return "Limited";
+            return "Limited Availability";
         case "closed":
-            return "Closed";
+            return "Not Accepting New Clients";
         default:
             return "Unknown";
     }

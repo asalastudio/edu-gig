@@ -100,6 +100,7 @@ export const listForBrowse = query({
             engagementTypes: string[];
             coverageRegions: string[];
             startingRate?: number;
+            rateUnit?: "hour" | "day";
             availabilityStatus: "open" | "limited" | "closed";
             hasVideoIntro: boolean;
             badges: string[];
@@ -124,6 +125,7 @@ export const listForBrowse = query({
                 engagementTypes: educator.engagementTypes,
                 coverageRegions: educator.coverageRegions,
                 startingRate: educator.hourlyRate ?? educator.dailyRate,
+                rateUnit: educator.hourlyRate ? "hour" : educator.dailyRate ? "day" : undefined,
                 availabilityStatus: educator.availabilityStatus,
                 hasVideoIntro: !!educator.videoIntroUrl,
                 badges:

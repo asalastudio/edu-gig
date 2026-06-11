@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { AUTH_INTENT_PARAM, afterAuthPath, authPagePath, safeRedirectPath } from "@/lib/auth-intent";
+import { clerkCardAppearance } from "@/lib/clerk-appearance";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 
 export default function SignUpPage() {
@@ -41,15 +42,26 @@ export default function SignUpPage() {
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
             <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-                <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md text-center">
-                    {intent === "district" && "Creating a district hiring account. You’ll add your district name next."}
-                    {intent === "educator" && "Creating an educator profile. You’ll add your headline and service details next."}
-                    {!intent && "Create your K12Gig account. You’ll choose whether you hire or offer services on the next screen."}
-                </p>
-                <SignUp
-                    forceRedirectUrl={afterAuthUrl}
-                    signInUrl={authPagePath("/sign-in", intent, safeNext)}
-                />
+                <div className="mb-6 max-w-md text-center">
+                    <div className="education-rule mx-auto mb-4" />
+                    <h1 className="font-heading text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+                        {intent === "district" && "Create your district account"}
+                        {intent === "educator" && "Create your educator profile"}
+                        {!intent && "Create your K12Gig account"}
+                    </h1>
+                    <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
+                        {intent === "district" && "For district, principal, and HR teams. You’ll add your district name next."}
+                        {intent === "educator" && "For consultants, coaches, and specialists. You’ll add your headline and service details next."}
+                        {!intent && "You’ll choose whether you hire or offer services on the next screen."}
+                    </p>
+                </div>
+                <div className="w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
+                    <SignUp
+                        forceRedirectUrl={afterAuthUrl}
+                        signInUrl={authPagePath("/sign-in", intent, safeNext)}
+                        appearance={clerkCardAppearance}
+                    />
+                </div>
                 <p className="mt-5 max-w-md text-center text-xs leading-5 text-[var(--text-tertiary)]">
                     By creating an account, you agree to K12Gig&apos;s{" "}
                     <Link href="/terms" className="font-bold text-[var(--accent-primary)] hover:underline">

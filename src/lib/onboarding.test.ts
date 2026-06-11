@@ -30,7 +30,6 @@ describe("educator onboarding helpers", () => {
                 hourlyRate: 95,
                 gradeLevelBands: ["6_8"],
                 areasOfNeed: ["instruction_curriculum"],
-                engagementTypes: ["consulting"],
                 coverageRegions: ["region_2"],
             })
         ).toBe(100);
@@ -44,10 +43,9 @@ describe("educator onboarding helpers", () => {
                 yearsExperience: 0,
                 gradeLevelBands: [],
                 areasOfNeed: [],
-                engagementTypes: [],
                 coverageRegions: [],
             })
-        ).toBe(10);
+        ).toBe(20);
     });
 
     it("defaults educator completion to settings after setup", () => {

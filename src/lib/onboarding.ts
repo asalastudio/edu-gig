@@ -8,9 +8,9 @@ export type EducatorSetupInput = {
     bio: string;
     yearsExperience: number;
     hourlyRate?: number;
+    dailyRate?: number;
     gradeLevelBands: string[];
     areasOfNeed: string[];
-    engagementTypes: string[];
     coverageRegions: string[];
 };
 
@@ -67,10 +67,22 @@ export const DISTRICT_FIRST_ACTIONS: Array<{
 ];
 
 export const EDUCATOR_AVAILABILITY_OPTIONS = [
-    { id: "open", label: "Accept new district requests" },
-    { id: "limited", label: "Limited availability" },
-    { id: "closed", label: "Pause new requests" },
+    { id: "open", label: "Open to New Clients" },
+    { id: "limited", label: "Limited Availability" },
+    { id: "closed", label: "Not Accepting New Clients" },
 ] as const;
+
+export const DEFAULT_ENGAGEMENT_TYPES = ["consulting"] as const;
+
+export function formatEducatorRateSummary(input: {
+    hourlyRate?: number;
+    dailyRate?: number;
+}): string {
+    const parts: string[] = [];
+    if (input.hourlyRate) parts.push(`$${input.hourlyRate}/hr`);
+    if (input.dailyRate) parts.push(`$${input.dailyRate}/day`);
+    return parts.length > 0 ? parts.join(" · ") : "Not set";
+}
 
 export function roleForDistrictOnboarding(id: DistrictOnboardingRole) {
     return DISTRICT_ROLE_OPTIONS.find((option) => option.id === id)?.role ?? "district_admin";
@@ -90,10 +102,12 @@ export function educatorProfileCompletionScore(input: EducatorSetupInput): numbe
     if (input.headline.trim().length >= 12) score += 15;
     if (input.bio.trim().length >= 40) score += 20;
     if (input.yearsExperience >= 0) score += 10;
-    if ((input.hourlyRate ?? 0) >= 20) score += 15;
+    const hasHourlyRate = (input.hourlyRate ?? 0) >= 20;
+    const hasDailyRate = (input.dailyRate ?? 0) >= 100;
+    if (hasHourlyRate || hasDailyRate) score += 15;
     if (input.gradeLevelBands.length > 0) score += 10;
     if (input.areasOfNeed.length > 0) score += 10;
-    if (input.engagementTypes.length > 0) score += 10;
+    score += 10; // freelance consulting is the default engagement model
     if (input.coverageRegions.length > 0) score += 10;
     return Math.min(100, score);
 }

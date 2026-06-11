@@ -26,7 +26,7 @@ const educator = {
     areasOfNeed: ["instruction_curriculum", "data"],
     subCategories: [],
     engagementTypes: ["consulting"],
-    coverageRegions: ["region_1"],
+    coverageRegions: ["region_6"],
     stateLicenses: [],
     verificationStatus: "premier",
     availabilityStatus: "open",
@@ -46,6 +46,7 @@ describe("mapConvexEducatorToProfileView", () => {
         expect(view.gradeLevelsLabel).toBe("6–8, 9–12");
         expect(view.startingRate).toBe(95);
         expect(view.rateUnit).toBe("hour");
+        expect(view.rateLabel).toBe("$95/hr");
         expect(view.badges).toContain("Premier educator");
     });
 
@@ -77,6 +78,7 @@ describe("mapConvexEducatorToProfileView", () => {
         expect(view.areas).toEqual(["K-12 support"]);
         expect(view.startingRate).toBe(650);
         expect(view.rateUnit).toBe("day");
+        expect(view.rateLabel).toBe("$650/day");
         expect(view.availableDays.M.am).toBe(false);
     });
 });

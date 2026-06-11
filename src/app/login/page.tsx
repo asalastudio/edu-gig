@@ -30,7 +30,7 @@ export default function LoginHubPage() {
                             </div>
                             <div>
                                 <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-1">
-                                    I hire educators
+                                    I represent a school or district
                                 </h2>
                                 <p className="text-sm text-[var(--text-secondary)] font-medium">
                                     Districts, principals, HR — post needs and browse talent.

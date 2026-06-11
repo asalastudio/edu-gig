@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { AUTH_INTENT_PARAM, afterAuthPath, authPagePath, safeRedirectPath } from "@/lib/auth-intent";
+import { clerkCardAppearance } from "@/lib/clerk-appearance";
 
 export default function SignInPage() {
     const searchParams = useSearchParams();
@@ -59,18 +60,58 @@ export default function SignInPage() {
                         <p className="mt-3 text-base leading-7 text-[var(--text-secondary)]">
                             {intent === "district" && "Use your district, principal, or HR account to post needs, browse educators, and manage bookings."}
                             {intent === "educator" && "Use your educator account to manage your profile, gigs, proposals, messages, and payments."}
-                            {!intent && "Choose your path, then continue with the account tied to your district or educator profile."}
+                            {!intent && "Welcome back. Enter the email tied to your district or educator account."}
                         </p>
-                        <Link href="/login" className="mt-6 inline-flex text-sm font-bold text-[var(--accent-primary)] hover:underline">
-                            Other sign-in options
-                        </Link>
+
+                        <div className="mt-8 border-t border-[var(--border-subtle)] pt-6">
+                            <h2 className="text-xs font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
+                                New to K12Gig?
+                            </h2>
+                            <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                                Create a free account — choose the path that fits you:
+                            </p>
+                            <div className="mt-4 flex flex-col gap-3">
+                                <Link
+                                    href={authPagePath("/sign-up", "district", safeNext)}
+                                    className="group flex flex-col rounded-md border border-[var(--border-default)] p-4 transition-colors hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5"
+                                >
+                                    <span className="font-bold text-[var(--text-primary)]">I represent a school or district</span>
+                                    <span className="mt-0.5 text-sm text-[var(--text-secondary)]">
+                                        Create a district account to post needs and book services
+                                    </span>
+                                </Link>
+                                <Link
+                                    href={authPagePath("/sign-up", "educator", safeNext)}
+                                    className="group flex flex-col rounded-md border border-[var(--border-default)] p-4 transition-colors hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5"
+                                >
+                                    <span className="font-bold text-[var(--text-primary)]">I offer services</span>
+                                    <span className="mt-0.5 text-sm text-[var(--text-secondary)]">
+                                        Create an educator profile to list gigs and get booked
+                                    </span>
+                                </Link>
+                            </div>
+                            <Link href="/login" className="mt-4 inline-flex text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
+                                See all sign-in options
+                            </Link>
+                        </div>
                     </section>
 
-                    <section className="flex justify-center rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
-                        <SignIn
-                            forceRedirectUrl={afterAuthUrl}
-                            signUpUrl={authPagePath("/sign-up", intent, safeNext)}
-                        />
+                    <section className="rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
+                        <h2 className="px-2 pt-2 font-heading text-lg font-bold text-[var(--text-primary)] sm:px-4">
+                            {intent === "district" && "District sign in"}
+                            {intent === "educator" && "Educator sign in"}
+                            {!intent && "Sign in with your email"}
+                        </h2>
+                        <p className="px-2 pb-1 pt-1 text-sm text-[var(--text-secondary)] sm:px-4">
+                            We&apos;ll email you a one-time code — no password needed.
+                        </p>
+                        <div className="flex justify-center">
+                            <SignIn
+                                forceRedirectUrl={afterAuthUrl}
+                                signUpUrl={authPagePath("/sign-up", intent, safeNext)}
+                                appearance={clerkCardAppearance}
+                            />
+                        </div>
                     </section>
                 </div>
             </main>

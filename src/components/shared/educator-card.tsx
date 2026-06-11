@@ -19,6 +19,7 @@ export interface EducatorCardProps {
     engagementTypes: string[];
     coverageRegions: string[];
     startingRate?: number;
+    rateUnit?: "hour" | "day";
     availabilityStatus: 'open' | 'limited' | 'closed';
     hasVideoIntro: boolean;
     badges?: string[];
@@ -118,7 +119,9 @@ export function EducatorCard({ educator }: { educator: EducatorCardProps }) {
                     <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
                         <CurrencyDollar weight="bold" className="w-4 h-4 text-[var(--text-tertiary)]" />
                         <span className="font-bold text-base">${educator.startingRate}</span>
-                        <span className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mt-0.5">/ hr</span>
+                        <span className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mt-0.5">
+                            / {educator.rateUnit ?? "hr"}
+                        </span>
                     </div>
                 ) : <span />}
                 

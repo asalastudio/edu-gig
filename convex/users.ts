@@ -42,6 +42,7 @@ function profileCompletion(args: {
     bio?: string;
     yearsExperience?: number;
     hourlyRate?: number;
+    dailyRate?: number;
     gradeLevelBands?: string[];
     areasOfNeed?: string[];
     engagementTypes?: string[];
@@ -51,7 +52,9 @@ function profileCompletion(args: {
     if (cleanText(args.headline).length >= 12) score += 15;
     if (cleanText(args.bio).length >= 40) score += 20;
     if ((args.yearsExperience ?? 0) >= 0) score += 10;
-    if ((args.hourlyRate ?? 0) >= 20) score += 15;
+    const hasHourlyRate = (args.hourlyRate ?? 0) >= 20;
+    const hasDailyRate = (args.dailyRate ?? 0) >= 100;
+    if (hasHourlyRate || hasDailyRate) score += 15;
     if ((args.gradeLevelBands ?? []).length > 0) score += 10;
     if ((args.areasOfNeed ?? []).length > 0) score += 10;
     if ((args.engagementTypes ?? []).length > 0) score += 10;
@@ -64,6 +67,7 @@ function educatorProfileFromArgs(args: {
     bio?: string;
     yearsExperience?: number;
     hourlyRate?: number;
+    dailyRate?: number;
     gradeLevelBands?: string[];
     areasOfNeed?: string[];
     engagementTypes?: string[];
@@ -77,7 +81,7 @@ function educatorProfileFromArgs(args: {
         gradeLevelBands: args.gradeLevelBands ?? [],
         areasOfNeed: args.areasOfNeed ?? [],
         subCategories: [],
-        engagementTypes: args.engagementTypes ?? [],
+        engagementTypes: args.engagementTypes ?? ["consulting"],
         coverageRegions: args.coverageRegions ?? [],
         stateLicenses: [],
         verificationStatus: "unverified" as const,
@@ -85,6 +89,7 @@ function educatorProfileFromArgs(args: {
         isActive: true,
         profileCompletePct: profileCompletion(args),
         ...(args.hourlyRate !== undefined ? { hourlyRate: Math.max(0, args.hourlyRate) } : {}),
+        ...(args.dailyRate !== undefined ? { dailyRate: Math.max(0, args.dailyRate) } : {}),
     };
 }
 
@@ -226,6 +231,7 @@ export const completeOnboarding = mutation({
         bio: v.optional(v.string()),
         yearsExperience: v.optional(v.number()),
         hourlyRate: v.optional(v.number()),
+        dailyRate: v.optional(v.number()),
         gradeLevelBands: v.optional(v.array(v.string())),
         areasOfNeed: v.optional(v.array(v.string())),
         engagementTypes: v.optional(v.array(v.string())),
@@ -258,7 +264,7 @@ export const completeOnboarding = mutation({
         const isDistrict = isDistrictRole(args.role);
         const districtName = cleanText(args.organizationName);
         const districtState = cleanText(args.districtState ?? args.state).toUpperCase();
-        const districtRegion = cleanText(args.districtRegion ?? args.region, "region_1");
+        const districtRegion = cleanText(args.districtRegion ?? args.region, "region_6");
         const districtNceaId = cleanText(args.districtNceaId);
         const wantsDistrictRow = isDistrict && !!districtName;
         if (wantsDistrictRow && !districtState) {
@@ -331,6 +337,7 @@ export const completeOnboarding = mutation({
                         availabilityStatus: educatorProfile.availabilityStatus,
                         profileCompletePct: educatorProfile.profileCompletePct,
                         ...(educatorProfile.hourlyRate !== undefined ? { hourlyRate: educatorProfile.hourlyRate } : {}),
+                        ...(educatorProfile.dailyRate !== undefined ? { dailyRate: educatorProfile.dailyRate } : {}),
                     });
                 } else {
                     await ctx.db.insert("educators", {

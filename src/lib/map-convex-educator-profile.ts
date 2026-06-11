@@ -1,5 +1,6 @@
 import type { Doc } from "@/convex/_generated/dataModel";
 import type { EducatorProfileView } from "@/lib/educator-profile-view";
+import { formatEducatorRateSummary } from "@/lib/onboarding";
 import { TAXONOMY, getAreaOfNeedLabel } from "@/lib/taxonomy";
 
 function initialsFromName(name: string): string {
@@ -88,5 +89,9 @@ export function mapConvexEducatorToProfileView(
         certCount: licenses.length,
         startingRate: educator.hourlyRate ?? educator.dailyRate,
         rateUnit: educator.hourlyRate ? "hour" : "day",
+        rateLabel: formatEducatorRateSummary({
+            hourlyRate: educator.hourlyRate,
+            dailyRate: educator.dailyRate,
+        }),
     };
 }

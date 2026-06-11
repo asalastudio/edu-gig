@@ -53,6 +53,10 @@ export default function EducatorProfilePage() {
         api.gigs.listActiveByEducatorForDistrict,
         useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
     );
+    const reviews = useQuery(
+        api.reviews.listForEducator,
+        useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
+    );
 
     if (useConvexProfile && convexData === undefined) {
         return (
@@ -211,6 +215,13 @@ export default function EducatorProfilePage() {
         ? `$${profile.startingRate.toLocaleString("en-US")}/${profile.rateUnit}`
         : "Rate available by request";
     const savedLabel = saved ? "Saved" : "Save to List";
+    const reviewRows = reviews ?? [];
+    const reviewLoading = useConvexProfile && reviews === undefined;
+    const reviewCount = reviewRows.length;
+    const avgRating =
+        reviewCount > 0 ? reviewRows.reduce((sum, r) => sum + r.overallRating, 0) / reviewCount : 0;
+    const formatReviewDate = (ts: number) =>
+        new Date(ts).toLocaleDateString("en-US", { year: "numeric", month: "long" });
     const availableSlots = ["M", "T", "W", "Th", "F"].flatMap((day) => {
         const slots = profile.availableDays[day as keyof typeof profile.availableDays];
         return [
@@ -444,19 +455,41 @@ export default function EducatorProfilePage() {
 
                             <TabsContent value="reviews" className="mt-0 outline-none animate-in fade-in duration-300">
                                 <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Ratings & Reviews</h2>
-                                {profile.reviewCount > 0 ? (
+                                {reviewLoading ? (
+                                    <p className="text-[var(--text-secondary)]">Loading reviews…</p>
+                                ) : reviewCount > 0 ? (
                                     <div className="flex flex-col gap-10">
                                         <div className="flex flex-col md:flex-row gap-8 items-start md:items-center bg-[var(--bg-subtle)] p-8 rounded-lg border border-[var(--border-subtle)]">
                                             <div className="flex flex-col gap-1 items-center justify-center p-8 bg-white rounded-lg border border-[var(--border-default)] min-w-[200px] shadow-[var(--shadow-subtle)]">
-                                                <span className="text-5xl font-heading font-bold text-[var(--text-primary)]">{profile.avgRating.toFixed(1)}</span>
+                                                <span className="text-5xl font-heading font-bold text-[var(--text-primary)]">{avgRating.toFixed(1)}</span>
                                                 <div className="flex text-[var(--accent-secondary)] mt-2">
-                                                    {[1,2,3,4,5].map(s => <Star weight={s <= Math.round(profile.avgRating) ? "fill" : "regular"} key={s} className="w-6 h-6 fill-current" />)}
+                                                    {[1,2,3,4,5].map(s => <Star weight={s <= Math.round(avgRating) ? "fill" : "regular"} key={s} className="w-6 h-6 fill-current" />)}
                                                 </div>
-                                                <span className="text-base font-bold text-[var(--text-secondary)] mt-2">{profile.reviewCount} Review{profile.reviewCount === 1 ? "" : "s"}</span>
+                                                <span className="text-base font-bold text-[var(--text-secondary)] mt-2">{reviewCount} Review{reviewCount === 1 ? "" : "s"}</span>
                                             </div>
                                             <div className="flex-1 text-sm text-[var(--text-secondary)] leading-relaxed">
-                                                Individual review excerpts will appear here once districts complete reviews on this educator.
+                                                Verified district reviews from completed engagements with this educator.
                                             </div>
+                                        </div>
+                                        <div className="flex flex-col gap-4">
+                                            {reviewRows.map((review) => (
+                                                <article key={review.id} className="rounded-lg border border-[var(--border-default)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+                                                    <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-[var(--text-primary)]">{review.reviewerName}</span>
+                                                            <span className="text-xs font-medium uppercase tracking-widest text-[var(--text-tertiary)]">{formatReviewDate(review.createdAt)}</span>
+                                                        </div>
+                                                        <div className="flex text-[var(--accent-secondary)]" aria-label={`${review.overallRating} out of 5`}>
+                                                            {[1,2,3,4,5].map(s => <Star weight={s <= Math.round(review.overallRating) ? "fill" : "regular"} key={s} className="w-4 h-4 fill-current" />)}
+                                                        </div>
+                                                    </div>
+                                                    {review.comment ? (
+                                                        <p className="text-[var(--text-secondary)] leading-relaxed">{review.comment}</p>
+                                                    ) : (
+                                                        <p className="text-sm italic text-[var(--text-tertiary)]">No written feedback was left with this rating.</p>
+                                                    )}
+                                                </article>
+                                            ))}
                                         </div>
                                     </div>
                                 ) : (

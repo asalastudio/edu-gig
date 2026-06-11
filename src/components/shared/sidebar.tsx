@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -14,11 +15,13 @@ import {
     EnvelopeSimple,
     Gear,
     GraduationCap,
+    List,
     PlusCircle,
     Receipt,
     ShieldCheck,
     SquaresFour,
     Users,
+    X,
 } from "@phosphor-icons/react";
 
 export type NavItem = {
@@ -31,6 +34,7 @@ export type NavItem = {
 export function Sidebar() {
     const pathname = usePathname();
     const viewer = useQuery(api.users.viewer, {});
+    const [mobileOpen, setMobileOpen] = useState(false);
     const isAdminWorkspace = pathname.includes('/dashboard/admin');
     const showAdminNav = isAdminWorkspace && viewer?.role === "superadmin";
     // Derive workspace from the signed-in user's role, not the URL, so shared
@@ -42,6 +46,19 @@ export function Sidebar() {
 
     const unread = useQuery(api.notifications.unreadCount, viewer ? {} : "skip");
     const messagesBadge = typeof unread === "number" ? unread : undefined;
+
+    // Close the drawer on navigation and keep body scroll locked while open.
+    useEffect(() => {
+        setMobileOpen(false);
+    }, [pathname]);
+    useEffect(() => {
+        if (!mobileOpen) return;
+        const previous = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = previous;
+        };
+    }, [mobileOpen]);
 
     const navItems: NavItem[] = showAdminNav
         ? [
@@ -61,9 +78,10 @@ export function Sidebar() {
             { href: settingsHref, label: "Settings", icon: Gear },
         ];
 
-    return (
-        <aside className="w-[232px] h-screen flex flex-col bg-[#17261F] border-r border-[#2B4338] px-3 py-4 text-[var(--text-inverse)] shadow-[8px_0_28px_rgba(20,36,29,0.12)]">
+    const workspaceLabel = showAdminNav ? "Admin" : isEducator ? "Educator" : "District";
 
+    const sidebarBody = (
+        <>
             {/* Logo */}
             <div className="px-2 mb-7 flex flex-col gap-3">
                 <Link href="/" aria-label="K12Gig home" className="w-fit">
@@ -73,7 +91,7 @@ export function Sidebar() {
                     className="inline-flex w-fit items-center rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70"
                     title="Current workspace"
                 >
-                    {showAdminNav ? "Admin" : isEducator ? "Educator" : "District"}
+                    {workspaceLabel}
                 </span>
             </div>
 
@@ -113,8 +131,59 @@ export function Sidebar() {
                     </div>
                 </div>
             )}
+        </>
+    );
 
-        </aside>
+    return (
+        <>
+            {/* Desktop sidebar — unchanged behavior at lg+ */}
+            <aside className="hidden lg:flex w-[232px] h-screen flex-col bg-[#17261F] border-r border-[#2B4338] px-3 py-4 text-[var(--text-inverse)] shadow-[8px_0_28px_rgba(20,36,29,0.12)]">
+                {sidebarBody}
+            </aside>
+
+            {/* Mobile top bar */}
+            <header className="lg:hidden fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between gap-3 bg-[#17261F] border-b border-[#2B4338] px-4 text-white">
+                <Link href="/" aria-label="K12Gig home" className="w-fit">
+                    <BrandLogo inverse className="[&>svg]:h-7 [&>svg]:w-7 [&>span]:text-lg" />
+                </Link>
+                <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70">
+                        {workspaceLabel}
+                    </span>
+                    <button
+                        type="button"
+                        aria-label="Open navigation menu"
+                        aria-expanded={mobileOpen}
+                        onClick={() => setMobileOpen(true)}
+                        className="flex h-10 w-10 items-center justify-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 transition-colors"
+                    >
+                        <List className="h-5 w-5" weight="bold" />
+                    </button>
+                </div>
+            </header>
+
+            {/* Mobile drawer + overlay */}
+            {mobileOpen && (
+                <div className="lg:hidden fixed inset-0 z-50">
+                    <div
+                        className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+                        onClick={() => setMobileOpen(false)}
+                        aria-hidden="true"
+                    />
+                    <aside className="absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col bg-[#17261F] px-3 py-4 text-[var(--text-inverse)] shadow-[8px_0_28px_rgba(0,0,0,0.45)]">
+                        <button
+                            type="button"
+                            aria-label="Close navigation menu"
+                            onClick={() => setMobileOpen(false)}
+                            className="absolute right-3 top-4 flex h-9 w-9 items-center justify-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 transition-colors"
+                        >
+                            <X className="h-4 w-4" weight="bold" />
+                        </button>
+                        {sidebarBody}
+                    </aside>
+                </div>
+            )}
+        </>
     )
 }
 
@@ -138,7 +207,7 @@ function SidebarItem({
             if (item.href === "/post") return pathname.startsWith("/post");
             return pathname === item.href || pathname.startsWith(item.href + "/");
         })();
-    
+
     return (
         <Link href={item.href}
             className={cn(

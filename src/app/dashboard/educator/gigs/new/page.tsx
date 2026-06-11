@@ -107,7 +107,7 @@ export default function NewGigPage() {
         "w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all";
 
     return (
-        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
+        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <main className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-3xl mx-auto px-8 lg:px-12 py-10">

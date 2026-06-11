@@ -43,7 +43,7 @@ export default function EducatorDashboardPage() {
     }
 
     return (
-        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
+        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <main className="flex-1 overflow-y-auto w-full relative">
                 

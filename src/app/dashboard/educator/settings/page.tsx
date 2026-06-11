@@ -9,6 +9,8 @@ import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { CredentialsSection } from "@/components/educator/credentials-section";
 import { PrimaryButton } from "@/components/shared/button";
+import { RateField } from "@/components/educator/rate-field";
+import { DEFAULT_ENGAGEMENT_TYPES, EDUCATOR_AVAILABILITY_OPTIONS } from "@/lib/onboarding";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
@@ -21,11 +23,12 @@ export default function EducatorSettingsPage() {
     const [headline, setHeadline] = useState("");
     const [bio, setBio] = useState("");
     const [yearsExperience, setYearsExperience] = useState("0");
-    const [hourlyRate, setHourlyRate] = useState("");
+    const [rateAmount, setRateAmount] = useState("");
+    const [rateHourly, setRateHourly] = useState(false);
+    const [rateDaily, setRateDaily] = useState(false);
     const [availabilityStatus, setAvailabilityStatus] = useState<"open" | "limited" | "closed">("open");
     const [gradeLevels, setGradeLevels] = useState<string[]>([]);
     const [areas, setAreas] = useState<string[]>([]);
-    const [engagementTypes, setEngagementTypes] = useState<string[]>([]);
     const [coverageRegions, setCoverageRegions] = useState<string[]>([]);
     const [saving, setSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -35,11 +38,20 @@ export default function EducatorSettingsPage() {
         setHeadline(mine.headline);
         setBio(mine.bio);
         setYearsExperience(String(mine.yearsExperience));
-        setHourlyRate(mine.hourlyRate ? String(mine.hourlyRate) : "");
+        const hasHourly = typeof mine.hourlyRate === "number";
+        const hasDaily = typeof mine.dailyRate === "number";
+        setRateHourly(hasHourly);
+        setRateDaily(hasDaily);
+        setRateAmount(
+            hasHourly
+                ? String(mine.hourlyRate)
+                : hasDaily
+                  ? String(mine.dailyRate)
+                  : ""
+        );
         setAvailabilityStatus(mine.availabilityStatus);
         setGradeLevels(mine.gradeLevelBands);
         setAreas(mine.areasOfNeed);
-        setEngagementTypes(mine.engagementTypes);
         setCoverageRegions(mine.coverageRegions);
     }, [mine]);
 
@@ -52,15 +64,17 @@ export default function EducatorSettingsPage() {
         setSaving(true);
         setSaveMessage(null);
         try {
+            const amount = rateAmount ? Number(rateAmount) : undefined;
             await updateProfile({
                 headline: headline.trim(),
                 bio: bio.trim(),
                 yearsExperience: Number(yearsExperience) || 0,
-                hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
+                hourlyRate: rateHourly && amount ? amount : undefined,
+                dailyRate: rateDaily && amount ? amount : undefined,
                 availabilityStatus,
                 gradeLevelBands: gradeLevels,
                 areasOfNeed: areas,
-                engagementTypes,
+                engagementTypes: [...DEFAULT_ENGAGEMENT_TYPES],
                 coverageRegions,
             });
             setSaveMessage("Profile updated.");
@@ -72,7 +86,7 @@ export default function EducatorSettingsPage() {
     }
 
     return (
-        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
+        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <main className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-3xl mx-auto px-8 lg:px-12 py-10">
@@ -120,23 +134,30 @@ export default function EducatorSettingsPage() {
                                             <label htmlFor="yearsExperience" className="text-sm font-semibold text-[var(--text-primary)]">Years experience</label>
                                             <input id="yearsExperience" type="number" min={0} value={yearsExperience} onChange={(e) => setYearsExperience(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
                                         </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label htmlFor="hourlyRate" className="text-sm font-semibold text-[var(--text-primary)]">Starting hourly rate</label>
-                                            <input id="hourlyRate" type="number" min={0} value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
+                                        <div className="flex flex-col gap-2 md:col-span-2">
+                                            <RateField
+                                                amount={rateAmount}
+                                                onAmountChange={setRateAmount}
+                                                hourly={rateHourly}
+                                                onHourlyChange={setRateHourly}
+                                                daily={rateDaily}
+                                                onDailyChange={setRateDaily}
+                                            />
                                         </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label htmlFor="availabilityStatus" className="text-sm font-semibold text-[var(--text-primary)]">Request status</label>
+                                        <div className="flex flex-col gap-2 md:col-span-3">
+                                            <label htmlFor="availabilityStatus" className="text-sm font-semibold text-[var(--text-primary)]">Availability</label>
                                             <select id="availabilityStatus" value={availabilityStatus} onChange={(e) => setAvailabilityStatus(e.target.value as typeof availabilityStatus)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm">
-                                                <option value="open">Accept new requests</option>
-                                                <option value="limited">Limited availability</option>
-                                                <option value="closed">Do not accept requests</option>
+                                                {EDUCATOR_AVAILABILITY_OPTIONS.map((option) => (
+                                                    <option key={option.id} value={option.id}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
                                             </select>
                                         </div>
                                     </div>
                                     {[
                                         { label: "Support types", values: TAXONOMY.areasOfNeed, selected: areas, setter: setAreas },
                                         { label: "Grade levels", values: TAXONOMY.gradeLevelBands.filter((g) => g.id !== "other"), selected: gradeLevels, setter: setGradeLevels },
-                                        { label: "Engagement types", values: TAXONOMY.engagementTypes, selected: engagementTypes, setter: setEngagementTypes },
                                         { label: "Coverage areas", values: TAXONOMY.coverageRegions, selected: coverageRegions, setter: setCoverageRegions },
                                     ].map((group) => (
                                         <div key={group.label} className="flex flex-col gap-3">

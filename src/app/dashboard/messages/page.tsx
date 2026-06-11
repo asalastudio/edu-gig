@@ -137,7 +137,7 @@ function MessagesPageInner() {
     const composerDisabled = !activeCounterpartId || composerValue.trim().length === 0 || sending;
 
     return (
-        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
+        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <main className="flex-1 overflow-y-auto w-full">
                 <div className="max-w-[1200px] w-full mx-auto px-8 lg:px-12 py-10">

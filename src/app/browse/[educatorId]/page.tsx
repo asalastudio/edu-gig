@@ -198,10 +198,10 @@ export default function EducatorProfilePage() {
 
     const availabilityLabel =
         profile.availabilityStatus === "open"
-            ? "Accepting Offers"
+            ? "Open to New Clients"
             : profile.availabilityStatus === "limited"
-              ? "Limited availability"
-              : "Not accepting new requests";
+              ? "Limited Availability"
+              : "Not Accepting New Clients";
 
     const availabilityClass =
         profile.availabilityStatus === "open"
@@ -211,8 +211,8 @@ export default function EducatorProfilePage() {
               : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-strong)]";
 
     const signedIn = !!viewer;
-    const pricingLabel = profile.startingRate
-        ? `$${profile.startingRate.toLocaleString("en-US")}/${profile.rateUnit}`
+    const pricingLabel = profile.rateLabel !== "Not set"
+        ? profile.rateLabel
         : "Rate available by request";
     const savedLabel = saved ? "Saved" : "Save to List";
     const reviewRows = reviews ?? [];
@@ -605,7 +605,7 @@ export default function EducatorProfilePage() {
     );
 
     return signedIn ? (
-        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
+        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <div className="flex-1 overflow-y-auto w-full flex flex-col">
                 {profileMain}

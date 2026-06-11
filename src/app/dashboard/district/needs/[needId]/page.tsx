@@ -143,7 +143,7 @@ export default function DistrictNeedDetailPage() {
     const isPlaced = need?.status === "placed";
 
     return (
-        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
+        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <Toaster position="top-right" richColors />
             <main className="flex-1 overflow-y-auto w-full relative">
@@ -380,7 +380,7 @@ function ShellEmpty({
     showDashboardLink?: boolean;
 }) {
     return (
-        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
+        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <main className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-[1600px] w-full mx-auto px-8 lg:px-12 py-10 flex flex-col gap-10">

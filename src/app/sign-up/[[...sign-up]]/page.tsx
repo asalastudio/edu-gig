@@ -42,19 +42,6 @@ export default function SignUpPage() {
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
             <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-                <div className="mb-6 max-w-md text-center">
-                    <div className="education-rule mx-auto mb-4" />
-                    <h1 className="font-heading text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-                        {intent === "district" && "Create your district account"}
-                        {intent === "educator" && "Create your educator profile"}
-                        {!intent && "Create your K12Gig account"}
-                    </h1>
-                    <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
-                        {intent === "district" && "For district, principal, and HR teams. You’ll add your district name next."}
-                        {intent === "educator" && "For consultants, coaches, and specialists. You’ll add your headline and service details next."}
-                        {!intent && "You’ll choose whether you hire or offer services on the next screen."}
-                    </p>
-                </div>
                 <div className="w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
                     <SignUp
                         forceRedirectUrl={afterAuthUrl}

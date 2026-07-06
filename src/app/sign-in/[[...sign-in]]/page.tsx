@@ -50,70 +50,17 @@ export default function SignInPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
-            <main className="flex-1 px-6 py-10 md:py-14">
-                <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(360px,1fr)] lg:items-start">
-                    <section className="rounded-lg border border-[var(--border-subtle)] bg-white p-6 shadow-[var(--shadow-subtle)] md:p-8">
-                        <div className="education-rule mb-4" />
-                        <h1 className="font-heading text-3xl font-bold tracking-tight text-[var(--text-primary)] md:text-4xl">
-                            Sign in to K12Gig
-                        </h1>
-                        <p className="mt-3 text-base leading-7 text-[var(--text-secondary)]">
-                            {intent === "district" && "Use your district, principal, or HR account to post needs, browse educators, and manage bookings."}
-                            {intent === "educator" && "Use your educator account to manage your profile, gigs, proposals, messages, and payments."}
-                            {!intent && "Welcome back. Enter the email tied to your district or educator account."}
-                        </p>
-
-                        <div className="mt-8 border-t border-[var(--border-subtle)] pt-6">
-                            <h2 className="text-xs font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
-                                New to K12Gig?
-                            </h2>
-                            <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                                Create a free account — choose the path that fits you:
-                            </p>
-                            <div className="mt-4 flex flex-col gap-3">
-                                <Link
-                                    href={authPagePath("/sign-up", "district", safeNext)}
-                                    className="group flex flex-col rounded-md border border-[var(--border-default)] p-4 transition-colors hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5"
-                                >
-                                    <span className="font-bold text-[var(--text-primary)]">I represent a school or district</span>
-                                    <span className="mt-0.5 text-sm text-[var(--text-secondary)]">
-                                        Create a district account to post needs and book services
-                                    </span>
-                                </Link>
-                                <Link
-                                    href={authPagePath("/sign-up", "educator", safeNext)}
-                                    className="group flex flex-col rounded-md border border-[var(--border-default)] p-4 transition-colors hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5"
-                                >
-                                    <span className="font-bold text-[var(--text-primary)]">I offer services</span>
-                                    <span className="mt-0.5 text-sm text-[var(--text-secondary)]">
-                                        Create an educator profile to list gigs and get booked
-                                    </span>
-                                </Link>
-                            </div>
-                            <Link href="/login" className="mt-4 inline-flex text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
-                                See all sign-in options
-                            </Link>
-                        </div>
-                    </section>
-
-                    <section className="rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
-                        <h2 className="px-2 pt-2 font-heading text-lg font-bold text-[var(--text-primary)] sm:px-4">
-                            {intent === "district" && "District sign in"}
-                            {intent === "educator" && "Educator sign in"}
-                            {!intent && "Sign in with your email"}
-                        </h2>
-                        <p className="px-2 pb-1 pt-1 text-sm text-[var(--text-secondary)] sm:px-4">
-                            We&apos;ll email you a one-time code — no password needed.
-                        </p>
-                        <div className="flex justify-center">
-                            <SignIn
-                                forceRedirectUrl={afterAuthUrl}
-                                signUpUrl={authPagePath("/sign-up", intent, safeNext)}
-                                appearance={clerkCardAppearance}
-                            />
-                        </div>
-                    </section>
+            <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+                <div className="w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
+                    <SignIn
+                        forceRedirectUrl={afterAuthUrl}
+                        signUpUrl={authPagePath("/sign-up", intent, safeNext)}
+                        appearance={clerkCardAppearance}
+                    />
                 </div>
+                <Link href="/login" className="mt-8 text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
+                    ← Choose a different path
+                </Link>
             </main>
             <SiteFooter />
         </div>

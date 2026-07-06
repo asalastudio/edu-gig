@@ -4,16 +4,25 @@ import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { isCardCheckoutEnabled } from "@/lib/launch-flags";
 import { stripeCheckoutLimiter } from "@/lib/rate-limit";
 import { PLATFORM_FEE_PCT, computePricing } from "@/convex/pricing";
 
 const hasStripe = !!process.env.STRIPE_SECRET_KEY;
 const hasClerk = !!process.env.CLERK_SECRET_KEY && !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 const hasConvex = !!process.env.NEXT_PUBLIC_CONVEX_URL;
+const cardCheckoutEnabled = isCardCheckoutEnabled();
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export async function POST(req: Request) {
+    if (!cardCheckoutEnabled) {
+        return NextResponse.json(
+            { error: "Card checkout is disabled. Use invoice / PO booking." },
+            { status: 503 }
+        );
+    }
+
     if (!hasStripe) {
         return NextResponse.json(
             { error: "Stripe is not configured. Set STRIPE_SECRET_KEY to enable card payments." },

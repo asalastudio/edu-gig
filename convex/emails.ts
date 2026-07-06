@@ -100,7 +100,7 @@ export const sendBookingConfirmation = internalAction({
         }
         try {
             const order = await ctx.runQuery(
-                (await import("./_generated/api")).api.orders.getInvoiceContext,
+                (await import("./_generated/api")).internal.orders.getInvoiceContextForEmail,
                 { orderId: args.orderId }
             );
             if (!order) {
@@ -308,7 +308,7 @@ export const sendProposalAcceptedAlert = internalAction({
 export const sendRefundIssued = internalAction({
     args: { orderId: v.id("orders"), refundAmount: v.number(), reason: v.optional(v.string()) },
     handler: async (ctx, args) => {
-        const data = await ctx.runQuery((await import("./_generated/api")).api.orders.getInvoiceContext, {
+        const data = await ctx.runQuery((await import("./_generated/api")).internal.orders.getInvoiceContextForEmail, {
             orderId: args.orderId,
         });
         if (!data?.buyer?.email) return;

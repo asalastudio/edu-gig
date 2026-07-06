@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { internalQuery, query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
@@ -30,6 +30,26 @@ async function requireEducatorViewer(ctx: QueryCtx | MutationCtx) {
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || user.role !== "educator") throw new Error("Forbidden");
     return user;
+}
+
+async function getInvoiceContextByOrderId(ctx: QueryCtx | MutationCtx, orderId: Doc<"orders">["_id"]) {
+    const order = await ctx.db.get(orderId);
+    if (!order) return null;
+
+    const gig = await ctx.db.get(order.gigId);
+    const orderEducator = await ctx.db.get(order.educatorId);
+    const educatorUser = orderEducator ? await ctx.db.get(orderEducator.userId) : null;
+    const buyer = await ctx.db.get(order.buyerUserId);
+    const district = await ctx.db.get(order.districtId);
+    if (!gig || !orderEducator || !educatorUser || !buyer || !district) return null;
+
+    return {
+        order,
+        gig,
+        buyer,
+        educator: educatorUser,
+        district,
+    };
 }
 
 const paymentMethodValidator = v.union(
@@ -539,20 +559,18 @@ export const getInvoiceContext = query({
         const isAdmin = user.role === "superadmin";
         if (!isBuyer && !isEducator && !isAdmin) return null;
 
-        const gig = await ctx.db.get(order.gigId);
-        const orderEducator = await ctx.db.get(order.educatorId);
-        const educatorUser = orderEducator ? await ctx.db.get(orderEducator.userId) : null;
-        const buyer = await ctx.db.get(order.buyerUserId);
-        const district = await ctx.db.get(order.districtId);
-        if (!gig || !orderEducator || !educatorUser || !buyer || !district) return null;
+        return await getInvoiceContextByOrderId(ctx, args.orderId);
+    },
+});
 
-        return {
-            order,
-            gig,
-            buyer,
-            educator: educatorUser,
-            district,
-        };
+/**
+ * Internal-only invoice context for scheduled transactional emails.
+ * User-facing PDF access must keep using `getInvoiceContext`, which enforces Clerk visibility.
+ */
+export const getInvoiceContextForEmail = internalQuery({
+    args: { orderId: v.id("orders") },
+    handler: async (ctx, args) => {
+        return await getInvoiceContextByOrderId(ctx, args.orderId);
     },
 });
 

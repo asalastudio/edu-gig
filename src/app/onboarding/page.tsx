@@ -23,9 +23,12 @@ import { PrimaryButton } from "@/components/shared/button";
 import {
     AUTH_INTENT_PARAM,
     AUTH_NEXT_PARAM,
+    clearAuthIntent,
     dashboardPathForIntent,
     intentFromRole,
     isAuthIntent,
+    recallAuthIntent,
+    rememberAuthIntent,
     safeInternalPath,
     type AuthIntent,
 } from "@/lib/auth-intent";
@@ -84,7 +87,12 @@ function OnboardingWithClerk() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const intentParam = searchParams.get(AUTH_INTENT_PARAM);
-    const intent: AuthIntent | null = isAuthIntent(intentParam) ? intentParam : null;
+    const urlIntent: AuthIntent | null = isAuthIntent(intentParam) ? intentParam : null;
+    // Clerk's redirect can strip the ?intent= param before we land here (Google
+    // OAuth, static after-sign-in URL). Recover the role the user already picked
+    // so we never ask district-vs-educator a second time.
+    const [recalledIntent, setRecalledIntent] = useState<AuthIntent | null>(null);
+    const intent: AuthIntent | null = urlIntent ?? recalledIntent;
     const safeNext = safeInternalPath(searchParams.get(AUTH_NEXT_PARAM));
 
     const viewer = useQuery(api.users.viewer);
@@ -149,6 +157,16 @@ function OnboardingWithClerk() {
             router.replace(safeNext ?? dashboardPathForIntent(intentFromRole(viewer.role)));
         }
     }, [isLoaded, user, viewer, router, safeNext]);
+
+    // If the URL carries the intent, persist it; otherwise recover the role the
+    // user picked before Clerk auth so we skip the redundant role question.
+    useEffect(() => {
+        if (urlIntent) {
+            rememberAuthIntent(urlIntent);
+        } else {
+            setRecalledIntent(recallAuthIntent());
+        }
+    }, [urlIntent]);
 
     useEffect(() => {
         setStep(0);
@@ -243,6 +261,10 @@ function OnboardingWithClerk() {
                 privacyVersion: PRIVACY_VERSION,
                 legalAcceptedAt: Date.now(),
             });
+
+            // Onboarding is done — drop the remembered role so a later
+            // different-role session in this tab starts clean.
+            clearAuthIntent();
 
             const destination =
                 intent === "district"

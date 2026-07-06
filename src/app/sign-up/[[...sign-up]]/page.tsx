@@ -1,11 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import { SignUp } from "@clerk/nextjs";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
-import { AUTH_INTENT_PARAM, afterAuthPath, authPagePath, safeRedirectPath } from "@/lib/auth-intent";
+import { AUTH_INTENT_PARAM, afterAuthPath, authPagePath, rememberAuthIntent, safeRedirectPath } from "@/lib/auth-intent";
 import { clerkCardAppearance } from "@/lib/clerk-appearance";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 
@@ -17,6 +18,12 @@ export default function SignUpPage() {
     const currentOrigin = typeof window === "undefined" ? undefined : window.location.origin;
     const safeNext = safeRedirectPath(redirectParam, currentOrigin);
     const afterAuthUrl = afterAuthPath(intent, safeNext);
+
+    // Remember the pre-qualified role so onboarding can recover it even if
+    // Clerk's redirect drops the ?intent= param (e.g. after Google OAuth).
+    useEffect(() => {
+        rememberAuthIntent(intent);
+    }, [intent]);
 
     const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 

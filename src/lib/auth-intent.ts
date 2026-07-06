@@ -56,6 +56,42 @@ export function dashboardPathForIntent(intent: AuthIntent): "/dashboard/district
     return intent === "educator" ? "/dashboard/educator" : "/dashboard/district";
 }
 
+const INTENT_STORAGE_KEY = "k12gig:auth-intent";
+
+/**
+ * Persist the chosen intent so it survives Clerk's redirect round-trip.
+ * Clerk's OAuth (Google) flow and the static NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+ * can land on /onboarding without the ?intent= param, which would otherwise
+ * make onboarding ask district-vs-educator a second time.
+ */
+export function rememberAuthIntent(intent: AuthIntent | null): void {
+    if (typeof window === "undefined" || !intent) return;
+    try {
+        window.sessionStorage.setItem(INTENT_STORAGE_KEY, intent);
+    } catch {
+        /* storage unavailable (private mode, etc.) — non-fatal */
+    }
+}
+
+export function recallAuthIntent(): AuthIntent | null {
+    if (typeof window === "undefined") return null;
+    try {
+        const value = window.sessionStorage.getItem(INTENT_STORAGE_KEY);
+        return isAuthIntent(value) ? value : null;
+    } catch {
+        return null;
+    }
+}
+
+export function clearAuthIntent(): void {
+    if (typeof window === "undefined") return;
+    try {
+        window.sessionStorage.removeItem(INTENT_STORAGE_KEY);
+    } catch {
+        /* non-fatal */
+    }
+}
+
 /** Map Convex / app role to intent (for redirects) */
 export function intentFromRole(
     role: "educator" | "district_admin" | "district_hr" | "superintendent" | "superadmin"

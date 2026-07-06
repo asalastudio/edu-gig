@@ -297,17 +297,22 @@ export default function BrowsePage() {
                                 />
                             </div>
 
-                            <div className="flex flex-col gap-3">
-                                <span className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
-                                    Engagement Type
-                                </span>
-                                <TaxonomyFilter
-                                    label="Select Engagement"
-                                    options={TAXONOMY.engagementTypes}
-                                    selected={selectedEngagements}
-                                    onChange={(id) => toggleFilter(setSelectedEngagements, id)}
-                                />
-                            </div>
+                            {/* Hidden while the platform is consulting-only (PRD v3
+                                Issue #6) — a single-option filter is noise. Restore
+                                when more engagement types launch. */}
+                            {TAXONOMY.engagementTypes.length > 1 && (
+                                <div className="flex flex-col gap-3">
+                                    <span className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
+                                        Engagement Type
+                                    </span>
+                                    <TaxonomyFilter
+                                        label="Select Engagement"
+                                        options={TAXONOMY.engagementTypes}
+                                        selected={selectedEngagements}
+                                        onChange={(id) => toggleFilter(setSelectedEngagements, id)}
+                                    />
+                                </div>
+                            )}
 
                             <div className="flex flex-col gap-3">
                                 <span className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">

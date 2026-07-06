@@ -34,7 +34,8 @@ export type NavItem = {
 export function Sidebar() {
     const pathname = usePathname();
     const viewer = useQuery(api.users.viewer, {});
-    const [mobileOpen, setMobileOpen] = useState(false);
+    const [mobileOpenPath, setMobileOpenPath] = useState<string | null>(null);
+    const mobileOpen = mobileOpenPath === pathname;
     const isAdminWorkspace = pathname.includes('/dashboard/admin');
     const showAdminNav = isAdminWorkspace && viewer?.role === "superadmin";
     // Derive workspace from the signed-in user's role, not the URL, so shared
@@ -47,10 +48,10 @@ export function Sidebar() {
     const unread = useQuery(api.notifications.unreadCount, viewer ? {} : "skip");
     const messagesBadge = typeof unread === "number" ? unread : undefined;
 
-    // Close the drawer on navigation and keep body scroll locked while open.
-    useEffect(() => {
-        setMobileOpen(false);
-    }, [pathname]);
+    const openMobileMenu = () => setMobileOpenPath(pathname);
+    const closeMobileMenu = () => setMobileOpenPath(null);
+
+    // Keep body scroll locked while the mobile drawer is open.
     useEffect(() => {
         if (!mobileOpen) return;
         const previous = document.body.style.overflow;
@@ -73,7 +74,7 @@ export function Sidebar() {
         : [
             { href: basePath, label: "Dashboard", icon: SquaresFour },
             { href: "/browse", label: "Directory", icon: Users },
-            { href: isEducator ? "/dashboard/educator/my-gigs" : "/post", label: isEducator ? "My Gigs" : "Create Request", icon: isEducator ? Briefcase : PlusCircle },
+            { href: isEducator ? "/dashboard/educator/my-gigs" : "/post", label: isEducator ? "My Gigs" : "Post a Need", icon: isEducator ? Briefcase : PlusCircle },
             { href: "/dashboard/messages", label: "Messages", icon: EnvelopeSimple, count: messagesBadge },
             { href: settingsHref, label: "Settings", icon: Gear },
         ];
@@ -101,7 +102,7 @@ export function Sidebar() {
                     Workspace
                 </span>
                 {navItems.map(item => (
-                    <SidebarItem key={item.label} item={item} basePath={basePath} settingsHref={settingsHref} />
+                    <SidebarItem key={item.label} item={item} basePath={basePath} settingsHref={settingsHref} onNavigate={closeMobileMenu} />
                 ))}
             </nav>
 
@@ -113,7 +114,7 @@ export function Sidebar() {
                     </div>
                     <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-white truncate leading-tight">
-                            {viewer.firstName} {viewer.lastName}
+                            {[viewer.firstName, viewer.lastName].filter(Boolean).join(" ").trim() || viewer.email}
                         </p>
                         <p className="text-[10px] text-white/50 font-bold uppercase tracking-wider mt-0.5 truncate">
                             {viewer.role === "superadmin"
@@ -154,7 +155,7 @@ export function Sidebar() {
                         type="button"
                         aria-label="Open navigation menu"
                         aria-expanded={mobileOpen}
-                        onClick={() => setMobileOpen(true)}
+                        onClick={openMobileMenu}
                         className="flex h-10 w-10 items-center justify-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 transition-colors"
                     >
                         <List className="h-5 w-5" weight="bold" />
@@ -167,14 +168,14 @@ export function Sidebar() {
                 <div className="lg:hidden fixed inset-0 z-50">
                     <div
                         className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
-                        onClick={() => setMobileOpen(false)}
+                        onClick={closeMobileMenu}
                         aria-hidden="true"
                     />
                     <aside className="absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col bg-[#17261F] px-3 py-4 text-[var(--text-inverse)] shadow-[8px_0_28px_rgba(0,0,0,0.45)]">
                         <button
                             type="button"
                             aria-label="Close navigation menu"
-                            onClick={() => setMobileOpen(false)}
+                            onClick={closeMobileMenu}
                             className="absolute right-3 top-4 flex h-9 w-9 items-center justify-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 transition-colors"
                         >
                             <X className="h-4 w-4" weight="bold" />
@@ -191,10 +192,12 @@ function SidebarItem({
     item,
     basePath,
     settingsHref,
+    onNavigate,
 }: {
     item: NavItem;
     basePath: string;
     settingsHref: string;
+    onNavigate?: () => void;
 }) {
     const pathname = usePathname();
     const isActive =
@@ -210,6 +213,7 @@ function SidebarItem({
 
     return (
         <Link href={item.href}
+            onClick={onNavigate}
             className={cn(
                 "group flex items-center gap-2.5 px-3 py-1.5 rounded-md",
                 "text-sm transition-colors duration-100",

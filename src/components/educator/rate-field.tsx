@@ -31,7 +31,7 @@ export function RateField({
                     min={0}
                     value={amount}
                     onChange={(e) => onAmountChange(e.target.value)}
-                    placeholder="95"
+                    placeholder="e.g. 95"
                     className="field-control !pl-8"
                 />
             </div>

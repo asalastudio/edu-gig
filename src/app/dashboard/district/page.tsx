@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -10,17 +11,26 @@ import { PrimaryButton } from "@/components/shared/button";
 import { SquaresFour, UserCircleCheck, TrendDown, Clock, Plus } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { isDistrictRole } from "@/lib/roles";
+import { getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { formatDistrictKpis, formatPipelineStatus, type PipelineRow } from "@/lib/map-dashboard";
 
 export default function DistrictDashboardPage() {
+    const router = useRouter();
     const viewer = useQuery(api.users.viewer, {});
     const live = !!viewer && isDistrictRole(viewer.role);
     const kpis = useQuery(api.dashboards.districtKpis, live ? {} : "skip");
     const pipeline = useQuery(api.dashboards.districtPipeline, live ? {} : "skip");
 
     const kpiValues = formatDistrictKpis(live && kpis ? kpis : null);
+    // Pipeline rows carry raw taxonomy ids; resolve to display labels here.
     const pipelineRows: PipelineRow[] =
-        live && pipeline ? pipeline.map((p) => ({ ...p })) : [];
+        live && pipeline
+            ? pipeline.map((p) => ({
+                ...p,
+                role: getAreaOfNeedLabel(p.role),
+                spec: p.spec ? getAreaOfNeedLabel(p.spec) : p.spec,
+            }))
+            : [];
 
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
@@ -36,12 +46,12 @@ export default function DistrictDashboardPage() {
                             <h1 className="font-heading text-3xl font-bold text-[var(--text-primary)] tracking-tight mb-2 md:text-4xl">
                                 District HR Overview
                             </h1>
-                            <p className="max-w-3xl text-base leading-7 text-[var(--text-secondary)]">Monitor active placements, pending requests, and hiring pipelines across the district.</p>
+                            <p className="max-w-3xl text-base leading-7 text-[var(--text-secondary)]">Monitor active placements, posted needs, and hiring pipelines across the district.</p>
                         </div>
                         <div className="flex gap-4">
                             <Link href="/post">
                                 <PrimaryButton className="gap-2 px-5 py-2.5 text-sm rounded-lg shadow-sm bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90 border-none font-bold">
-                                    <Plus weight="bold" className="h-5 w-5" /> Create Request
+                                    <Plus weight="bold" className="h-5 w-5" /> Post a Need
                                 </PrimaryButton>
                             </Link>
                         </div>
@@ -62,7 +72,7 @@ export default function DistrictDashboardPage() {
                             <div className="px-6 py-6 border-b border-[var(--border-subtle)] flex flex-col justify-between gap-4 bg-white sm:flex-row sm:items-center">
                                 <div>
                                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)]">Talent Pipeline</h2>
-                                    <p className="text-sm text-[var(--text-secondary)] mt-1">Active requests and candidate statuses</p>
+                                    <p className="text-sm text-[var(--text-secondary)] mt-1">Active needs and candidate statuses</p>
                                 </div>
                                 <span className="bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] text-xs font-bold px-3 py-1.5 rounded-full border border-[var(--accent-primary)]/20 shadow-sm flex items-center gap-2 w-fit">
                                     <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse" /> Active Hiring Phase
@@ -89,7 +99,11 @@ export default function DistrictDashboardPage() {
                                         ) : pipelineRows.map((row) => {
                                             const label = formatPipelineStatus(row.status);
                                             return (
-                                                <tr key={row.id} className="hover:bg-[var(--bg-hover)] transition-colors group cursor-pointer">
+                                                <tr
+                                                    key={row.id}
+                                                    className="hover:bg-[var(--bg-hover)] transition-colors group cursor-pointer"
+                                                    onClick={() => router.push(`/dashboard/district/needs/${row.id}`)}
+                                                >
                                                     <td className="py-5 px-6">
                                                         <Link href={`/dashboard/district/needs/${row.id}`} className="flex flex-col group/link">
                                                             <span className="font-bold text-base text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] group-hover/link:text-[var(--accent-primary)] transition-colors">{row.role}</span>

@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { CredentialsSection } from "@/components/educator/credentials-section";
 import { PrimaryButton } from "@/components/shared/button";
 import { RateField } from "@/components/educator/rate-field";
+import { RegionCoverageLink } from "@/components/shared/region-coverage-link";
 import { DEFAULT_ENGAGEMENT_TYPES, EDUCATOR_AVAILABILITY_OPTIONS } from "@/lib/onboarding";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { ArrowLeft } from "@phosphor-icons/react";
@@ -179,6 +180,7 @@ export default function EducatorSettingsPage() {
                                                     </button>
                                                 ))}
                                             </div>
+                                            {group.label === "Coverage areas" && <RegionCoverageLink />}
                                         </div>
                                     ))}
                                     {saveMessage && <p className="text-sm font-medium text-[var(--text-secondary)]">{saveMessage}</p>}

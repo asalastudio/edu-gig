@@ -43,6 +43,7 @@ import {
     type DistrictOnboardingRole,
 } from "@/lib/onboarding";
 import { RateField } from "@/components/educator/rate-field";
+import { RegionCoverageLink } from "@/components/shared/region-coverage-link";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { US_STATES } from "@/lib/us-states";
@@ -118,7 +119,9 @@ function OnboardingWithClerk() {
     const isEducator = intent === "educator";
     const steps = isEducator ? EDUCATOR_STEPS : DISTRICT_STEPS;
     const finalStep = steps.length - 1;
-    const firstName = user?.firstName ?? "there";
+    // Email/password sign-ups don't collect a name; avoid "Welcome, there."
+    const firstName = user?.firstName?.trim() || "";
+    const welcome = firstName ? `Welcome, ${firstName}.` : "Welcome.";
 
     const educatorCompletion = useMemo(
         () =>
@@ -273,7 +276,7 @@ function OnboardingWithClerk() {
     }
 
     if (!intent) {
-        return <RoleChoice firstName={firstName} />;
+        return <RoleChoice welcome={welcome} />;
     }
 
     return (
@@ -287,8 +290,8 @@ function OnboardingWithClerk() {
                             <p className="eyebrow mb-3">{isEducator ? "Educator setup" : "District setup"}</p>
                             <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tight">
                                 {isEducator
-                                    ? `Welcome, ${firstName}. Build a profile districts can trust.`
-                                    : `Welcome, ${firstName}. Prepare a district-ready workspace.`}
+                                    ? `${welcome} Build a profile districts can trust.`
+                                    : `${welcome} Prepare a district-ready workspace.`}
                             </h1>
                             <p className="mt-3 max-w-2xl text-base md:text-lg font-medium text-[var(--text-secondary)]">
                                 {isEducator
@@ -391,7 +394,7 @@ function OnboardingWithClerk() {
     );
 }
 
-function RoleChoice({ firstName }: { firstName: string }) {
+function RoleChoice({ welcome }: { welcome: string }) {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
@@ -400,7 +403,7 @@ function RoleChoice({ firstName }: { firstName: string }) {
                     <div className="education-rule mx-auto mb-5" />
                     <p className="eyebrow mb-3">Choose your workspace</p>
                     <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-3">
-                        Welcome, {firstName}. Where should we start?
+                        {welcome} Where should we start?
                     </h1>
                     <p className="text-lg font-medium text-[var(--text-secondary)]">
                         K12Gig separates district hiring tools from educator profile tools so each workspace starts with the right defaults.
@@ -495,7 +498,7 @@ function DistrictStep(props: {
             <div className="space-y-6">
                 <SectionIntro
                     icon={IdentificationBadge}
-                    title="What role should this workspace support?"
+                    title="What's your district role?"
                     description="This sets the account role and the tone of the hiring dashboard."
                 />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -540,15 +543,18 @@ function DistrictStep(props: {
                             ))}
                         </select>
                     </Field>
-                    <Field label="Primary service region">
-                        <select value={props.region} onChange={(e) => props.onRegionChange(e.target.value)} className="field-control">
-                            {TAXONOMY.coverageRegions.map((region) => (
-                                <option key={region.id} value={region.id}>
-                                    {region.label}
-                                </option>
-                            ))}
-                        </select>
-                    </Field>
+                    <div className="flex flex-col gap-2">
+                        <Field label="Location by region">
+                            <select value={props.region} onChange={(e) => props.onRegionChange(e.target.value)} className="field-control">
+                                {TAXONOMY.coverageRegions.map((region) => (
+                                    <option key={region.id} value={region.id}>
+                                        {region.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+                        <RegionCoverageLink />
+                    </div>
                     <Field label="District identifier" hint="Optional">
                         <input
                             value={props.nceaId}
@@ -681,12 +687,15 @@ function EducatorStep(props: {
                     title="Set availability, coverage, and rate."
                     description="Transparent availability and pricing reduce back-and-forth for district teams."
                 />
-                <MultiSelectGroup
-                    label="Coverage areas"
-                    values={TAXONOMY.coverageRegions}
-                    selected={props.coverageRegions}
-                    onChange={props.onCoverageRegionsChange}
-                />
+                <div className="space-y-2">
+                    <MultiSelectGroup
+                        label="Coverage areas"
+                        values={TAXONOMY.coverageRegions}
+                        selected={props.coverageRegions}
+                        onChange={props.onCoverageRegionsChange}
+                    />
+                    <RegionCoverageLink />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field label="Availability">
                         <select
@@ -762,7 +771,7 @@ function OnboardingAside({
     completion: number;
     districtAction: DistrictFirstAction;
 }) {
-    const districtDestination = DISTRICT_FIRST_ACTIONS.find((option) => option.id === districtAction)?.label ?? "Open workspace";
+    const districtDestination = DISTRICT_FIRST_ACTIONS.find((option) => option.id === districtAction)?.label ?? "Review my district dashboard";
     const items =
         intent === "educator"
             ? ["Public profile created", "Expertise filters ready", "Rate visible to districts", "Credentials can be added next"]

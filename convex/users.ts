@@ -256,9 +256,11 @@ export const completeOnboarding = mutation({
 
         const email = normalizeEmail(identity.email as string | undefined);
         const name = (identity.name as string | undefined) ?? "";
-        const parts = name.trim().split(/\s+/);
+        const parts = name.trim().split(/\s+/).filter(Boolean);
+        // Email/password sign-ups carry no name; fall back to the email
+        // local-part and leave lastName empty instead of fabricating one.
         const firstName = parts[0] || email.split("@")[0] || "User";
-        const lastName = parts.length > 1 ? parts.slice(1).join(" ") : parts[0] || "Name";
+        const lastName = parts.length > 1 ? parts.slice(1).join(" ") : "";
 
         const educatorProfile = educatorProfileFromArgs(args);
         const isDistrict = isDistrictRole(args.role);

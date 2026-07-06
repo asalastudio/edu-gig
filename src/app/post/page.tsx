@@ -47,11 +47,14 @@ function PostNeedPageInner() {
     const [previewMode, setPreviewMode] = useState(false);
 
     // Form state
-    const [orgName, setOrgName] = useState("");
+    // null = untouched; the district profile name is used until the user edits.
+    const [orgNameInput, setOrgNameInput] = useState<string | null>(null);
     const [areaId, setAreaId] = useState("");
     const [specId, setSpecId] = useState("");
     const [gradeLevel, setGradeLevel] = useState("");
-    const [engagementType, setEngagementType] = useState("");
+    // Freelance consulting is the only launch-supported engagement type
+    // (PRD v3 Issue #6), so it is fixed rather than chosen in the form.
+    const [engagementType] = useState("consulting");
     const todayISO = new Date().toISOString().slice(0, 10);
     const [startDate, setStartDate] = useState("");
     const [duration, setDuration] = useState("");
@@ -63,9 +66,14 @@ function PostNeedPageInner() {
 
     const viewer = useQuery(api.users.viewer, hasClerk ? {} : "skip");
     const canPersist = !!viewer && isDistrictRole(viewer.role);
+    const district = useQuery(api.districts.getMine, canPersist ? {} : "skip");
     const createNeed = useMutation(api.needs.create);
     const educatorName = searchParams.get("name");
     const requestedSlot = searchParams.get("slot");
+
+    // Prefill the organization name from the district profile captured at
+    // onboarding; anything the user types takes precedence.
+    const orgName = orgNameInput ?? district?.name ?? "";
 
     const selectedAreaObj = TAXONOMY.areasOfNeed.find(a => a.id === areaId);
     const specs = selectedAreaObj?.subCategories || [];
@@ -252,7 +260,7 @@ function PostNeedPageInner() {
                                             )}
                                             value={orgName}
                                             onChange={(e) => {
-                                                setOrgName(e.target.value);
+                                                setOrgNameInput(e.target.value);
                                                 if (errors.org) setErrors({...errors, org: undefined});
                                             }}
                                         />
@@ -322,25 +330,6 @@ function PostNeedPageInner() {
                                             <Calendar className="w-5 h-5" />
                                         </div>
                                         <h2 className="text-xl font-bold">The Logistics</h2>
-                                    </div>
-
-                                    <div className="flex flex-col gap-3">
-                                        <label className="text-sm font-semibold text-[var(--text-primary)]">Engagement Type</label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                            {TAXONOMY.engagementTypes.map(eng => (
-                                                <label key={eng.id} className="flex flex-col items-start gap-2 p-4 border border-[var(--border-subtle)] bg-[var(--bg-app)] rounded-lg cursor-pointer hover:border-[var(--accent-primary)]/50 focus-within:ring-2 focus-within:ring-[var(--accent-primary)] transition-all has-[:checked]:bg-[var(--accent-primary)]/5 has-[:checked]:border-[var(--accent-primary)]">
-                                                    <input
-                                                        type="radio"
-                                                        name="engagementType"
-                                                        value={eng.id}
-                                                        checked={engagementType === eng.id}
-                                                        onChange={() => setEngagementType(eng.id)}
-                                                        className="w-4 h-4 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] border-[var(--border-strong)]"
-                                                    />
-                                                    <span className="text-[var(--text-primary)] font-semibold text-sm">{eng.label}</span>
-                                                </label>
-                                            ))}
-                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">

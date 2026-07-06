@@ -37,7 +37,9 @@ export default function NewGigPage() {
     const [description, setDescription] = useState("");
     const [areaOfNeed, setAreaOfNeed] = useState("");
     const [subCategory, setSubCategory] = useState("");
-    const [engagementType, setEngagementType] = useState<string>("");
+    // Freelance consulting is the only launch-supported engagement type
+    // (PRD v3 Issue #6); pre-select it so the single option validates.
+    const [engagementType, setEngagementType] = useState<string>("consulting");
     const [gradeLevels, setGradeLevels] = useState<string[]>([]);
     const [coverageRegions, setCoverageRegions] = useState<string[]>([]);
     const [deliverablesText, setDeliverablesText] = useState("");

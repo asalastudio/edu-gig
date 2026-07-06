@@ -48,7 +48,7 @@ export const DISTRICT_FIRST_ACTIONS: Array<{
 }> = [
     {
         id: "post_need",
-        label: "Post a staffing need",
+        label: "Post a Need",
         description: "Start with the role, schedule, and context educators need to respond well.",
         href: "/post",
     },
@@ -60,8 +60,8 @@ export const DISTRICT_FIRST_ACTIONS: Array<{
     },
     {
         id: "workspace",
-        label: "Open my workspace",
-        description: "Review requests, messages, saved educators, and account settings first.",
+        label: "Review my district dashboard",
+        description: "Review needs, messages, saved educators, and account settings first.",
         href: "/dashboard/district",
     },
 ];

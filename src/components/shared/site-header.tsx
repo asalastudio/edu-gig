@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { PrimaryButton } from "./button";
 import { ArrowRight, List, X } from "@phosphor-icons/react";
 import { BrandLogo } from "@/components/shared/brand-logo";
@@ -12,20 +12,24 @@ import { isDistrictRole } from "@/lib/roles";
 
 export function SiteHeader() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    // Auth state comes from Clerk (the actual session) — not the Convex
+    // profile row, which only exists after onboarding completes. Otherwise a
+    // signed-in user who hasn't finished setup wrongly reads as logged out.
+    const { isLoaded, isSignedIn } = useUser();
     const viewer = useQuery(api.users.viewer, {});
-    const loading = viewer === undefined;
-    const signedIn = !!viewer;
+    const signedIn = !!isSignedIn;
+    const loading = !isLoaded || (signedIn && viewer === undefined);
 
     let dashboardHref = "/onboarding";
-    if (viewer) {
-        if (viewer.onboarded) {
-            if (viewer.role === "superadmin") {
-                dashboardHref = "/dashboard/admin";
-            } else if (isDistrictRole(viewer.role)) {
-                dashboardHref = "/dashboard/district";
-            } else {
-                dashboardHref = "/dashboard/educator";
-            }
+    let dashboardLabel = "Finish setup";
+    if (viewer?.onboarded) {
+        dashboardLabel = "Dashboard";
+        if (viewer.role === "superadmin") {
+            dashboardHref = "/dashboard/admin";
+        } else if (isDistrictRole(viewer.role)) {
+            dashboardHref = "/dashboard/district";
+        } else {
+            dashboardHref = "/dashboard/educator";
         }
     }
 
@@ -48,7 +52,7 @@ export function SiteHeader() {
                         <div className="flex items-center gap-4">
                             <Link href={dashboardHref}>
                                 <PrimaryButton className="text-sm px-4 min-h-9 h-9">
-                                    Dashboard
+                                    {dashboardLabel}
                                 </PrimaryButton>
                             </Link>
                             <div className="flex items-center shrink-0 border-l border-[var(--border-default)] pl-4">
@@ -101,7 +105,7 @@ export function SiteHeader() {
                     {!loading && signedIn && (
                         <div className="flex items-center justify-between gap-4 py-2">
                             <Link href={dashboardHref} className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                                <PrimaryButton className="w-full">Dashboard</PrimaryButton>
+                                <PrimaryButton className="w-full">{dashboardLabel}</PrimaryButton>
                             </Link>
                              <div className="border border-[var(--border-default)] p-1 rounded-full flex items-center justify-center">
                                 <UserButton />

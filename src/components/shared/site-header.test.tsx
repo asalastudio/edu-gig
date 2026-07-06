@@ -29,6 +29,7 @@ vi.mock("@/convex/_generated/api", () => ({
 
 vi.mock("@clerk/nextjs", () => ({
     UserButton: () => <button type="button">User menu</button>,
+    useUser: () => ({ isLoaded: true, isSignedIn: false }),
 }));
 
 vi.mock("next-themes", () => ({

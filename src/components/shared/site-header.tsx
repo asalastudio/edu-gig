@@ -10,8 +10,17 @@ import { ArrowRight, List, X } from "@phosphor-icons/react";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { isDistrictRole } from "@/lib/roles";
 
+const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+/** Avoid calling `useUser` when Clerk isn't configured (no ClerkProvider) — required for static build. */
 export function SiteHeader() {
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    if (!hasClerk) {
+        return <SiteHeaderView loading={false} signedIn={false} dashboardHref="/onboarding" dashboardLabel="Finish setup" />;
+    }
+    return <SiteHeaderWithClerk />;
+}
+
+function SiteHeaderWithClerk() {
     // Auth state comes from Clerk (the actual session) — not the Convex
     // profile row, which only exists after onboarding completes. Otherwise a
     // signed-in user who hasn't finished setup wrongly reads as logged out.
@@ -32,6 +41,29 @@ export function SiteHeader() {
             dashboardHref = "/dashboard/educator";
         }
     }
+
+    return (
+        <SiteHeaderView
+            loading={loading}
+            signedIn={signedIn}
+            dashboardHref={dashboardHref}
+            dashboardLabel={dashboardLabel}
+        />
+    );
+}
+
+function SiteHeaderView({
+    loading,
+    signedIn,
+    dashboardHref,
+    dashboardLabel,
+}: {
+    loading: boolean;
+    signedIn: boolean;
+    dashboardHref: string;
+    dashboardLabel: string;
+}) {
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     return (
         <header className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-md border-b border-[var(--border-default)] sticky top-0 z-50 shadow-[0_1px_0_rgba(255,255,255,0.7)] dark:shadow-none">

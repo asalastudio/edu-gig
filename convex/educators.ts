@@ -90,6 +90,7 @@ export const listForBrowse = query({
         const out: Array<{
             id: string;
             name: string;
+            secondaryName?: string;
             headline: string;
             avatarUrl?: string;
             verificationTier: "basic" | "verified" | "premier";
@@ -110,11 +111,13 @@ export const listForBrowse = query({
             if (!educator.isActive) continue;
             const user = await ctx.db.get(educator.userId);
             if (!user) continue;
-            const name = `${user.firstName} ${user.lastName}`.trim();
+            const personalName = `${user.firstName} ${user.lastName}`.trim();
+            const businessName = educator.businessName?.trim();
             const rating = await reviewSummary(ctx, user._id);
             out.push({
                 id: educator._id,
-                name,
+                name: businessName || personalName,
+                ...(businessName && personalName ? { secondaryName: personalName } : {}),
                 headline: educator.headline,
                 avatarUrl: user.avatarUrl,
                 verificationTier: verificationToTier(educator.verificationStatus),
@@ -173,8 +176,15 @@ export const getMine = query({
 /** Educators may update their own profile copy; districts cannot call this for another user. */
 export const updateMyProfile = mutation({
     args: {
+        businessName: v.optional(v.string()),
         headline: v.optional(v.string()),
         bio: v.optional(v.string()),
+        presenterBio: v.optional(v.string()),
+        teamMembers: v.optional(v.array(v.object({
+            name: v.string(),
+            title: v.string(),
+            bio: v.string(),
+        }))),
         availabilityStatus: v.optional(v.union(
             v.literal("open"),
             v.literal("limited"),
@@ -196,8 +206,21 @@ export const updateMyProfile = mutation({
             .first();
         if (!edu) throw new Error("No educator profile");
         const patch: Record<string, unknown> = {};
+        // Empty string clears the optional field so the personal name shows again.
+        if (args.businessName !== undefined) patch.businessName = args.businessName.trim() || undefined;
         if (args.headline !== undefined) patch.headline = args.headline;
         if (args.bio !== undefined) patch.bio = args.bio;
+        if (args.presenterBio !== undefined) patch.presenterBio = args.presenterBio.trim() || undefined;
+        if (args.teamMembers !== undefined) {
+            const cleaned = args.teamMembers
+                .map((member) => ({
+                    name: member.name.trim(),
+                    title: member.title.trim(),
+                    bio: member.bio.trim(),
+                }))
+                .filter((member) => member.name.length > 0);
+            patch.teamMembers = cleaned.length > 0 ? cleaned : undefined;
+        }
         if (args.availabilityStatus !== undefined) patch.availabilityStatus = args.availabilityStatus;
         if (args.hourlyRate !== undefined) patch.hourlyRate = args.hourlyRate;
         if (args.dailyRate !== undefined) patch.dailyRate = args.dailyRate;

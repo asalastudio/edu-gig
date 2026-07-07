@@ -20,11 +20,28 @@ const gradeLabelMap: Record<string, string> = Object.fromEntries(
     TAXONOMY.gradeLevelBands.map((g) => [g.id, g.label])
 );
 
+/** Sanitized credential row from `api.credentials.listForEducatorProfile`. */
+export type PublicCredentialRow = {
+    id: string;
+    type: string;
+    title: string;
+    issuingBody: string;
+    state?: string;
+    issueDate: string;
+    expiryDate?: string;
+    verified: boolean;
+    hasFile: boolean;
+};
+
 export function mapConvexEducatorToProfileView(
     educator: Doc<"educators">,
-    user: Doc<"users">
+    user: Doc<"users">,
+    credentials?: PublicCredentialRow[]
 ): EducatorProfileView {
-    const name = `${user.firstName} ${user.lastName}`.trim() || "Educator";
+    const personalName = `${user.firstName} ${user.lastName}`.trim();
+    const businessName = educator.businessName?.trim();
+    const name = businessName || personalName || "Educator";
+    const secondaryName = businessName && personalName ? personalName : undefined;
     const tier = verificationToTier(educator.verificationStatus);
     const gradeLevelsLabel = educator.gradeLevelBands.includes("all")
         ? "All grades"
@@ -32,23 +49,36 @@ export function mapConvexEducatorToProfileView(
 
     const areaLabels = educator.areasOfNeed.slice(0, 6).map((id) => getAreaOfNeedLabel(id));
 
-    const licenses: EducatorProfileView["licenses"] =
-        tier === "basic"
-            ? [{ type: "Credentials pending review", issuer: "—", status: "Pending", expiry: "—" }]
-            : [
-                  {
-                      type: "Professional credentials",
-                      issuer: "State / district records",
-                      status: "Verified",
-                      expiry: "—",
-                  },
-              ];
+    // Real rows when the caller fetched them; tier-based placeholders keep the
+    // legacy/mock path (no credentials arg) rendering as before.
+    const licenses: EducatorProfileView["licenses"] = credentials
+        ? credentials.map((credential) => ({
+              type: credential.title,
+              issuer: credential.state
+                  ? `${credential.issuingBody} (${credential.state})`
+                  : credential.issuingBody,
+              status: credential.verified ? "Verified" : "Pending",
+              expiry: credential.expiryDate || "—",
+              credentialId: credential.id,
+              hasFile: credential.hasFile,
+          }))
+        : tier === "basic"
+          ? [{ type: "Credentials pending review", issuer: "—", status: "Pending", expiry: "—" }]
+          : [
+                {
+                    type: "Professional credentials",
+                    issuer: "State / district records",
+                    status: "Verified",
+                    expiry: "—",
+                },
+            ];
 
     const amOpen = educator.availabilityStatus === "open";
     const pmOpen = educator.availabilityStatus !== "closed";
 
     return {
         name,
+        secondaryName,
         initials: initialsFromName(name),
         headline: educator.headline,
         verificationTier: tier,
@@ -69,6 +99,8 @@ export function mapConvexEducatorToProfileView(
                   ? ["Credentials reviewed"]
                   : ["Profile in progress"],
         licenses,
+        presenterBio: educator.presenterBio?.trim() || undefined,
+        teamMembers: educator.teamMembers?.length ? educator.teamMembers : undefined,
         experience: [
             {
                 role: educator.headline,

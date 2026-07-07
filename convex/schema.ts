@@ -11,6 +11,7 @@ export default defineSchema({
         firstName: v.string(),
         lastName: v.string(),
         avatarUrl: v.optional(v.string()),
+        avatarStorageId: v.optional(v.id("_storage")),
         onboarded: v.boolean(),
         termsAcceptedAt: v.optional(v.number()),
         termsVersion: v.optional(v.string()),
@@ -22,8 +23,15 @@ export default defineSchema({
     // ─── Educator Profiles ────────────────────────────────────
     educators: defineTable({
         userId: v.id("users"),
+        businessName: v.optional(v.string()),    // shown as the public display name when set
         headline: v.string(),
         bio: v.string(),
+        presenterBio: v.optional(v.string()),    // copyable bio for district SCECH applications
+        teamMembers: v.optional(v.array(v.object({
+            name: v.string(),
+            title: v.string(),
+            bio: v.string(),
+        }))),
         videoIntroUrl: v.optional(v.string()),
         yearsExperience: v.number(),
         gradeLevelBands: v.array(v.string()),    // ["k5", "6_8", "9_12", "all"]
@@ -69,7 +77,8 @@ export default defineSchema({
         state: v.optional(v.string()),
         issueDate: v.string(),
         expiryDate: v.optional(v.string()),
-        documentUrl: v.optional(v.string()),
+        documentUrl: v.optional(v.string()),     // legacy: raw storage id stored as string (pre-storageId rows)
+        storageId: v.optional(v.id("_storage")),
         verified: v.boolean(),
     }).index("by_educator", ["educatorId"]),
 

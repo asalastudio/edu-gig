@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { PRIVACY_VERSION, TERMS_VERSION } from "../src/lib/legal";
@@ -63,6 +63,7 @@ function profileCompletion(args: {
 }
 
 function educatorProfileFromArgs(args: {
+    businessName?: string;
     headline?: string;
     bio?: string;
     yearsExperience?: number;
@@ -75,6 +76,7 @@ function educatorProfileFromArgs(args: {
     availabilityStatus?: "open" | "limited" | "closed";
 }) {
     return {
+        ...(cleanText(args.businessName) ? { businessName: cleanText(args.businessName) } : {}),
         headline: cleanText(args.headline, "Update your professional headline"),
         bio: cleanText(args.bio, "Tell districts about your experience, instructional strengths, and the outcomes you can support."),
         yearsExperience: Math.max(0, args.yearsExperience ?? 0),
@@ -219,10 +221,84 @@ function isDistrictRole(role: string): role is DistrictRole {
     return (DISTRICT_ROLES as readonly string[]).includes(role);
 }
 
+async function requireViewerRow(ctx: MutationCtx) {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .first();
+    if (!user) throw new Error("User not found");
+    return user;
+}
+
+/** Upload URL for a profile photo / business logo (any signed-in user with a users row). */
+export const generateAvatarUploadUrl = mutation({
+    args: {},
+    handler: async (ctx) => {
+        await requireViewerRow(ctx);
+        return await ctx.storage.generateUploadUrl();
+    },
+});
+
+/** Sets the viewer's profile photo / business logo, replacing (and deleting) any previous upload. */
+export const setAvatar = mutation({
+    args: { storageId: v.id("_storage") },
+    handler: async (ctx, args) => {
+        const user = await requireViewerRow(ctx);
+        const url = await ctx.storage.getUrl(args.storageId);
+        if (!url) throw new Error("Uploaded file not found");
+        if (user.avatarStorageId && user.avatarStorageId !== args.storageId) {
+            try {
+                await ctx.storage.delete(user.avatarStorageId);
+            } catch {
+                // Old file already gone — replacing it is still fine.
+            }
+        }
+        await ctx.db.patch(user._id, { avatarStorageId: args.storageId, avatarUrl: url });
+    },
+});
+
+/** Removes the viewer's profile photo / business logo. */
+export const clearAvatar = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const user = await requireViewerRow(ctx);
+        if (user.avatarStorageId) {
+            try {
+                await ctx.storage.delete(user.avatarStorageId);
+            } catch {
+                // Old file already gone.
+            }
+        }
+        await ctx.db.patch(user._id, { avatarStorageId: undefined, avatarUrl: undefined });
+    },
+});
+
+/** Lets a user correct their display name (e.g. accounts created before onboarding collected names). */
+export const updateMyName = mutation({
+    args: {
+        firstName: v.string(),
+        lastName: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const user = await requireViewerRow(ctx);
+        const firstName = cleanText(args.firstName);
+        if (!firstName) throw new Error("First name is required");
+        await ctx.db.patch(user._id, {
+            firstName,
+            lastName: cleanText(args.lastName),
+        });
+    },
+});
+
 /** First-time or returning user onboarding — persists role and creates educator/district row when needed. */
 export const completeOnboarding = mutation({
     args: {
         role: onboardingRoleValidator,
+        firstName: v.optional(v.string()),
+        lastName: v.optional(v.string()),
+        businessName: v.optional(v.string()),
         organizationName: v.optional(v.string()),
         districtState: v.optional(v.string()),
         districtRegion: v.optional(v.string()),
@@ -257,10 +333,12 @@ export const completeOnboarding = mutation({
         const email = normalizeEmail(identity.email as string | undefined);
         const name = (identity.name as string | undefined) ?? "";
         const parts = name.trim().split(/\s+/).filter(Boolean);
-        // Email/password sign-ups carry no name; fall back to the email
-        // local-part and leave lastName empty instead of fabricating one.
-        const firstName = parts[0] || email.split("@")[0] || "User";
-        const lastName = parts.length > 1 ? parts.slice(1).join(" ") : "";
+        // Prefer the name the user typed during onboarding, then the Clerk
+        // profile name. Email/password sign-ups carry neither, so the email
+        // local-part is the last-ditch fallback; lastName stays empty rather
+        // than fabricating one.
+        const firstName = cleanText(args.firstName) || parts[0] || email.split("@")[0] || "User";
+        const lastName = cleanText(args.lastName) || (parts.length > 1 ? parts.slice(1).join(" ") : "");
 
         const educatorProfile = educatorProfileFromArgs(args);
         const isDistrict = isDistrictRole(args.role);
@@ -329,6 +407,7 @@ export const completeOnboarding = mutation({
                     .first();
                 if (edu) {
                     await ctx.db.patch(edu._id, {
+                        ...(educatorProfile.businessName ? { businessName: educatorProfile.businessName } : {}),
                         headline: educatorProfile.headline,
                         bio: educatorProfile.bio,
                         yearsExperience: educatorProfile.yearsExperience,

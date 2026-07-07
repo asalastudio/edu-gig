@@ -123,11 +123,12 @@ export const TAXONOMY = {
         { id: "all", label: "Statewide / Remote" },
     ],
 
-    // Launch state: freelance consulting only (PRD v3 Issue #6). The
-    // "permanent" and "substitute" codes are retained in the DB schema for
-    // future expansion but are intentionally not exposed in the UI.
+    // Keep "consulting" first: it is the default selection for new profiles
+    // (see DEFAULT_ENGAGEMENT_TYPES in src/lib/onboarding.ts).
     engagementTypes: [
         { id: "consulting", label: "Freelance Consulting" },
+        { id: "permanent", label: "Permanent Placement" },
+        { id: "substitute", label: "Substitute / Interim" },
     ],
 
     verificationTiers: [

@@ -2,21 +2,17 @@
  * Educator credential CRUD backed by Convex file storage.
  *
  * STORAGE NOTE (documentUrl vs. storageId):
- *   The `credentials` table schema (schema.ts) defines `documentUrl: v.optional(v.string())`
- *   and has no `storageId` field. Because schema.ts is out-of-bounds for this feature,
- *   we use `documentUrl` to hold the raw Convex storage ID (a string).
- *
- *   When a row is written via `finalizeUpload`, `documentUrl` contains the storageId.
- *   Readers should NEVER treat this string as a public URL. To display a file,
- *   call the `getCredentialFileUrl` query — it resolves the current signed URL via
+ *   New rows store the Convex storage id in the dedicated `storageId` field.
+ *   Rows written before that field existed hold the raw storage ID (a string)
+ *   in `documentUrl` — readers must fall back via `credentialStorageId()` and
+ *   must NEVER treat that string as a public URL. To display a file, call the
+ *   `getCredentialFileUrl` query — it resolves a signed URL via
  *   `ctx.storage.getUrl(storageId)`.
- *
- *   If/when schema.ts is extended with a dedicated `storageId` field, migrate by
- *   copying values from documentUrl → storageId and clearing documentUrl.
  */
 
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
 const DISTRICT_ROLES = [
@@ -54,6 +50,14 @@ async function getEducatorForUser(
             q.eq("userId", userId as unknown as never)
         )
         .first();
+}
+
+/** Storage id for a credential row: dedicated field, else the legacy documentUrl stash. */
+function credentialStorageId(credential: {
+    storageId?: Id<"_storage">;
+    documentUrl?: string;
+}): Id<"_storage"> | undefined {
+    return credential.storageId ?? (credential.documentUrl as Id<"_storage"> | undefined);
 }
 
 const credentialTypeValidator = v.union(
@@ -106,7 +110,7 @@ export const finalizeUpload = mutation({
             state: args.state?.trim() || undefined,
             issueDate: args.issueDate,
             expiryDate: args.expiryDate || undefined,
-            documentUrl: args.storageId ?? undefined,
+            storageId: args.storageId ?? undefined,
             verified: false,
         });
     },
@@ -124,11 +128,10 @@ export const remove = mutation({
         if (!credential) throw new Error("Not found");
         if (credential.educatorId !== educator._id) throw new Error("Forbidden");
 
-        if (credential.documentUrl) {
+        const fileId = credentialStorageId(credential);
+        if (fileId) {
             try {
-                await ctx.storage.delete(
-                    credential.documentUrl as unknown as never
-                );
+                await ctx.storage.delete(fileId);
             } catch (err) {
                 // Non-fatal: the row still goes away even if the file was already gone.
                 console.warn("storage.delete failed", err);
@@ -183,9 +186,48 @@ export const getCredentialFileUrl = query({
         const isOwner = educator.userId === user._id;
 
         if (!isOwner && !isDistrict) return null;
-        if (!credential.documentUrl) return null;
-        return await ctx.storage.getUrl(
-            credential.documentUrl as unknown as never
-        );
+        const fileId = credentialStorageId(credential);
+        if (!fileId) return null;
+        return await ctx.storage.getUrl(fileId);
+    },
+});
+
+/**
+ * Sanitized credential rows for an educator's public profile.
+ * Owner sees their own; district accounts and superadmins see any educator's.
+ * Never exposes storage ids — files are fetched via `getCredentialFileUrl`.
+ */
+export const listForEducatorProfile = query({
+    args: { educatorId: v.id("educators") },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
+        const user = await getUserByClerkId(ctx, identity.subject);
+        if (!user) return null;
+
+        const educator = await ctx.db.get(args.educatorId);
+        if (!educator) return null;
+
+        const isDistrict = (DISTRICT_ROLES as readonly string[]).includes(user.role);
+        const isOwner = educator.userId === user._id;
+        if (!isOwner && !isDistrict) return null;
+
+        const rows = await ctx.db
+            .query("credentials")
+            .withIndex("by_educator", (q) => q.eq("educatorId", args.educatorId))
+            .order("desc")
+            .collect();
+
+        return rows.map((credential) => ({
+            id: credential._id,
+            type: credential.type,
+            title: credential.title,
+            issuingBody: credential.issuingBody,
+            state: credential.state,
+            issueDate: credential.issueDate,
+            expiryDate: credential.expiryDate,
+            verified: credential.verified,
+            hasFile: !!credentialStorageId(credential),
+        }));
     },
 });

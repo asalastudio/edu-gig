@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { getAreaOfNeedLabel, TAXONOMY } from "@/lib/taxonomy";
 import { isDistrictRole } from "@/lib/roles";
-import { CurrencyDollar, MapPin, Briefcase, Clock, PlusCircle } from "@phosphor-icons/react";
+import { CurrencyDollar, Buildings, Briefcase, Clock, PlusCircle } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 type OpenNeed = {
@@ -65,6 +65,25 @@ function statusPillClass(status: string): string {
         default:
             return "bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-strong)]";
     }
+}
+
+/** Prominent "who posted this gig" source block, so the origin reads at a glance. */
+function NeedSource({ orgName }: { orgName: string }) {
+    return (
+        <div className="inline-flex items-center gap-2.5">
+            <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] shrink-0">
+                <Buildings weight="fill" className="w-5 h-5" />
+            </span>
+            <span className="flex flex-col leading-tight min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-tertiary)]">
+                    Posted by
+                </span>
+                <span className="text-base font-bold text-[var(--text-primary)] truncate">
+                    {orgName}
+                </span>
+            </span>
+        </div>
+    );
 }
 
 function statusLabel(status: string): string {
@@ -252,10 +271,7 @@ export default function GigBoardPage() {
                                     >
                                         <div className="p-8 flex flex-col lg:flex-row justify-between gap-6">
                                             <div className="flex-1 flex flex-col gap-3">
-                                                <div className="flex items-center gap-3 text-[var(--text-tertiary)] text-sm font-semibold">
-                                                    <MapPin weight="fill" className="w-4 h-4 text-[var(--accent-secondary)]" />
-                                                    <span className="uppercase tracking-widest text-xs">{need.orgName}</span>
-                                                </div>
+                                                <NeedSource orgName={need.orgName} />
                                                 <h3 className="font-heading text-2xl font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
                                                     {getAreaOfNeedLabel(need.areaOfNeed)}
                                                     {need.subCategory ? (
@@ -348,9 +364,8 @@ export default function GigBoardPage() {
                                     >
                                         <div className="p-8 flex flex-col lg:flex-row justify-between gap-6">
                                             <div className="flex-1 flex flex-col gap-3">
-                                                <div className="flex items-center gap-3 text-[var(--text-tertiary)] text-sm font-semibold">
-                                                    <MapPin weight="fill" className="w-4 h-4 text-[var(--accent-secondary)]" />
-                                                    <span className="uppercase tracking-widest text-xs">{need.orgName}</span>
+                                                <div className="flex items-center gap-3 flex-wrap">
+                                                    <NeedSource orgName={need.orgName} />
                                                     <span
                                                         className={cn(
                                                             "px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border",

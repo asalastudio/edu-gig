@@ -234,7 +234,7 @@ export function CredentialsSection() {
                         </p>
                         <div className="grid sm:grid-cols-2 gap-4">
                             <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-                                Credential type
+                                <span>Credential type</span>
                                 <select
                                     value={type}
                                     onChange={(e) => setType(e.target.value as CredentialType)}
@@ -248,7 +248,7 @@ export function CredentialsSection() {
                                 </select>
                             </label>
                             <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-                                Name of credential <span className="text-red-600">*</span>
+                                <span>Name of credential <span className="text-red-600">*</span></span>
                                 <input
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
@@ -258,7 +258,7 @@ export function CredentialsSection() {
                                 />
                             </label>
                             <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-                                Issued by <span className="text-red-600">*</span>
+                                <span>Issued by <span className="text-red-600">*</span></span>
                                 <input
                                     value={issuingBody}
                                     onChange={(e) => setIssuingBody(e.target.value)}
@@ -268,7 +268,7 @@ export function CredentialsSection() {
                                 />
                             </label>
                             <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-                                State
+                                <span>State</span>
                                 <input
                                     value={stateField}
                                     onChange={(e) => setStateField(e.target.value)}
@@ -285,7 +285,7 @@ export function CredentialsSection() {
                         </p>
                         <div className="grid sm:grid-cols-2 gap-4">
                             <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-                                Issue date <span className="text-red-600">*</span>
+                                <span>Issue date <span className="text-red-600">*</span></span>
                                 <input
                                     type="date"
                                     value={issueDate}
@@ -295,7 +295,7 @@ export function CredentialsSection() {
                                 />
                             </label>
                             <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-                                Expires <span className="font-normal text-[var(--text-tertiary)]">(if applicable)</span>
+                                <span>Expires <span className="font-normal text-[var(--text-tertiary)]">(if applicable)</span></span>
                                 <input
                                     type="date"
                                     value={expiryDate}

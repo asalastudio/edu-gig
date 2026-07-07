@@ -160,7 +160,7 @@ export default function EducatorSettingsPage() {
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <main className="flex-1 overflow-y-auto w-full relative">
-                <div className="max-w-3xl mx-auto px-8 lg:px-12 py-10">
+                <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-10">
                     <Link
                         href="/dashboard/educator"
                         className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8"
@@ -171,7 +171,8 @@ export default function EducatorSettingsPage() {
                         title="Educator settings"
                         description="Profile visibility, rates, and notifications."
                     />
-                    <div className="mt-10 space-y-8">
+                    <div className="mt-10 flex flex-col gap-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                         <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm">
                             <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-4">Account</h2>
                             {hasClerk ? (
@@ -227,18 +228,21 @@ export default function EducatorSettingsPage() {
                             )}
                         </section>
                         <CredentialsSection />
+                        </div>
                         <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm">
                             <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-4">Public profile</h2>
                             {mine ? (
                                 <form onSubmit={handleSave} className="flex flex-col gap-6">
-                                    <div className="flex flex-col gap-2">
-                                        <label htmlFor="businessName" className="text-sm font-semibold text-[var(--text-primary)]">Business / organization name (optional)</label>
-                                        <input id="businessName" value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
-                                        <p className="text-sm text-[var(--text-secondary)]">Shown as your public profile name. Your personal name appears beneath it.</p>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label htmlFor="headline" className="text-sm font-semibold text-[var(--text-primary)]">Headline</label>
-                                        <input id="headline" value={headline} onChange={(e) => setHeadline(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                        <div className="flex flex-col gap-2">
+                                            <label htmlFor="businessName" className="text-sm font-semibold text-[var(--text-primary)]">Business / organization name (optional)</label>
+                                            <input id="businessName" value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
+                                            <p className="text-sm text-[var(--text-secondary)]">Shown as your public profile name. Your personal name appears beneath it.</p>
+                                        </div>
+                                        <div className="flex flex-col gap-2">
+                                            <label htmlFor="headline" className="text-sm font-semibold text-[var(--text-primary)]">Headline</label>
+                                            <input id="headline" value={headline} onChange={(e) => setHeadline(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
+                                        </div>
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="bio" className="text-sm font-semibold text-[var(--text-primary)]">Bio</label>

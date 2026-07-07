@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
     bookingConfirmation,
     newMessageAlert,
+    newNeedAlert,
     newProposalAlert,
+    profileCompletionReminder,
     proposalAcceptedAlert,
 } from "./email-templates";
 
@@ -141,5 +143,58 @@ describe("proposalAcceptedAlert", () => {
         expect(out.html).toContain("Riverside USD");
         expect(out.text).toContain("Kai");
         expect(out.html.toLowerCase()).toContain("accepted");
+    });
+});
+
+describe("newNeedAlert", () => {
+    it("includes org, area label, and needs board url in subject and body", () => {
+        const out = newNeedAlert({
+            orgName: "Pine Valley Schools",
+            areaLabel: "Special Education",
+            gradeLevel: "K-5",
+            needsBoardUrl: "https://k12gig.com/dashboard/educator/needs",
+        });
+        expect(out.subject).toContain("Special Education");
+        expect(out.html).toContain("Pine Valley Schools");
+        expect(out.html).toContain("Special Education");
+        expect(out.html).toContain("K-5");
+        expect(out.html).toContain("https://k12gig.com/dashboard/educator/needs");
+        expect(out.text).toContain("Pine Valley Schools");
+    });
+
+    it("omits the grade level row when grade is unset", () => {
+        const out = newNeedAlert({
+            orgName: "Harborview District",
+            areaLabel: "Math Interventionist",
+            needsBoardUrl: "https://k12gig.com/dashboard/educator/needs",
+        });
+        expect(out.html).not.toContain("Grade level");
+        expect(out.html).toContain("Math Interventionist");
+    });
+});
+
+describe("profileCompletionReminder", () => {
+    it("points the footer unsubscribe link at the provided url (no literal placeholder)", () => {
+        const out = profileCompletionReminder({
+            firstName: "Jordan",
+            completePct: 45,
+            settingsUrl: "https://k12gig.com/dashboard/educator/settings",
+            unsubscribeUrl: "https://k12gig.com/dashboard/educator/settings",
+        });
+        expect(out.subject).toContain("Finish your K12Gig profile");
+        expect(out.html).toContain("Jordan");
+        expect(out.html).toContain("45%");
+        expect(out.html).toContain("https://k12gig.com/dashboard/educator/settings");
+        expect(out.html).not.toContain("{{unsubscribe_url}}");
+    });
+
+    it("clamps the completion percentage to a 0–100 range", () => {
+        const out = profileCompletionReminder({
+            firstName: "Sam",
+            completePct: 150,
+            settingsUrl: "https://k12gig.com/x",
+            unsubscribeUrl: "https://k12gig.com/x",
+        });
+        expect(out.html).toContain("100%");
     });
 });

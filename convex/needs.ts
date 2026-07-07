@@ -2,6 +2,10 @@ import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+
+/** Cap the per-need email/notification fan-out so a single posting can't blast the whole roster. */
+const MATCH_FANOUT_CAP = 50;
 
 const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
 
@@ -34,6 +38,36 @@ async function canManageNeed(ctx: QueryCtx | MutationCtx, user: Doc<"users">, ne
     return !!district?.adminIds.includes(user._id);
 }
 
+/**
+ * Finds active, onboarded educators whose profile matches a freshly-posted need:
+ *   - educator.areasOfNeed includes the need's areaOfNeed
+ *   - need.gradeLevel is unset, OR the educator covers it (or covers "all")
+ * Needs carry no region concept, so region is not part of the match.
+ * Returns { educator, user } pairs sorted by profileCompletePct (highest first)
+ * and capped at MATCH_FANOUT_CAP so the highest-signal educators win the slots.
+ */
+async function matchEducatorsForNeed(ctx: MutationCtx, need: Doc<"needs">) {
+    const educators = await ctx.db.query("educators").collect();
+    const matches: Array<{ educator: Doc<"educators">; user: Doc<"users"> }> = [];
+
+    for (const educator of educators) {
+        if (!educator.isActive) continue;
+        if (!educator.areasOfNeed.includes(need.areaOfNeed)) continue;
+        if (need.gradeLevel) {
+            const coversGrade =
+                educator.gradeLevelBands.includes(need.gradeLevel) ||
+                educator.gradeLevelBands.includes("all");
+            if (!coversGrade) continue;
+        }
+        const user = await ctx.db.get(educator.userId);
+        if (!user || !user.onboarded) continue;
+        matches.push({ educator, user });
+    }
+
+    matches.sort((a, b) => b.educator.profileCompletePct - a.educator.profileCompletePct);
+    return matches.slice(0, MATCH_FANOUT_CAP);
+}
+
 const needStatusValidator = v.union(
     v.literal("open"),
     v.literal("interviewing"),
@@ -62,7 +96,7 @@ export const create = mutation({
         const district = await findDistrictForUser(ctx, user._id);
         const districtId = district?._id;
 
-        return await ctx.db.insert("needs", {
+        const needId = await ctx.db.insert("needs", {
             districtId,
             postedByUserId: user._id,
             orgName: args.orgName,
@@ -77,6 +111,38 @@ export const create = mutation({
             status: "open",
             createdAt: Date.now(),
         });
+
+        // RFP alerts: notify matching educators. Matching + notification inserts
+        // happen here (fast, transactional); the Resend calls go through an
+        // internalAction, one scheduled send per matched educator.
+        try {
+            const need = await ctx.db.get(needId);
+            if (need) {
+                const matches = await matchEducatorsForNeed(ctx, need);
+                for (const { user: educatorUser } of matches) {
+                    await ctx.db.insert("notifications", {
+                        userId: educatorUser._id,
+                        type: "new_need",
+                        title: `New need at ${need.orgName}`,
+                        body: `A district posted an open need that matches your profile.`,
+                        read: false,
+                        actionUrl: `/dashboard/educator/needs`,
+                        createdAt: Date.now(),
+                    });
+                    // Email only opted-in educators who actually have an address.
+                    if (educatorUser.email && educatorUser.emailRemindersOptOut !== true) {
+                        await ctx.scheduler.runAfter(0, internal.emails.sendNewNeedAlert, {
+                            needId,
+                            recipientUserId: educatorUser._id,
+                        });
+                    }
+                }
+            }
+        } catch (err) {
+            console.log("[needs.create] RFP alert fan-out skipped:", err);
+        }
+
+        return needId;
     },
 });
 

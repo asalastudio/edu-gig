@@ -10,17 +10,20 @@
  */
 
 import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
+import { internalAction, internalMutation } from "./_generated/server";
 import {
     bookingConfirmation,
     disputeCreatedAdminAlert,
     newMessageAlert,
+    newNeedAlert,
     newProposalAlert,
+    profileCompletionReminder,
     proposalAcceptedAlert,
     refundIssuedAlert,
 } from "../src/lib/email-templates";
 import { generateInvoicePdf, invoiceNumber } from "../src/lib/invoice-pdf";
 import { SUPPORT_EMAIL } from "../src/lib/legal";
+import { getAreaOfNeedLabel, TAXONOMY } from "../src/lib/taxonomy";
 
 type ResendAttachment = {
     filename: string;
@@ -354,6 +357,127 @@ export const sendDisputeCreatedAlert = internalAction({
     },
 });
 
+// ─── 5. New need alert (RFP match, single recipient) ─────────
+
+export const sendNewNeedAlert = internalAction({
+    args: { needId: v.id("needs"), recipientUserId: v.id("users") },
+    handler: async (ctx, args) => {
+        if (!process.env.RESEND_API_KEY) {
+            console.log("[emails] sendNewNeedAlert — RESEND_API_KEY missing, skipping.");
+            return;
+        }
+        try {
+            const data = await ctx.runQuery(
+                (await import("./_generated/api")).internal.emails.getNewNeedAlertContext,
+                { needId: args.needId, recipientUserId: args.recipientUserId }
+            );
+            if (!data) return;
+
+            const { need, recipient } = data;
+            if (!recipient?.email) {
+                console.log("[emails] sendNewNeedAlert — recipient has no email.");
+                return;
+            }
+
+            const gradeLevel = need.gradeLevel
+                ? (TAXONOMY.gradeLevelBands.find((g) => g.id === need.gradeLevel)?.label ?? need.gradeLevel)
+                : undefined;
+
+            const payload = newNeedAlert({
+                orgName: need.orgName,
+                areaLabel: getAreaOfNeedLabel(need.areaOfNeed),
+                gradeLevel,
+                needsBoardUrl: `${appUrl()}/dashboard/educator/needs`,
+            });
+
+            await sendViaResend({
+                from: fromAddress(),
+                to: [recipient.email],
+                subject: payload.subject,
+                html: payload.html,
+                text: payload.text,
+            });
+        } catch (err) {
+            console.error("[emails] sendNewNeedAlert failed", err);
+        }
+    },
+});
+
+// ─── 6. Profile completion reminders (non-transactional cron) ─
+
+const REMINDER_CAP = 100;
+const REMINDER_MIN_ACCOUNT_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+const REMINDER_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+const REMINDER_COMPLETE_PCT_THRESHOLD = 70;
+
+/**
+ * Selects reminder candidates and stamps `lastReminderEmailAt` in one mutation
+ * (actions can't patch), returning the resolved recipient list for the action
+ * to send. Stamping up front also de-duplicates concurrent runs.
+ */
+export const selectAndStampReminderRecipients = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const now = Date.now();
+        const educators = await ctx.db.query("educators").collect();
+        const recipients: Array<{ email: string; firstName: string; completePct: number }> = [];
+
+        for (const educator of educators) {
+            if (recipients.length >= REMINDER_CAP) break;
+            if (educator.profileCompletePct >= REMINDER_COMPLETE_PCT_THRESHOLD) continue;
+            const user = await ctx.db.get(educator.userId);
+            if (!user || !user.onboarded || !user.email) continue;
+            if (user.emailRemindersOptOut === true) continue;
+            if (now - user.createdAt < REMINDER_MIN_ACCOUNT_AGE_MS) continue;
+            if (user.lastReminderEmailAt !== undefined && now - user.lastReminderEmailAt < REMINDER_COOLDOWN_MS) {
+                continue;
+            }
+
+            await ctx.db.patch(user._id, { lastReminderEmailAt: now });
+            recipients.push({
+                email: user.email,
+                firstName: user.firstName || "there",
+                completePct: educator.profileCompletePct,
+            });
+        }
+        return recipients;
+    },
+});
+
+export const sendProfileCompletionReminders = internalAction({
+    args: {},
+    handler: async (ctx) => {
+        if (!process.env.RESEND_API_KEY) {
+            console.log("[emails] sendProfileCompletionReminders — RESEND_API_KEY missing, skipping.");
+            return;
+        }
+        try {
+            const recipients = await ctx.runMutation(
+                (await import("./_generated/api")).internal.emails.selectAndStampReminderRecipients,
+                {}
+            );
+            const settingsUrl = `${appUrl()}/dashboard/educator/settings`;
+            for (const recipient of recipients) {
+                const payload = profileCompletionReminder({
+                    firstName: recipient.firstName,
+                    completePct: recipient.completePct,
+                    settingsUrl,
+                    unsubscribeUrl: settingsUrl,
+                });
+                await sendViaResend({
+                    from: fromAddress(),
+                    to: [recipient.email],
+                    subject: payload.subject,
+                    html: payload.html,
+                    text: payload.text,
+                });
+            }
+        } catch (err) {
+            console.error("[emails] sendProfileCompletionReminders failed", err);
+        }
+    },
+});
+
 // ─── Internal helper queries (joined data lookups) ───────────
 
 import { internalQuery } from "./_generated/server";
@@ -381,5 +505,16 @@ export const getProposalContext = internalQuery({
         const districtUser = await ctx.db.get(need.postedByUserId);
         if (!educatorUser || !districtUser) return null;
         return { proposal, need, educatorUser, districtUser };
+    },
+});
+
+export const getNewNeedAlertContext = internalQuery({
+    args: { needId: v.id("needs"), recipientUserId: v.id("users") },
+    handler: async (ctx, args) => {
+        const need = await ctx.db.get(args.needId);
+        if (!need) return null;
+        const recipient = await ctx.db.get(args.recipientUserId);
+        if (!recipient) return null;
+        return { need, recipient };
     },
 });

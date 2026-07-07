@@ -17,6 +17,8 @@ export default defineSchema({
         termsVersion: v.optional(v.string()),
         privacyAcceptedAt: v.optional(v.number()),
         privacyVersion: v.optional(v.string()),
+        emailRemindersOptOut: v.optional(v.boolean()),
+        lastReminderEmailAt: v.optional(v.number()),
         createdAt: v.number(),
     }).index("by_clerk_id", ["clerkId"]),
 

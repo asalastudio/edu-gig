@@ -24,6 +24,7 @@ export default function EducatorSettingsPage() {
     const viewer = useQuery(api.users.viewer, hasClerk ? {} : "skip");
     const updateProfile = useMutation(api.educators.updateMyProfile);
     const updateMyName = useMutation(api.users.updateMyName);
+    const setEmailReminderPreference = useMutation(api.users.setEmailReminderPreference);
     const profileHref = mine ? `/browse/${mine._id}` : "/browse";
     const [businessName, setBusinessName] = useState("");
     const [headline, setHeadline] = useState("");
@@ -48,6 +49,10 @@ export default function EducatorSettingsPage() {
     const [savingName, setSavingName] = useState(false);
     const [nameMessage, setNameMessage] = useState<string | null>(null);
     const nameHydrated = useRef(false);
+
+    // checked = opted IN (emailRemindersOptOut is not true)
+    const [emailRemindersOn, setEmailRemindersOn] = useState(true);
+    const [emailPrefSaved, setEmailPrefSaved] = useState(false);
 
     useEffect(() => {
         if (!mine) return;
@@ -85,7 +90,20 @@ export default function EducatorSettingsPage() {
         nameHydrated.current = true;
         setFirstName(viewer.firstName ?? "");
         setLastName(viewer.lastName ?? "");
+        setEmailRemindersOn(viewer.emailRemindersOptOut !== true);
     }, [viewer]);
+
+    async function handleToggleEmailReminders(next: boolean) {
+        setEmailRemindersOn(next);
+        setEmailPrefSaved(false);
+        try {
+            await setEmailReminderPreference({ optOut: !next });
+            setEmailPrefSaved(true);
+        } catch {
+            // Revert the optimistic toggle if the save fails.
+            setEmailRemindersOn(!next);
+        }
+    }
 
     async function handleSaveName(e: React.FormEvent) {
         e.preventDefault();
@@ -185,6 +203,22 @@ export default function EducatorSettingsPage() {
                                             <PrimaryButton type="submit" disabled={savingName}>{savingName ? "Saving…" : "Save name"}</PrimaryButton>
                                         </div>
                                     </form>
+                                    <div className="flex flex-col gap-3 pt-2 border-t border-[var(--border-subtle)]">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-sm font-semibold text-[var(--text-primary)]">Email preferences</span>
+                                            <span className="text-sm text-[var(--text-secondary)]">Reminders and new-need alerts. Booking and account emails are always sent.</span>
+                                        </div>
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={emailRemindersOn}
+                                                onChange={(e) => handleToggleEmailReminders(e.target.checked)}
+                                                className="mt-0.5 h-4 w-4 rounded border-[var(--border-subtle)] accent-[var(--accent-primary)]"
+                                            />
+                                            <span className="text-sm text-[var(--text-primary)]">Email me reminders and new-need alerts</span>
+                                        </label>
+                                        {emailPrefSaved && <p className="text-sm font-medium text-[var(--text-secondary)]">Saved.</p>}
+                                    </div>
                                 </div>
                             ) : (
                                 <p className="text-sm text-[var(--text-secondary)]">

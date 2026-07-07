@@ -126,7 +126,7 @@ export default function EducatorNeedsPage() {
                 <div className="max-w-[1600px] w-full mx-auto px-8 lg:px-12 py-10 flex flex-col gap-10">
                     <PageHeader
                         title="Open Needs"
-                        description="Browse districts looking to hire."
+                        description="District-posted RFPs. Respond with a proposal — districts review and select."
                     />
 
                     {isSignedOut && (

@@ -34,7 +34,12 @@ function money(n: number): string {
     });
 }
 
-function renderLayout(opts: { title: string; bodyHtml: string }): string {
+function renderLayout(opts: { title: string; bodyHtml: string; unsubscribeUrl?: string }): string {
+    // Existing transactional templates leave `unsubscribeUrl` unset so the
+    // literal `{{unsubscribe_url}}` placeholder is preserved for downstream
+    // substitution. Non-transactional templates (e.g. reminders) pass a real
+    // URL so the footer link points at the recipient's settings/opt-out page.
+    const unsubscribeUrl = opts.unsubscribeUrl ?? "{{unsubscribe_url}}";
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -56,7 +61,7 @@ ${opts.bodyHtml}
 <div><strong>K12Gig</strong> — The K-12 Educator Marketplace</div>
 <div style="margin-top:6px;">
 You received this email because of activity on your K12Gig account.
-<a href="{{unsubscribe_url}}" style="color:${MUTED_COLOR};text-decoration:underline;">Unsubscribe</a>
+<a href="${unsubscribeUrl}" style="color:${MUTED_COLOR};text-decoration:underline;">Unsubscribe</a>
 </div>
 </td></tr>
 </table>
@@ -330,4 +335,94 @@ export function disputeCreatedAdminAlert(input: {
 <strong>Reason:</strong> ${escapeHtml(reason)}</p>`;
     const text = `Dispute flagged\nOrder: ${input.orderId}\nDispute: ${input.disputeId}\nAmount: ${money(input.amount)}\nReason: ${reason}`;
     return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+}
+
+// ─── 5. New need alert (RFP match) ──────────────────────────
+
+export type NewNeedAlertInput = {
+    orgName: string;
+    areaLabel: string;
+    gradeLevel?: string;
+    needsBoardUrl: string;
+};
+
+export function newNeedAlert(input: NewNeedAlertInput): EmailPayload {
+    const { orgName, areaLabel, gradeLevel, needsBoardUrl } = input;
+    const subject = `New district need matches your profile: ${areaLabel}`;
+
+    const gradeRow = gradeLevel
+        ? `  <tr><td style="padding:10px 16px;color:${MUTED_COLOR};">Grade level</td><td style="padding:10px 16px;">${escapeHtml(gradeLevel)}</td></tr>`
+        : "";
+
+    const bodyHtml = `
+<h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">A new district need matches your profile</h1>
+<p style="margin:0 0 16px;"><strong>${escapeHtml(orgName)}</strong> just posted an open need in an area you support. Respond with a proposal before it fills up.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px;background-color:${PANEL_COLOR};border-radius:8px;">
+  <tr><td style="padding:10px 16px;color:${MUTED_COLOR};width:160px;">District</td><td style="padding:10px 16px;font-weight:600;">${escapeHtml(orgName)}</td></tr>
+  <tr><td style="padding:10px 16px;color:${MUTED_COLOR};">Area of need</td><td style="padding:10px 16px;">${escapeHtml(areaLabel)}</td></tr>
+${gradeRow}
+</table>
+<p style="margin:0 0 0;">
+  <a href="${escapeHtml(needsBoardUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">View open needs</a>
+</p>
+`;
+
+    const text = [
+        `New district need matches your profile: ${areaLabel}`,
+        ``,
+        `${orgName} just posted an open need in an area you support.`,
+        ``,
+        `District: ${orgName}`,
+        `Area of need: ${areaLabel}`,
+        gradeLevel ? `Grade level: ${gradeLevel}` : ``,
+        ``,
+        `View open needs: ${needsBoardUrl}`,
+        ``,
+        `— K12Gig, The K-12 Educator Marketplace`,
+    ]
+        .filter(Boolean)
+        .join("\n");
+
+    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+}
+
+// ─── 6. Profile completion reminder (non-transactional) ─────
+
+export type ProfileCompletionReminderInput = {
+    firstName: string;
+    completePct: number;
+    settingsUrl: string;
+    unsubscribeUrl: string;
+};
+
+export function profileCompletionReminder(input: ProfileCompletionReminderInput): EmailPayload {
+    const { firstName, completePct, settingsUrl, unsubscribeUrl } = input;
+    const subject = `Finish your K12Gig profile so districts can find you`;
+    const pct = Math.max(0, Math.min(100, Math.round(completePct)));
+
+    const bodyHtml = `
+<h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">Your profile is ${pct}% complete</h1>
+<p style="margin:0 0 16px;">Hi ${escapeHtml(firstName)},</p>
+<p style="margin:0 0 16px;">Districts search K12Gig for educators like you every day — but a fuller profile gets far more views and proposal invitations. Add your areas of support, grade levels, and rates so the right districts can reach you.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px;background-color:${PANEL_COLOR};border-radius:8px;">
+  <tr><td style="padding:12px 16px;color:${MUTED_COLOR};width:180px;">Profile completeness</td><td style="padding:12px 16px;font-weight:700;color:${BRAND_COLOR};">${pct}%</td></tr>
+</table>
+<p style="margin:0 0 0;">
+  <a href="${escapeHtml(settingsUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Finish my profile</a>
+</p>
+`;
+
+    const text = [
+        `Finish your K12Gig profile so districts can find you`,
+        ``,
+        `Hi ${firstName},`,
+        ``,
+        `Your profile is ${pct}% complete. Districts search K12Gig for educators like you every day — a fuller profile gets more views and proposal invitations.`,
+        ``,
+        `Finish my profile: ${settingsUrl}`,
+        ``,
+        `— K12Gig, The K-12 Educator Marketplace`,
+    ].join("\n");
+
+    return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
 }

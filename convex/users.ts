@@ -275,6 +275,15 @@ export const clearAvatar = mutation({
     },
 });
 
+/** Toggles the viewer's opt-out for non-transactional emails (reminders + new-need alerts). */
+export const setEmailReminderPreference = mutation({
+    args: { optOut: v.boolean() },
+    handler: async (ctx, args) => {
+        const user = await requireViewerRow(ctx);
+        await ctx.db.patch(user._id, { emailRemindersOptOut: args.optOut });
+    },
+});
+
 /** Lets a user correct their display name (e.g. accounts created before onboarding collected names). */
 export const updateMyName = mutation({
     args: {

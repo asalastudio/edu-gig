@@ -12,6 +12,8 @@ export type EducatorProfileView = {
     headline: string;
     verificationTier: "basic" | "verified" | "premier";
     availabilityStatus: "open" | "limited" | "closed";
+    /** Human-readable engagement classifications, e.g. ["Freelance Consulting"]. */
+    engagementTypes?: string[];
     avatarUrl?: string;
     bio: string;
     yearsExperience: number;

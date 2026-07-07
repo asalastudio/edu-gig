@@ -285,6 +285,19 @@ export default function EducatorProfilePage() {
                                     <p className="text-[var(--text-secondary)] text-base mb-2">Led by {profile.secondaryName}</p>
                                 )}
                                 <p className="text-[var(--accent-primary)] font-bold text-lg md:text-xl">{profile.headline}</p>
+                                {profile.engagementTypes && profile.engagementTypes.length > 0 && (
+                                    <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-3">
+                                        {profile.engagementTypes.map((t) => (
+                                            <span
+                                                key={t}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--accent-primary)]/25 bg-[var(--accent-primary)]/10 text-sm font-bold text-[var(--accent-primary)]"
+                                            >
+                                                <Briefcase weight="fill" className="w-4 h-4" />
+                                                {t}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                                 <p className="text-[var(--text-secondary)] text-base mt-2 flex items-center justify-center md:justify-start gap-2">
                                     <MapPin weight="fill" className="w-5 h-5 text-[var(--text-tertiary)]" /> {profile.location}
                                 </p>

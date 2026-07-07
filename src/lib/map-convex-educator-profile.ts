@@ -1,7 +1,7 @@
 import type { Doc } from "@/convex/_generated/dataModel";
 import type { EducatorProfileView } from "@/lib/educator-profile-view";
 import { formatEducatorRateSummary } from "@/lib/onboarding";
-import { TAXONOMY, getAreaOfNeedLabel } from "@/lib/taxonomy";
+import { TAXONOMY, getAreaOfNeedLabel, getEngagementTypeLabel } from "@/lib/taxonomy";
 
 function initialsFromName(name: string): string {
     const parts = name.replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.)\s+/i, "").split(/\s+/);
@@ -83,6 +83,7 @@ export function mapConvexEducatorToProfileView(
         headline: educator.headline,
         verificationTier: tier,
         availabilityStatus: educator.availabilityStatus,
+        engagementTypes: educator.engagementTypes.map(getEngagementTypeLabel),
         avatarUrl: user.avatarUrl,
         bio: educator.bio,
         yearsExperience: educator.yearsExperience,

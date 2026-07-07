@@ -1,9 +1,9 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { PlayCircle, Star, ShieldCheck, Medal, GraduationCap, MapPin, CurrencyDollar } from "@phosphor-icons/react"
+import { PlayCircle, Star, ShieldCheck, Medal, GraduationCap, MapPin, CurrencyDollar, Briefcase } from "@phosphor-icons/react"
 import { Card } from "./card"
 import { VerificationBadge } from "./verification-badge"
 import { AvailabilityPill } from "./availability-pill"
-import { getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxonomy"
+import { getAreaOfNeedLabel, getCoverageRegionLabel, getEngagementTypeLabel } from "@/lib/taxonomy"
 import Link from "next/link";
 
 export interface EducatorCardProps {
@@ -85,6 +85,19 @@ export function EducatorCard({ educator }: { educator: EducatorCardProps }) {
                     <p className="text-sm text-[var(--text-secondary)] line-clamp-2 font-medium">
                         {educator.headline}
                     </p>
+                    {educator.engagementTypes.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {educator.engagementTypes.map((t) => (
+                                <span
+                                    key={t}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-[var(--accent-primary)]/25 bg-[var(--accent-primary)]/10 text-[11px] font-bold uppercase tracking-wide text-[var(--accent-primary)]"
+                                >
+                                    <Briefcase weight="fill" className="h-3 w-3" />
+                                    {getEngagementTypeLabel(t)}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* — Key Attributes (Icon heavy) ———————————————— */}

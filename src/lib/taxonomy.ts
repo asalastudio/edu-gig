@@ -188,6 +188,11 @@ export function getCoverageRegionLabel(id: string): string {
     return found?.label ?? id.replace(/_/g, " ");
 }
 
+export function getEngagementTypeLabel(id: string): string {
+    const found = TAXONOMY.engagementTypes.find((e) => e.id === id);
+    return found?.label ?? id.replace(/_/g, " ");
+}
+
 // Type exports for use across the app
 export type AreaOfNeedId = typeof TAXONOMY.areasOfNeed[number]['id'];
 export type GradeLevelId = typeof TAXONOMY.gradeLevelBands[number]['id'];

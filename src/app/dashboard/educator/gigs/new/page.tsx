@@ -42,8 +42,8 @@ export default function NewGigPage() {
                             district-posted needs with proposals on the Open Needs board.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3">
-                            <Link href="/dashboard/educator/needs">
-                                <PrimaryButton>Browse open needs</PrimaryButton>
+                            <Link href="/dashboard/board">
+                                <PrimaryButton>Browse the Gig Board</PrimaryButton>
                             </Link>
                             <Link
                                 href="/dashboard/educator/settings"

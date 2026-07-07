@@ -16,7 +16,6 @@ import {
     Gear,
     GraduationCap,
     List,
-    PlusCircle,
     Receipt,
     ShieldCheck,
     SquaresFour,
@@ -78,7 +77,7 @@ export function Sidebar() {
             // item is district-only; an educator would otherwise land on the
             // "Use a district account" gate.
             ...(!isEducator ? [{ href: "/browse", label: "Directory", icon: Users }] : []),
-            { href: isEducator ? "/dashboard/educator/needs" : "/post", label: isEducator ? "Open Needs" : "Post a Need", icon: isEducator ? Briefcase : PlusCircle },
+            { href: "/dashboard/board", label: "Gig Board", icon: Briefcase },
             { href: "/dashboard/messages", label: "Messages", icon: EnvelopeSimple, count: messagesBadge },
             { href: settingsHref, label: "Settings", icon: Gear },
         ];

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
@@ -63,6 +63,15 @@ export default function EducatorProfilePage() {
         api.credentials.listForEducatorProfile,
         useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
     );
+
+    // Educators must not be able to browse other educators. Bounce a signed-in
+    // educator to the shared Gig Board. Only redirect once the viewer is loaded
+    // and confirmed educator — never districts or signed-out users.
+    useEffect(() => {
+        if (viewer?.role === "educator") {
+            router.replace("/dashboard/board");
+        }
+    }, [viewer, router]);
 
     if (useConvexProfile && convexData === undefined) {
         return (

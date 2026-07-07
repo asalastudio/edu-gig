@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageHeader } from "@/components/shared/page-header";
@@ -44,8 +45,19 @@ const QUICK_FILTERS = [
 ];
 
 export default function BrowsePage() {
+    const router = useRouter();
     const viewer = useQuery(api.users.viewer, {});
     const districtOK = !!viewer && isDistrictRole(viewer.role);
+
+    // Educators must not be able to browse other educators. Bounce a signed-in
+    // educator to the shared Gig Board instead of showing a "use a district
+    // account" gate. Only redirect once the viewer is loaded and confirmed
+    // educator — never districts or signed-out users.
+    useEffect(() => {
+        if (viewer?.role === "educator") {
+            router.replace("/dashboard/board");
+        }
+    }, [viewer, router]);
     const districtMine = useQuery(api.districts.getMine, districtOK ? {} : "skip");
     const convexEducators = useQuery(
         api.educators.listForBrowse,

@@ -170,6 +170,48 @@ export const listMine = query({
     },
 });
 
+/**
+ * District workspace board: the same needs as `listMine`, each augmented with
+ * `proposalCount` (all proposals on the need) and `pendingCount` (still-pending
+ * proposals) so the Gig Board can surface "N proposals · M new" per card.
+ */
+export const listMineWithCounts = query({
+    args: {},
+    handler: async (ctx) => {
+        const user = await requireDistrictViewer(ctx);
+        const district = await findDistrictForUser(ctx, user._id);
+        const byDistrict = district
+            ? await ctx.db
+                  .query("needs")
+                  .withIndex("by_district", (q) => q.eq("districtId", district._id))
+                  .order("desc")
+                  .collect()
+            : [];
+        const byUser = await ctx.db
+            .query("needs")
+            .withIndex("by_posted_by", (q) => q.eq("postedByUserId", user._id))
+            .order("desc")
+            .collect();
+        const needs = Array.from(
+            new Map([...byDistrict, ...byUser].map((need) => [need._id, need])).values()
+        ).sort((a, b) => b.createdAt - a.createdAt);
+
+        const withCounts = [];
+        for (const need of needs) {
+            const proposals = await ctx.db
+                .query("proposals")
+                .withIndex("by_need", (q) => q.eq("needId", need._id))
+                .collect();
+            withCounts.push({
+                ...need,
+                proposalCount: proposals.length,
+                pendingCount: proposals.filter((p) => p.status === "pending").length,
+            });
+        }
+        return withCounts;
+    },
+});
+
 /** Lookup a single need (district only). */
 export const getById = query({
     args: { needId: v.id("needs") },

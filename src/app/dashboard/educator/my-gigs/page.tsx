@@ -63,8 +63,8 @@ export default function EducatorMyGigsPage() {
                     <div className="mt-6 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4 text-sm text-[var(--text-secondary)]">
                         <span className="font-semibold text-[var(--text-primary)]">Heads up:</span>{" "}
                         K12Gig now matches districts to you through your profile and the{" "}
-                        <Link href="/dashboard/educator/needs" className="font-bold text-[var(--accent-primary)] hover:underline">
-                            Open Needs board
+                        <Link href="/dashboard/board" className="font-bold text-[var(--accent-primary)] hover:underline">
+                            Gig Board
                         </Link>
                         {" "}— new gig listings are no longer created. Existing gigs stay bookable, and you can
                         deactivate them below at any time.
@@ -95,8 +95,8 @@ export default function EducatorMyGigsPage() {
                                 Districts find you through your profile in the Directory and by posting needs.
                                 Keep your profile complete and respond to open needs with proposals.
                             </p>
-                            <Link href="/dashboard/educator/needs">
-                                <PrimaryButton>Browse open needs</PrimaryButton>
+                            <Link href="/dashboard/board">
+                                <PrimaryButton>Browse the Gig Board</PrimaryButton>
                             </Link>
                         </Card>
                     ) : (

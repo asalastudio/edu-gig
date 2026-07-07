@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
 import { cn } from "@/lib/utils";
 import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
-import { ChatCircleText, MagnifyingGlass, PaperPlaneRight, UserCircle } from "@phosphor-icons/react";
+import { ChatCircleText, MagnifyingGlass, PaperPlaneRight, UserCircle, Briefcase } from "@phosphor-icons/react";
 
 export default function MessagesPage() {
     return (
@@ -29,6 +29,7 @@ function MessagesPageInner() {
     const returnTo = `/dashboard/messages${pendingRecipientId ? `?to=${encodeURIComponent(pendingRecipientId)}${pendingRecipientName ? `&name=${encodeURIComponent(pendingRecipientName)}` : ""}` : ""}`;
 
     const viewer = useQuery(api.users.viewer, {});
+    const isEducator = !!viewer && viewer.role === "educator";
     const conversations = useQuery(api.messages.listMyConversations, viewer ? {} : "skip");
     const markRead = useMutation(api.messages.markConversationRead);
     const sendMessage = useMutation(api.messages.send);
@@ -105,11 +106,17 @@ function MessagesPageInner() {
         messageEndRef.current?.scrollIntoView({ block: "end" });
     }, [activeConversation?.length, activeConversationId, selectedPendingRecipientId]);
 
-    const starterMessages = [
-        `Hi ${activeThreadName}, we'd like to confirm your availability for an upcoming need.`,
-        `Hi ${activeThreadName}, can you share a bit more about your fit for this role?`,
-        `Hi ${activeThreadName}, what details would help you decide if this request is a good match?`,
-    ];
+    const starterMessages = isEducator
+        ? [
+              { label: "Confirm availability", text: `Hi ${activeThreadName}, thanks for reaching out — I'm available and interested.` },
+              { label: "Share my fit", text: `Hi ${activeThreadName}, happy to share more about how I'd fit this need.` },
+              { label: "Send details", text: `Hi ${activeThreadName}, here are the details you asked about.` },
+          ]
+        : [
+              { label: "Ask availability", text: `Hi ${activeThreadName}, we'd like to confirm your availability for an upcoming need.` },
+              { label: "Ask about fit", text: `Hi ${activeThreadName}, can you share a bit more about your fit for this role?` },
+              { label: "Ask what they need", text: `Hi ${activeThreadName}, what details would help you decide if this request is a good match?` },
+          ];
 
     async function handleSend() {
         if (!activeCounterpartId) return;
@@ -143,14 +150,27 @@ function MessagesPageInner() {
                 <div className="max-w-[1200px] w-full mx-auto px-8 lg:px-12 py-10">
                     <PageHeader
                         title="Messages"
-                        description="Coordinate availability, request details, and next steps with educators."
+                        description={
+                            isEducator
+                                ? "Coordinate availability, details, and next steps with districts that reach out."
+                                : "Coordinate availability, request details, and next steps with educators."
+                        }
                         actions={
-                            <Link href="/browse">
-                                <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
-                                    <MagnifyingGlass className="h-4 w-4" />
-                                    Find educators
-                                </button>
-                            </Link>
+                            isEducator ? (
+                                <Link href="/dashboard/board">
+                                    <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
+                                        <Briefcase className="h-4 w-4" />
+                                        Gig Board
+                                    </button>
+                                </Link>
+                            ) : (
+                                <Link href="/browse">
+                                    <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
+                                        <MagnifyingGlass className="h-4 w-4" />
+                                        Find educators
+                                    </button>
+                                </Link>
+                            )
                         }
                     />
 
@@ -212,7 +232,9 @@ function MessagesPageInner() {
                                 {convList.length === 0 && !selectedPendingRecipientId ? (
                                     <div className="p-6 text-sm leading-6 text-[var(--text-secondary)]">
                                         <ChatCircleText className="mb-3 h-8 w-8 text-[var(--accent-primary)]" />
-                                        Start from an educator profile, then your district thread will appear here.
+                                        {isEducator
+                                            ? "No conversations yet. When a district messages you about a gig, the thread will appear here."
+                                            : "Start from an educator profile, then your district thread will appear here."}
                                     </div>
                                 ) : (
                                     convList.map((c) => (
@@ -283,7 +305,11 @@ function MessagesPageInner() {
                                 ) : !activeConversationId ? (
                                     <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-sm text-[var(--text-secondary)]">
                                         <ChatCircleText className="h-10 w-10 text-[var(--accent-primary)]" />
-                                        <p>Select a conversation or message an educator from the directory.</p>
+                                        <p>
+                                            {isEducator
+                                                ? "Select a conversation. Districts reach out here after reviewing your profile or proposal."
+                                                : "Select a conversation or message an educator from the directory."}
+                                        </p>
                                     </div>
                                 ) : activeConversation === undefined ? (
                                     <div className="flex h-full items-center justify-center text-sm text-[var(--text-secondary)]">
@@ -328,14 +354,14 @@ function MessagesPageInner() {
                                 >
                                     {(selectedPendingRecipientId || !hasMessages) && activeCounterpartId && (
                                         <div className="flex flex-wrap gap-2">
-                                            {starterMessages.map((message) => (
+                                            {starterMessages.map((starter) => (
                                                 <button
-                                                    key={message}
+                                                    key={starter.label}
                                                     type="button"
-                                                    onClick={() => setComposerValue(message)}
+                                                    onClick={() => setComposerValue(starter.text)}
                                                     className="rounded-full border border-[var(--border-subtle)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/40 hover:text-[var(--accent-primary)]"
                                                 >
-                                                    {message.startsWith(`Hi ${activeThreadName}, we'd`) ? "Ask availability" : message.includes("fit") ? "Ask about fit" : "Ask what they need"}
+                                                    {starter.label}
                                                 </button>
                                             ))}
                                         </div>

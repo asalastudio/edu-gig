@@ -109,6 +109,16 @@ export const listMyConversations = query({
     },
 });
 
+/** Count of unread messages the viewer has received — powers the Messages nav badge. */
+export const unreadCount = query({
+    args: {},
+    handler: async (ctx) => {
+        const user = await requireViewer(ctx);
+        const all = await ctx.db.query("messages").collect();
+        return all.filter((m) => m.recipientId === user._id && !m.read).length;
+    },
+});
+
 /** All messages in a conversation the viewer is part of. */
 export const listConversation = query({
     args: { conversationId: v.string() },

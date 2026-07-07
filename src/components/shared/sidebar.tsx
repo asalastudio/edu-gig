@@ -44,8 +44,10 @@ export function Sidebar() {
     const basePath = showAdminNav ? '/dashboard/admin' : isEducator ? '/dashboard/educator' : '/dashboard/district';
     const settingsHref = showAdminNav ? '' : isEducator ? '/dashboard/educator/settings' : '/dashboard/district/settings';
 
-    const unread = useQuery(api.notifications.unreadCount, viewer ? {} : "skip");
-    const messagesBadge = typeof unread === "number" ? unread : undefined;
+    // Badge the Messages item with unread MESSAGES only — not every notification
+    // type (new-need / proposal alerts), which would show a count with no thread.
+    const unread = useQuery(api.messages.unreadCount, viewer ? {} : "skip");
+    const messagesBadge = typeof unread === "number" && unread > 0 ? unread : undefined;
 
     const openMobileMenu = () => setMobileOpenPath(pathname);
     const closeMobileMenu = () => setMobileOpenPath(null);

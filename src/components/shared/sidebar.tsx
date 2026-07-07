@@ -74,7 +74,7 @@ export function Sidebar() {
         : [
             { href: basePath, label: "Dashboard", icon: SquaresFour },
             { href: "/browse", label: "Directory", icon: Users },
-            { href: isEducator ? "/dashboard/educator/my-gigs" : "/post", label: isEducator ? "My Gigs" : "Post a Need", icon: isEducator ? Briefcase : PlusCircle },
+            { href: isEducator ? "/dashboard/educator/needs" : "/post", label: isEducator ? "Open Needs" : "Post a Need", icon: isEducator ? Briefcase : PlusCircle },
             { href: "/dashboard/messages", label: "Messages", icon: EnvelopeSimple, count: messagesBadge },
             { href: settingsHref, label: "Settings", icon: Gear },
         ];

@@ -8,7 +8,7 @@ import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
 import { Card } from "@/components/shared/card";
-import { ArrowLeft, Briefcase, Plus } from "@phosphor-icons/react";
+import { ArrowLeft, Briefcase } from "@phosphor-icons/react";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { formatPrice } from "@/lib/map-review";
 import { demoGigCards, formatCreatedAt, mapGigsToCards, type GigCard } from "@/lib/map-gigs";
@@ -57,15 +57,18 @@ export default function EducatorMyGigsPage() {
                     </Link>
                     <PageHeader
                         title="My Gigs"
-                        description="Your service listings."
-                        actions={
-                            <Link href="/dashboard/educator/gigs/new">
-                                <PrimaryButton>
-                                    <Plus className="w-4 h-4" /> New gig
-                                </PrimaryButton>
-                            </Link>
-                        }
+                        description="Your existing service listings."
                     />
+
+                    <div className="mt-6 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-5 py-4 text-sm text-[var(--text-secondary)]">
+                        <span className="font-semibold text-[var(--text-primary)]">Heads up:</span>{" "}
+                        K12Gig now matches districts to you through your profile and the{" "}
+                        <Link href="/dashboard/educator/needs" className="font-bold text-[var(--accent-primary)] hover:underline">
+                            Open Needs board
+                        </Link>
+                        {" "}— new gig listings are no longer created. Existing gigs stay bookable, and you can
+                        deactivate them below at any time.
+                    </div>
 
                     {actionError && (
                         <p role="alert" className="mt-6 text-sm text-red-600 font-medium">
@@ -86,15 +89,14 @@ export default function EducatorMyGigsPage() {
                                 <Briefcase className="w-6 h-6 text-[var(--text-tertiary)]" />
                             </div>
                             <h3 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
-                                You haven&apos;t listed any services yet.
+                                No gig listings.
                             </h3>
                             <p className="text-sm text-[var(--text-secondary)] max-w-sm mb-6">
-                                Create your first gig so districts can book you for consulting, coaching, or substitute work.
+                                Districts find you through your profile in the Directory and by posting needs.
+                                Keep your profile complete and respond to open needs with proposals.
                             </p>
-                            <Link href="/dashboard/educator/gigs/new">
-                                <PrimaryButton>
-                                    <Plus className="w-4 h-4" /> Create your first gig
-                                </PrimaryButton>
+                            <Link href="/dashboard/educator/needs">
+                                <PrimaryButton>Browse open needs</PrimaryButton>
                             </Link>
                         </Card>
                     ) : (

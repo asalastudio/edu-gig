@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
@@ -110,8 +110,12 @@ function OnboardingWithClerk() {
     const [districtNceaId, setDistrictNceaId] = useState("");
     const [districtAction, setDistrictAction] = useState<DistrictFirstAction>("post_need");
 
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [businessName, setBusinessName] = useState("");
     const [headline, setHeadline] = useState("");
     const [bio, setBio] = useState("");
+    const [engagementTypes, setEngagementTypes] = useState<string[]>([...DEFAULT_ENGAGEMENT_TYPES]);
     const [yearsExperience, setYearsExperience] = useState("5");
     const [rateAmount, setRateAmount] = useState("");
     const [rateHourly, setRateHourly] = useState(true);
@@ -128,8 +132,8 @@ function OnboardingWithClerk() {
     const steps = isEducator ? EDUCATOR_STEPS : DISTRICT_STEPS;
     const finalStep = steps.length - 1;
     // Email/password sign-ups don't collect a name; avoid "Welcome, there."
-    const firstName = user?.firstName?.trim() || "";
-    const welcome = firstName ? `Welcome, ${firstName}.` : "Welcome.";
+    const clerkFirstName = user?.firstName?.trim() || "";
+    const welcome = clerkFirstName ? `Welcome, ${clerkFirstName}.` : "Welcome.";
 
     const educatorCompletion = useMemo(
         () =>
@@ -174,6 +178,16 @@ function OnboardingWithClerk() {
         setAcceptedLegal(false);
     }, [intent]);
 
+    // Seed the name fields once from the Clerk profile so returning users don't
+    // retype what Clerk already knows; later edits stay under the user's control.
+    const nameSeeded = useRef(false);
+    useEffect(() => {
+        if (!user || nameSeeded.current) return;
+        nameSeeded.current = true;
+        setFirstName(user.firstName?.trim() ?? "");
+        setLastName(user.lastName?.trim() ?? "");
+    }, [user]);
+
     function validateStep(targetStep = step) {
         if (!intent) return null;
         if (intent === "district") {
@@ -186,12 +200,14 @@ function OnboardingWithClerk() {
         }
 
         if (targetStep === 0) {
+            if (firstName.trim().length === 0) return "Add your first name.";
             if (headline.trim().length < 12) return "Add a professional headline with at least a little context.";
             if (bio.trim().length < 40) return "Add a short bio so districts know what outcomes you support.";
         }
         if (targetStep === 1) {
             if (areasOfNeed.length === 0) return "Choose at least one support type.";
             if (gradeLevelBands.length === 0) return "Choose at least one grade band.";
+            if (engagementTypes.length === 0) return "Choose at least one engagement type.";
         }
         if (targetStep === 2) {
             if (coverageRegions.length === 0) return "Choose at least one coverage area.";
@@ -241,6 +257,9 @@ function OnboardingWithClerk() {
         try {
             await completeOnboarding({
                 role: intent === "educator" ? "educator" : roleForDistrictOnboarding(districtRole),
+                firstName: intent === "educator" ? firstName.trim() : undefined,
+                lastName: intent === "educator" ? lastName.trim() : undefined,
+                businessName: intent === "educator" ? businessName.trim() || undefined : undefined,
                 organizationName: intent === "district" ? organizationName.trim() : undefined,
                 districtState: intent === "district" ? districtState.trim().toUpperCase() : undefined,
                 districtRegion: intent === "district" ? districtRegion : undefined,
@@ -254,7 +273,7 @@ function OnboardingWithClerk() {
                 dailyRate: intent === "educator" ? dailyRate : undefined,
                 gradeLevelBands: intent === "educator" ? gradeLevelBands : undefined,
                 areasOfNeed: intent === "educator" ? areasOfNeed : undefined,
-                engagementTypes: intent === "educator" ? [...DEFAULT_ENGAGEMENT_TYPES] : undefined,
+                engagementTypes: intent === "educator" ? (engagementTypes.length ? engagementTypes : [...DEFAULT_ENGAGEMENT_TYPES]) : undefined,
                 coverageRegions: intent === "educator" ? coverageRegions : undefined,
                 availabilityStatus: intent === "educator" ? availabilityStatus : undefined,
                 termsVersion: TERMS_VERSION,
@@ -346,10 +365,18 @@ function OnboardingWithClerk() {
                             ) : (
                                 <EducatorStep
                                     step={step}
+                                    firstName={firstName}
+                                    onFirstNameChange={setFirstName}
+                                    lastName={lastName}
+                                    onLastNameChange={setLastName}
+                                    businessName={businessName}
+                                    onBusinessNameChange={setBusinessName}
                                     headline={headline}
                                     onHeadlineChange={setHeadline}
                                     bio={bio}
                                     onBioChange={setBio}
+                                    engagementTypes={engagementTypes}
+                                    onEngagementTypesChange={setEngagementTypes}
                                     yearsExperience={yearsExperience}
                                     onYearsExperienceChange={setYearsExperience}
                                     rateAmount={rateAmount}
@@ -614,10 +641,18 @@ function DistrictStep(props: {
 
 function EducatorStep(props: {
     step: number;
+    firstName: string;
+    onFirstNameChange: (value: string) => void;
+    lastName: string;
+    onLastNameChange: (value: string) => void;
+    businessName: string;
+    onBusinessNameChange: (value: string) => void;
     headline: string;
     onHeadlineChange: (value: string) => void;
     bio: string;
     onBioChange: (value: string) => void;
+    engagementTypes: string[];
+    onEngagementTypesChange: (value: string[]) => void;
     yearsExperience: string;
     onYearsExperienceChange: (value: string) => void;
     rateAmount: string;
@@ -644,13 +679,42 @@ function EducatorStep(props: {
                     title="Start with professional credibility."
                     description="District leaders scan for role clarity, outcomes, and evidence that you understand K-12 environments."
                 />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="First name">
+                        <input
+                            value={props.firstName}
+                            onChange={(e) => props.onFirstNameChange(e.target.value)}
+                            placeholder="Jordan"
+                            autoFocus
+                            className="field-control"
+                        />
+                    </Field>
+                    <Field label="Last name" hint="Optional">
+                        <input
+                            value={props.lastName}
+                            onChange={(e) => props.onLastNameChange(e.target.value)}
+                            placeholder="Lee"
+                            className="field-control"
+                        />
+                    </Field>
+                    <Field label="Business or organization name" hint="Optional" className="md:col-span-2">
+                        <input
+                            value={props.businessName}
+                            onChange={(e) => props.onBusinessNameChange(e.target.value)}
+                            placeholder="SparkSum Learning"
+                            className="field-control"
+                        />
+                        <span className="text-xs font-semibold text-[var(--text-tertiary)]">
+                            Shown as your public profile name — e.g. SparkSum Learning.
+                        </span>
+                    </Field>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px] gap-4">
                     <Field label="Professional headline">
                         <input
                             value={props.headline}
                             onChange={(e) => props.onHeadlineChange(e.target.value)}
                             placeholder="Math interventionist and instructional coach"
-                            autoFocus
                             className="field-control"
                         />
                     </Field>
@@ -696,6 +760,12 @@ function EducatorStep(props: {
                     values={TAXONOMY.gradeLevelBands.filter((grade) => grade.id !== "other")}
                     selected={props.gradeLevelBands}
                     onChange={props.onGradeLevelBandsChange}
+                />
+                <MultiSelectGroup
+                    label="Engagement types"
+                    values={TAXONOMY.engagementTypes}
+                    selected={props.engagementTypes}
+                    onChange={props.onEngagementTypesChange}
                 />
             </div>
         );
@@ -766,10 +836,17 @@ function EducatorStep(props: {
             </div>
             <SummaryGrid
                 items={[
+                    ...(props.businessName.trim() ? [["Business", props.businessName.trim()] as [string, string]] : []),
                     ["Headline", props.headline],
                     ["Experience", `${Number(props.yearsExperience) || 0} years`],
                     ["Areas", props.areasOfNeed.length ? `${props.areasOfNeed.length} selected` : "None selected"],
                     ["Grades", props.gradeLevelBands.length ? `${props.gradeLevelBands.length} selected` : "None selected"],
+                    [
+                        "Engagement types",
+                        props.engagementTypes
+                            .map((id) => TAXONOMY.engagementTypes.find((type) => type.id === id)?.label ?? id)
+                            .join(", ") || "None selected",
+                    ],
                     ["Coverage", props.coverageRegions.length ? `${props.coverageRegions.length} selected` : "None selected"],
                     [
                         "Rate",
@@ -780,6 +857,9 @@ function EducatorStep(props: {
                     ],
                 ]}
             />
+            <p className="text-sm font-medium text-[var(--text-tertiary)]">
+                You can add your business logo from Educator settings after setup.
+            </p>
         </div>
     );
 }

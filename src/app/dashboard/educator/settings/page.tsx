@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { UserButton, SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
@@ -8,10 +8,12 @@ import { api } from "@/convex/_generated/api";
 import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { CredentialsSection } from "@/components/educator/credentials-section";
+import { AvatarUpload } from "@/components/educator/avatar-upload";
+import { TeamMembersEditor, type TeamMember } from "@/components/educator/team-members-editor";
 import { PrimaryButton } from "@/components/shared/button";
 import { RateField } from "@/components/educator/rate-field";
 import { RegionCoverageLink } from "@/components/shared/region-coverage-link";
-import { DEFAULT_ENGAGEMENT_TYPES, EDUCATOR_AVAILABILITY_OPTIONS } from "@/lib/onboarding";
+import { EDUCATOR_AVAILABILITY_OPTIONS } from "@/lib/onboarding";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
@@ -19,10 +21,14 @@ import { cn } from "@/lib/utils";
 export default function EducatorSettingsPage() {
     const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     const mine = useQuery(api.educators.getMine, hasClerk ? {} : "skip");
+    const viewer = useQuery(api.users.viewer, hasClerk ? {} : "skip");
     const updateProfile = useMutation(api.educators.updateMyProfile);
+    const updateMyName = useMutation(api.users.updateMyName);
     const profileHref = mine ? `/browse/${mine._id}` : "/browse";
+    const [businessName, setBusinessName] = useState("");
     const [headline, setHeadline] = useState("");
     const [bio, setBio] = useState("");
+    const [presenterBio, setPresenterBio] = useState("");
     const [yearsExperience, setYearsExperience] = useState("0");
     const [rateAmount, setRateAmount] = useState("");
     const [rateHourly, setRateHourly] = useState(false);
@@ -30,14 +36,29 @@ export default function EducatorSettingsPage() {
     const [availabilityStatus, setAvailabilityStatus] = useState<"open" | "limited" | "closed">("open");
     const [gradeLevels, setGradeLevels] = useState<string[]>([]);
     const [areas, setAreas] = useState<string[]>([]);
+    const [engagementTypes, setEngagementTypes] = useState<string[]>([]);
     const [coverageRegions, setCoverageRegions] = useState<string[]>([]);
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
     const [saving, setSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
+    const hydrated = useRef(false);
+
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [savingName, setSavingName] = useState(false);
+    const [nameMessage, setNameMessage] = useState<string | null>(null);
+    const nameHydrated = useRef(false);
 
     useEffect(() => {
         if (!mine) return;
+        // Seed the form once; later `mine` updates (e.g. after a save) must not
+        // clobber in-progress edits, especially the teamMembers array.
+        if (hydrated.current) return;
+        hydrated.current = true;
+        setBusinessName(mine.businessName ?? "");
         setHeadline(mine.headline);
         setBio(mine.bio);
+        setPresenterBio(mine.presenterBio ?? "");
         setYearsExperience(String(mine.yearsExperience));
         const hasHourly = typeof mine.hourlyRate === "number";
         const hasDaily = typeof mine.dailyRate === "number";
@@ -53,8 +74,36 @@ export default function EducatorSettingsPage() {
         setAvailabilityStatus(mine.availabilityStatus);
         setGradeLevels(mine.gradeLevelBands);
         setAreas(mine.areasOfNeed);
+        setEngagementTypes(mine.engagementTypes ?? []);
         setCoverageRegions(mine.coverageRegions);
+        setTeamMembers(mine.teamMembers ?? []);
     }, [mine]);
+
+    useEffect(() => {
+        if (!viewer) return;
+        if (nameHydrated.current) return;
+        nameHydrated.current = true;
+        setFirstName(viewer.firstName ?? "");
+        setLastName(viewer.lastName ?? "");
+    }, [viewer]);
+
+    async function handleSaveName(e: React.FormEvent) {
+        e.preventDefault();
+        setNameMessage(null);
+        if (!firstName.trim()) {
+            setNameMessage("First name is required.");
+            return;
+        }
+        setSavingName(true);
+        try {
+            await updateMyName({ firstName: firstName.trim(), lastName: lastName.trim() });
+            setNameMessage("Name updated.");
+        } catch (err) {
+            setNameMessage(err instanceof Error ? err.message : "Could not save name.");
+        } finally {
+            setSavingName(false);
+        }
+    }
 
     function toggle(list: string[], id: string, setter: React.Dispatch<React.SetStateAction<string[]>>) {
         setter(list.includes(id) ? list.filter((value) => value !== id) : [...list, id]);
@@ -67,15 +116,18 @@ export default function EducatorSettingsPage() {
         try {
             const amount = rateAmount ? Number(rateAmount) : undefined;
             await updateProfile({
+                businessName: businessName.trim(),
                 headline: headline.trim(),
                 bio: bio.trim(),
+                presenterBio: presenterBio.trim(),
                 yearsExperience: Number(yearsExperience) || 0,
                 hourlyRate: rateHourly && amount ? amount : undefined,
                 dailyRate: rateDaily && amount ? amount : undefined,
                 availabilityStatus,
                 gradeLevelBands: gradeLevels,
                 areasOfNeed: areas,
-                engagementTypes: [...DEFAULT_ENGAGEMENT_TYPES],
+                engagementTypes: engagementTypes.length ? engagementTypes : ["consulting"],
+                teamMembers,
                 coverageRegions,
             });
             setSaveMessage("Profile updated.");
@@ -105,11 +157,34 @@ export default function EducatorSettingsPage() {
                         <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm">
                             <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-4">Account</h2>
                             {hasClerk ? (
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-                                    <UserButton />
-                                    <p className="text-sm text-[var(--text-secondary)]">
-                                        Manage your profile and sign-in methods.
-                                    </p>
+                                <div className="flex flex-col gap-8">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+                                        <UserButton />
+                                        <p className="text-sm text-[var(--text-secondary)]">
+                                            Manage your profile and sign-in methods.
+                                        </p>
+                                    </div>
+                                    <AvatarUpload />
+                                    <form onSubmit={handleSaveName} className="flex flex-col gap-4">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-sm font-semibold text-[var(--text-primary)]">Display name on K12Gig</span>
+                                            <span className="text-sm text-[var(--text-secondary)]">This name appears on your public profile and directory card.</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="flex flex-col gap-2">
+                                                <label htmlFor="firstName" className="text-sm font-semibold text-[var(--text-primary)]">First name</label>
+                                                <input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
+                                            </div>
+                                            <div className="flex flex-col gap-2">
+                                                <label htmlFor="lastName" className="text-sm font-semibold text-[var(--text-primary)]">Last name</label>
+                                                <input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
+                                            </div>
+                                        </div>
+                                        {nameMessage && <p className="text-sm font-medium text-[var(--text-secondary)]">{nameMessage}</p>}
+                                        <div>
+                                            <PrimaryButton type="submit" disabled={savingName}>{savingName ? "Saving…" : "Save name"}</PrimaryButton>
+                                        </div>
+                                    </form>
                                 </div>
                             ) : (
                                 <p className="text-sm text-[var(--text-secondary)]">
@@ -123,12 +198,22 @@ export default function EducatorSettingsPage() {
                             {mine ? (
                                 <form onSubmit={handleSave} className="flex flex-col gap-6">
                                     <div className="flex flex-col gap-2">
+                                        <label htmlFor="businessName" className="text-sm font-semibold text-[var(--text-primary)]">Business / organization name (optional)</label>
+                                        <input id="businessName" value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
+                                        <p className="text-sm text-[var(--text-secondary)]">Shown as your profile headline. Your personal name appears beneath it.</p>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
                                         <label htmlFor="headline" className="text-sm font-semibold text-[var(--text-primary)]">Headline</label>
                                         <input id="headline" value={headline} onChange={(e) => setHeadline(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="bio" className="text-sm font-semibold text-[var(--text-primary)]">Bio</label>
                                         <textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={5} className="rounded-lg border border-[var(--border-subtle)] px-4 py-3 text-sm" />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label htmlFor="presenterBio" className="text-sm font-semibold text-[var(--text-primary)]">Presenter bio for SCECH applications (optional)</label>
+                                        <textarea id="presenterBio" value={presenterBio} onChange={(e) => setPresenterBio(e.target.value)} rows={4} className="rounded-lg border border-[var(--border-subtle)] px-4 py-3 text-sm" />
+                                        <p className="text-sm text-[var(--text-secondary)]">Districts can copy this bio when filing Michigan SCECH continuing-education paperwork.</p>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="flex flex-col gap-2">
@@ -159,6 +244,7 @@ export default function EducatorSettingsPage() {
                                     {[
                                         { label: "Support types", values: TAXONOMY.areasOfNeed, selected: areas, setter: setAreas },
                                         { label: "Grade levels", values: TAXONOMY.gradeLevelBands.filter((g) => g.id !== "other"), selected: gradeLevels, setter: setGradeLevels },
+                                        { label: "Engagement types", values: TAXONOMY.engagementTypes, selected: engagementTypes, setter: setEngagementTypes },
                                         { label: "Coverage areas", values: TAXONOMY.coverageRegions, selected: coverageRegions, setter: setCoverageRegions },
                                     ].map((group) => (
                                         <div key={group.label} className="flex flex-col gap-3">
@@ -183,6 +269,10 @@ export default function EducatorSettingsPage() {
                                             {group.label === "Coverage areas" && <RegionCoverageLink />}
                                         </div>
                                     ))}
+                                    <div className="flex flex-col gap-3">
+                                        <span className="text-sm font-semibold text-[var(--text-primary)]">Team</span>
+                                        <TeamMembersEditor value={teamMembers} onChange={setTeamMembers} />
+                                    </div>
                                     {saveMessage && <p className="text-sm font-medium text-[var(--text-secondary)]">{saveMessage}</p>}
                                     <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
                                         <PrimaryButton type="submit" disabled={saving}>{saving ? "Saving…" : "Save public profile"}</PrimaryButton>

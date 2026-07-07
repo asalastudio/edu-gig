@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { mapConvexEducatorToProfileView } from "./map-convex-educator-profile";
+import {
+    mapConvexEducatorToProfileView,
+    type PublicCredentialRow,
+} from "./map-convex-educator-profile";
 
 const user = {
     _id: "user_1" as Id<"users">,
@@ -80,5 +83,120 @@ describe("mapConvexEducatorToProfileView", () => {
         expect(view.rateUnit).toBe("day");
         expect(view.rateLabel).toBe("$650/day");
         expect(view.availableDays.M.am).toBe(false);
+    });
+
+    it("shows the business name as the headline with the personal name secondary", () => {
+        const business = {
+            ...educator,
+            businessName: "SparkSum Learning",
+        } satisfies Doc<"educators">;
+
+        const view = mapConvexEducatorToProfileView(business, user);
+
+        expect(view.name).toBe("SparkSum Learning");
+        expect(view.secondaryName).toBe("Dr. Sarah Jenkins");
+        expect(view.initials).toBe("SL");
+    });
+
+    it("never shows the email as the name even when the personal name is empty", () => {
+        const business = {
+            ...educator,
+            businessName: "SparkSum Learning",
+        } satisfies Doc<"educators">;
+        const nameless = { ...user, firstName: "", lastName: "" } satisfies Doc<"users">;
+
+        const view = mapConvexEducatorToProfileView(business, nameless);
+
+        expect(view.name).toBe("SparkSum Learning");
+        expect(view.secondaryName).toBeUndefined();
+    });
+
+    it("keeps personal-name behavior unchanged when no business name is set", () => {
+        const view = mapConvexEducatorToProfileView(educator, user);
+        expect(view.name).toBe("Dr. Sarah Jenkins");
+        expect(view.secondaryName).toBeUndefined();
+    });
+
+    it("maps real credential rows when provided", () => {
+        const rows: PublicCredentialRow[] = [
+            {
+                id: "cred_1",
+                type: "state_license",
+                title: "Professional Teaching Certificate",
+                issuingBody: "MDE",
+                state: "MI",
+                issueDate: "2020-01-01",
+                expiryDate: "2027-06-30",
+                verified: true,
+                hasFile: true,
+            },
+            {
+                id: "cred_2",
+                type: "certification",
+                title: "Data Coach Certification",
+                issuingBody: "Learning Forward",
+                issueDate: "2023-05-01",
+                verified: false,
+                hasFile: false,
+            },
+        ];
+
+        const view = mapConvexEducatorToProfileView(educator, user, rows);
+
+        expect(view.licenses).toHaveLength(2);
+        expect(view.licenses[0]).toMatchObject({
+            type: "Professional Teaching Certificate",
+            issuer: "MDE (MI)",
+            status: "Verified",
+            expiry: "2027-06-30",
+            credentialId: "cred_1",
+            hasFile: true,
+        });
+        expect(view.licenses[1]).toMatchObject({
+            issuer: "Learning Forward",
+            status: "Pending",
+            expiry: "—",
+            hasFile: false,
+        });
+        expect(view.certCount).toBe(2);
+    });
+
+    it("keeps tier placeholder licenses when credentials are not fetched", () => {
+        const view = mapConvexEducatorToProfileView(educator, user);
+        expect(view.licenses).toEqual([
+            {
+                type: "Professional credentials",
+                issuer: "State / district records",
+                status: "Verified",
+                expiry: "—",
+            },
+        ]);
+    });
+
+    it("returns an empty credentials list (not placeholders) for a fetched empty set", () => {
+        const view = mapConvexEducatorToProfileView(educator, user, []);
+        expect(view.licenses).toEqual([]);
+        expect(view.certCount).toBe(0);
+    });
+
+    it("passes through presenter bio and team members", () => {
+        const full = {
+            ...educator,
+            presenterBio: "Laura leads SCECH-accredited data workshops.",
+            teamMembers: [
+                { name: "Alex Partner", title: "Co-founder", bio: "Runs literacy strand." },
+            ],
+        } satisfies Doc<"educators">;
+
+        const view = mapConvexEducatorToProfileView(full, user);
+
+        expect(view.presenterBio).toBe("Laura leads SCECH-accredited data workshops.");
+        expect(view.teamMembers).toEqual([
+            { name: "Alex Partner", title: "Co-founder", bio: "Runs literacy strand." },
+        ]);
+
+        const bare = mapConvexEducatorToProfileView(educator, user);
+        expect(bare.presenterBio).toBeUndefined();
+        expect(bare.teamMembers).toBeUndefined();
     });
 });

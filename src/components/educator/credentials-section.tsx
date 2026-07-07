@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { PrimaryButton } from "@/components/shared/button";
+import { CredentialFileLink } from "@/components/shared/credential-file-link";
 import { isCheckrEnabled } from "@/lib/launch-flags";
 import {
     formatCredentialType,
@@ -21,6 +22,7 @@ type CredentialRow = {
     issueDate: string;
     expiryDate?: string;
     documentUrl?: string;
+    storageId?: string;
     verified: boolean;
 };
 
@@ -195,7 +197,7 @@ export function CredentialsSection() {
                         Credentials &amp; Verification
                     </h2>
                     <p className="text-sm text-[var(--text-secondary)] mt-1">
-                        Upload licenses, certifications, and degrees. Districts reference these when placing you.
+                        Upload licenses, certifications, and degrees. Districts reference these when placing you. Credentials you add here appear on your public profile.
                     </p>
                 </div>
                 {!isDemo && (
@@ -349,6 +351,9 @@ export function CredentialsSection() {
                                     <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md">
                                         Verified
                                     </span>
+                                )}
+                                {!isDemo && (c.storageId || c.documentUrl) && (
+                                    <CredentialFileLink credentialId={c._id} />
                                 )}
                                 {!isDemo && (
                                     <button

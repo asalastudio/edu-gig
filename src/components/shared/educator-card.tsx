@@ -9,6 +9,8 @@ import Link from "next/link";
 export interface EducatorCardProps {
     id: string;
     name: string;
+    /** Personal name, shown as a small secondary line when a business name is set. */
+    secondaryName?: string;
     headline: string;
     avatarUrl?: string;
     verificationTier: 'basic' | 'verified' | 'premier';
@@ -75,6 +77,11 @@ export function EducatorCard({ educator }: { educator: EducatorCardProps }) {
                         </h3>
                         <VerificationBadge tier={educator.verificationTier} />
                     </div>
+                    {educator.secondaryName && (
+                        <p className="text-xs font-semibold text-[var(--text-secondary)] line-clamp-1">
+                            {educator.secondaryName}
+                        </p>
+                    )}
                     <p className="text-sm text-[var(--text-secondary)] line-clamp-2 font-medium">
                         {educator.headline}
                     </p>

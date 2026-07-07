@@ -16,6 +16,8 @@ import { Sidebar } from "@/components/shared/sidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { mapConvexEducatorToProfileView } from "@/lib/map-convex-educator-profile";
+import { CopyButton } from "@/components/shared/copy-button";
+import { CredentialFileLink } from "@/components/shared/credential-file-link";
 import { isDistrictRole } from "@/lib/roles";
 import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
 import { formatPrice } from "@/lib/map-review";
@@ -57,6 +59,10 @@ export default function EducatorProfilePage() {
         api.reviews.listForEducator,
         useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
     );
+    const credentialRows = useQuery(
+        api.credentials.listForEducatorProfile,
+        useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
+    );
 
     if (useConvexProfile && convexData === undefined) {
         return (
@@ -86,7 +92,11 @@ export default function EducatorProfilePage() {
 
     const profile =
         useConvexProfile && convexData
-            ? mapConvexEducatorToProfileView(convexData.educator, convexData.user)
+            ? mapConvexEducatorToProfileView(
+                  convexData.educator,
+                  convexData.user,
+                  credentialRows ?? undefined
+              )
             : null;
 
     const convexRecipientUserId: string | null =
@@ -120,7 +130,9 @@ export default function EducatorProfilePage() {
         setMessageError(null);
         const firstName = convexData?.user.firstName ?? "";
         const lastName = convexData?.user.lastName ?? "";
-        const displayName = `${firstName} ${lastName}`.trim();
+        // Prefer the business name districts see (profile.name); fall back to the
+        // educator's personal name when no business name is set.
+        const displayName = profile?.name ?? `${firstName} ${lastName}`.trim();
 
         if (!viewer) {
             const next = convexRecipientUserId
@@ -260,6 +272,9 @@ export default function EducatorProfilePage() {
                                     <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)]">{profile.name}</h1>
                                     <VerificationBadge tier={profile.verificationTier} />
                                 </div>
+                                {profile.secondaryName && (
+                                    <p className="text-[var(--text-secondary)] text-base mb-2">Led by {profile.secondaryName}</p>
+                                )}
                                 <p className="text-[var(--accent-primary)] font-bold text-lg md:text-xl">{profile.headline}</p>
                                 <p className="text-[var(--text-secondary)] text-base mt-2 flex items-center justify-center md:justify-start gap-2">
                                     <MapPin weight="fill" className="w-5 h-5 text-[var(--text-tertiary)]" /> {profile.location}
@@ -344,6 +359,24 @@ export default function EducatorProfilePage() {
                                     <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Professional Overview</h2>
                                     <p className="text-lg text-[var(--text-secondary)] leading-relaxed">{profile.bio}</p>
                                 </div>
+                                {profile.teamMembers && profile.teamMembers.length > 0 && (
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Our team</h2>
+                                        <div className="flex flex-col gap-4">
+                                            {profile.teamMembers.map((member, i) => (
+                                                <div key={i} className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
+                                                    <p className="font-semibold text-[var(--text-primary)] text-base">{member.name}</p>
+                                                    {member.title && (
+                                                        <p className="text-sm text-[var(--text-secondary)]">{member.title}</p>
+                                                    )}
+                                                    {member.bio && (
+                                                        <p className="mt-2 text-[var(--text-secondary)] leading-relaxed">{member.bio}</p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 {profile.videoIntro && (
                                     <div>
                                         <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Video Introduction</h2>
@@ -397,40 +430,98 @@ export default function EducatorProfilePage() {
                                 )}
                             </TabsContent>
 
-                            <TabsContent value="credentials" className="mt-0 outline-none animate-in fade-in duration-300">
-                                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Licenses & Certifications</h2>
-                                <div className="overflow-x-auto border border-[var(--border-subtle)] rounded-lg">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead className="bg-[var(--bg-subtle)] text-[var(--text-secondary)] uppercase tracking-wider font-bold text-sm border-b border-[var(--border-subtle)]">
-                                            <tr>
-                                                <th className="py-4 px-6">Credential</th>
-                                                <th className="py-4 px-6">Issuer</th>
-                                                <th className="py-4 px-6">Status</th>
-                                                <th className="py-4 px-6">Expiry</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-[var(--border-subtle)]">
-                                            {profile.licenses.map((lic, i) => (
-                                                <tr key={i} className="hover:bg-[var(--bg-hover)] transition-colors">
-                                                    <td className="py-5 px-6 font-bold text-[var(--text-primary)] text-base">{lic.type}</td>
-                                                    <td className="py-5 px-6 text-[var(--text-secondary)] font-medium text-base">{lic.issuer}</td>
-                                                    <td className="py-5 px-6">
-                                                        {lic.status === "Verified" ? (
-                                                            <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg text-sm">
-                                                                <CheckCircle weight="fill" className="w-4 h-4" /> Verified
-                                                            </span>
-                                                        ) : (
-                                                            <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] font-bold bg-[var(--bg-active)] border border-[var(--border-strong)] px-3 py-1.5 rounded-lg text-sm">
-                                                                <Clock weight="bold" className="w-4 h-4" /> Pending
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-5 px-6 text-[var(--text-secondary)] font-medium text-base">{lic.expiry}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                            <TabsContent value="credentials" className="mt-0 outline-none animate-in fade-in duration-300 flex flex-col gap-8">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Licenses & Certifications</h2>
+                                    {profile.licenses.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center p-12 bg-[var(--bg-subtle)] rounded-lg border border-[var(--border-subtle)] text-center">
+                                            <div className="w-16 h-16 rounded-full bg-white border border-[var(--border-subtle)] flex items-center justify-center mb-4">
+                                                <Medal weight="regular" className="w-8 h-8 text-[var(--text-tertiary)]" />
+                                            </div>
+                                            <h3 className="text-lg font-heading font-bold text-[var(--text-primary)] mb-2">No credentials uploaded yet</h3>
+                                            <p className="text-[var(--text-secondary)] max-w-md">This educator hasn&apos;t added licenses or certifications to their profile. You can message them to request documentation before booking.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-x-auto border border-[var(--border-subtle)] rounded-lg">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead className="bg-[var(--bg-subtle)] text-[var(--text-secondary)] uppercase tracking-wider font-bold text-sm border-b border-[var(--border-subtle)]">
+                                                    <tr>
+                                                        <th className="py-4 px-6">Credential</th>
+                                                        <th className="py-4 px-6">Issuer</th>
+                                                        <th className="py-4 px-6">Status</th>
+                                                        <th className="py-4 px-6">Expiry</th>
+                                                        <th className="py-4 px-6">File</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-[var(--border-subtle)]">
+                                                    {profile.licenses.map((lic, i) => (
+                                                        <tr key={i} className="hover:bg-[var(--bg-hover)] transition-colors">
+                                                            <td className="py-5 px-6 font-bold text-[var(--text-primary)] text-base">{lic.type}</td>
+                                                            <td className="py-5 px-6 text-[var(--text-secondary)] font-medium text-base">{lic.issuer}</td>
+                                                            <td className="py-5 px-6">
+                                                                {lic.status === "Verified" ? (
+                                                                    <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg text-sm">
+                                                                        <CheckCircle weight="fill" className="w-4 h-4" /> Verified
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] font-bold bg-[var(--bg-active)] border border-[var(--border-strong)] px-3 py-1.5 rounded-lg text-sm">
+                                                                        <Clock weight="bold" className="w-4 h-4" /> Pending
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td className="py-5 px-6 text-[var(--text-secondary)] font-medium text-base">{lic.expiry}</td>
+                                                            <td className="py-5 px-6">
+                                                                {lic.hasFile && lic.credentialId ? (
+                                                                    <CredentialFileLink credentialId={lic.credentialId} />
+                                                                ) : (
+                                                                    <span className="text-[var(--text-tertiary)]">&mdash;</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {profile.presenterBio && (
+                                    <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-subtle)] p-6">
+                                        <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+                                            <h3 className="font-heading text-lg font-bold text-[var(--text-primary)]">Presenter bio (SCECH)</h3>
+                                            <CopyButton text={profile.presenterBio} label="Copy bio" />
+                                        </div>
+                                        <p className="text-sm text-[var(--text-secondary)] mb-4">
+                                            Copy this bio for SCECH continuing-education applications.
+                                        </p>
+                                        <p className="text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">{profile.presenterBio}</p>
+                                    </div>
+                                )}
+
+                                {profile.teamMembers && profile.teamMembers.length > 0 && (
+                                    <div className="rounded-lg border border-[var(--border-default)] bg-white p-6">
+                                        <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-1">Co-presenter bios</h3>
+                                        <p className="text-sm text-[var(--text-secondary)] mb-4">
+                                            Copy a team member&apos;s bio for SCECH paperwork listing multiple presenters.
+                                        </p>
+                                        <div className="flex flex-col gap-4">
+                                            {profile.teamMembers.map((member, i) => (
+                                                <div key={i} className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-4">
+                                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                                        <p className="text-sm font-semibold text-[var(--text-primary)]">
+                                                            {member.name}
+                                                            {member.title && <span className="font-medium text-[var(--text-secondary)]"> — {member.title}</span>}
+                                                        </p>
+                                                        {member.bio && <CopyButton text={member.bio} />}
+                                                    </div>
+                                                    {member.bio && (
+                                                        <p className="mt-2 text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">{member.bio}</p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </TabsContent>
 
                             <TabsContent value="experience" className="mt-0 outline-none animate-in fade-in duration-300">

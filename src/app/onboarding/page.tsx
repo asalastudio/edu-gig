@@ -697,7 +697,7 @@ function EducatorStep(props: {
                             className="field-control"
                         />
                     </Field>
-                    <Field label="Business or organization name" hint="Optional" className="md:col-span-2">
+                    <Field label="Business / organization name" hint="Optional" className="md:col-span-2">
                         <input
                             value={props.businessName}
                             onChange={(e) => props.onBusinessNameChange(e.target.value)}

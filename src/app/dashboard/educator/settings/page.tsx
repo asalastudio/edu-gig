@@ -200,7 +200,7 @@ export default function EducatorSettingsPage() {
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="businessName" className="text-sm font-semibold text-[var(--text-primary)]">Business / organization name (optional)</label>
                                         <input id="businessName" value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
-                                        <p className="text-sm text-[var(--text-secondary)]">Shown as your profile headline. Your personal name appears beneath it.</p>
+                                        <p className="text-sm text-[var(--text-secondary)]">Shown as your public profile name. Your personal name appears beneath it.</p>
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="headline" className="text-sm font-semibold text-[var(--text-primary)]">Headline</label>

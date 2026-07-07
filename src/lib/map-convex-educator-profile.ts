@@ -57,13 +57,13 @@ export function mapConvexEducatorToProfileView(
               issuer: credential.state
                   ? `${credential.issuingBody} (${credential.state})`
                   : credential.issuingBody,
-              status: credential.verified ? "Verified" : "Pending",
+              status: credential.verified ? "Verified" : "Submitted",
               expiry: credential.expiryDate || "—",
               credentialId: credential.id,
               hasFile: credential.hasFile,
           }))
         : tier === "basic"
-          ? [{ type: "Credentials pending review", issuer: "—", status: "Pending", expiry: "—" }]
+          ? [{ type: "Credentials on file", issuer: "—", status: "Submitted", expiry: "—" }]
           : [
                 {
                     type: "Professional credentials",

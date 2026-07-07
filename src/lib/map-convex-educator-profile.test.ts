@@ -154,7 +154,7 @@ describe("mapConvexEducatorToProfileView", () => {
         });
         expect(view.licenses[1]).toMatchObject({
             issuer: "Learning Forward",
-            status: "Pending",
+            status: "Submitted",
             expiry: "—",
             hasFile: false,
         });

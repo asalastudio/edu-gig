@@ -9,7 +9,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { PrimaryButton } from "@/components/shared/button";
 import { VerificationBadge } from "@/components/shared/verification-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, Star, ShieldCheck, Clock, CalendarCheck, CurrencyDollar } from "@phosphor-icons/react";
+import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, Star, ShieldCheck, Certificate, CalendarCheck, CurrencyDollar } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -486,8 +486,8 @@ export default function EducatorProfilePage() {
                                                                         <CheckCircle weight="fill" className="w-4 h-4" /> Verified
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] font-bold bg-[var(--bg-active)] border border-[var(--border-strong)] px-3 py-1.5 rounded-lg text-sm">
-                                                                        <Clock weight="bold" className="w-4 h-4" /> Pending
+                                                                    <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] font-bold bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-3 py-1.5 rounded-lg text-sm">
+                                                                        <Certificate weight="bold" className="w-4 h-4" /> Submitted
                                                                     </span>
                                                                 )}
                                                             </td>

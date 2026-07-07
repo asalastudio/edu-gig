@@ -73,7 +73,11 @@ export function Sidebar() {
         ]
         : [
             { href: basePath, label: "Dashboard", icon: SquaresFour },
-            { href: "/browse", label: "Directory", icon: Users },
+            // The Directory (browse educators) is a district hiring tool. Educators
+            // don't browse other educators — they respond to Open Needs — so this
+            // item is district-only; an educator would otherwise land on the
+            // "Use a district account" gate.
+            ...(!isEducator ? [{ href: "/browse", label: "Directory", icon: Users }] : []),
             { href: isEducator ? "/dashboard/educator/needs" : "/post", label: isEducator ? "Open Needs" : "Post a Need", icon: isEducator ? Briefcase : PlusCircle },
             { href: "/dashboard/messages", label: "Messages", icon: EnvelopeSimple, count: messagesBadge },
             { href: settingsHref, label: "Settings", icon: Gear },

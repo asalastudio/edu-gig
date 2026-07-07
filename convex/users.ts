@@ -275,6 +275,32 @@ export const clearAvatar = mutation({
     },
 });
 
+/**
+ * Mirrors the Clerk profile image into Convex. Clerk is the single source of
+ * truth for the avatar (uploaded via `user.setProfileImage`); the public
+ * directory/profile read `users.avatarUrl`, so we keep it in sync here. Pass the
+ * Clerk imageUrl when the user has a real uploaded image, or omit to clear it
+ * (the UI then falls back to initials). Also retires any image left over from
+ * the earlier Convex-storage upload path.
+ */
+export const syncAvatarFromClerk = mutation({
+    args: { imageUrl: v.optional(v.string()) },
+    handler: async (ctx, args) => {
+        const user = await requireViewerRow(ctx);
+        if (user.avatarStorageId) {
+            try {
+                await ctx.storage.delete(user.avatarStorageId);
+            } catch {
+                // Legacy file already gone.
+            }
+        }
+        await ctx.db.patch(user._id, {
+            avatarUrl: cleanText(args.imageUrl) || undefined,
+            avatarStorageId: undefined,
+        });
+    },
+});
+
 /** Toggles the viewer's opt-out for non-transactional emails (reminders + new-need alerts). */
 export const setEmailReminderPreference = mutation({
     args: { optOut: v.boolean() },

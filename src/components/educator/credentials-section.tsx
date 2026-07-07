@@ -7,6 +7,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { PrimaryButton } from "@/components/shared/button";
 import { CredentialFileLink } from "@/components/shared/credential-file-link";
 import { isCheckrEnabled } from "@/lib/launch-flags";
+import { Certificate, CheckCircle, Clock, FileArrowUp, Plus } from "@phosphor-icons/react";
 import {
     formatCredentialType,
     formatExpiry,
@@ -191,114 +192,138 @@ export function CredentialsSection() {
             className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm"
             data-testid="credentials-section"
         >
-            <div className="flex items-start justify-between mb-5 gap-4 flex-wrap">
-                <div>
-                    <h2 className="font-heading text-lg font-bold text-[var(--text-primary)]">
-                        Credentials &amp; Verification
-                    </h2>
-                    <p className="text-sm text-[var(--text-secondary)] mt-1">
-                        Upload licenses, certifications, and degrees. Districts reference these when placing you. Credentials you add here appear on your public profile.
-                    </p>
-                </div>
-                {!isDemo && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setShowForm((s) => !s);
-                            setFormError(null);
-                        }}
-                        className="text-sm font-bold text-[var(--accent-primary)] hover:underline"
-                    >
-                        {showForm ? "Cancel" : "Add credential"}
-                    </button>
-                )}
+            <div className="mb-5">
+                <h2 className="font-heading text-lg font-bold text-[var(--text-primary)]">
+                    Credentials &amp; Verification
+                </h2>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">
+                    Add your licenses, certifications, and degrees. Districts see these on your public
+                    profile and reference them when deciding who to place.
+                </p>
             </div>
 
             {isDemo && (
                 <p className="mb-4 text-xs text-[var(--text-tertiary)]">
-                    Showing demo credentials. Sign in as an educator to manage your own.
+                    Showing example credentials. Sign in as an educator to add your own.
                 </p>
+            )}
+
+            {/* Add button — shown when the user already has credentials and the form is closed. */}
+            {!isDemo && !showForm && credentials.length > 0 && (
+                <button
+                    type="button"
+                    onClick={() => {
+                        setShowForm(true);
+                        setFormError(null);
+                    }}
+                    className="mb-5 inline-flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:border-[var(--accent-primary)]/40 hover:text-[var(--accent-primary)]"
+                >
+                    <Plus weight="bold" className="w-4 h-4" /> Add a credential
+                </button>
             )}
 
             {!isDemo && showForm && (
                 <form
                     onSubmit={handleSubmit}
-                    className="mb-6 p-5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] grid gap-4"
+                    className="mb-6 p-6 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] flex flex-col gap-6"
                     data-testid="credential-form"
                 >
-                    <div className="grid sm:grid-cols-2 gap-4">
-                        <label className="flex flex-col gap-1 text-sm font-semibold">
-                            Type
-                            <select
-                                value={type}
-                                onChange={(e) => setType(e.target.value as CredentialType)}
-                                className="h-10 px-3 rounded-md border border-[var(--border-subtle)] bg-white font-normal"
-                            >
-                                {CREDENTIAL_TYPES.map((t) => (
-                                    <option key={t.value} value={t.value}>
-                                        {t.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label className="flex flex-col gap-1 text-sm font-semibold">
-                            Title
+                    <div className="flex flex-col gap-4">
+                        <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
+                            What are you adding?
+                        </p>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+                                Credential type
+                                <select
+                                    value={type}
+                                    onChange={(e) => setType(e.target.value as CredentialType)}
+                                    className="h-11 px-3 rounded-lg border border-[var(--border-subtle)] bg-white font-normal text-sm"
+                                >
+                                    {CREDENTIAL_TYPES.map((t) => (
+                                        <option key={t.value} value={t.value}>
+                                            {t.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+                                Name of credential <span className="text-red-600">*</span>
+                                <input
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    required
+                                    className="h-11 px-3 rounded-lg border border-[var(--border-subtle)] bg-white font-normal text-sm"
+                                    placeholder="e.g. Standard Teaching Certificate"
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+                                Issued by <span className="text-red-600">*</span>
+                                <input
+                                    value={issuingBody}
+                                    onChange={(e) => setIssuingBody(e.target.value)}
+                                    required
+                                    className="h-11 px-3 rounded-lg border border-[var(--border-subtle)] bg-white font-normal text-sm"
+                                    placeholder="e.g. Michigan Department of Education"
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+                                State
+                                <input
+                                    value={stateField}
+                                    onChange={(e) => setStateField(e.target.value)}
+                                    className="h-11 px-3 rounded-lg border border-[var(--border-subtle)] bg-white font-normal text-sm"
+                                    placeholder="e.g. MI"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                        <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
+                            Valid dates
+                        </p>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+                                Issue date <span className="text-red-600">*</span>
+                                <input
+                                    type="date"
+                                    value={issueDate}
+                                    onChange={(e) => setIssueDate(e.target.value)}
+                                    required
+                                    className="h-11 px-3 rounded-lg border border-[var(--border-subtle)] bg-white font-normal text-sm"
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+                                Expires <span className="font-normal text-[var(--text-tertiary)]">(if applicable)</span>
+                                <input
+                                    type="date"
+                                    value={expiryDate}
+                                    onChange={(e) => setExpiryDate(e.target.value)}
+                                    className="h-11 px-3 rounded-lg border border-[var(--border-subtle)] bg-white font-normal text-sm"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
+                            Document
+                        </p>
+                        <label className="flex items-center gap-3 rounded-lg border border-dashed border-[var(--border-strong)] bg-white px-4 py-3 cursor-pointer hover:border-[var(--accent-primary)]/50">
+                            <FileArrowUp weight="bold" className="w-5 h-5 text-[var(--text-tertiary)] shrink-0" />
+                            <span className="text-sm text-[var(--text-secondary)] truncate">
+                                {file ? file.name : "Attach a scan or photo — PDF, PNG, or JPG (optional)"}
+                            </span>
                             <input
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                required
-                                className="h-10 px-3 rounded-md border border-[var(--border-subtle)] bg-white font-normal"
-                                placeholder="e.g. Standard Teaching Certificate"
-                            />
-                        </label>
-                        <label className="flex flex-col gap-1 text-sm font-semibold">
-                            Issuing body
-                            <input
-                                value={issuingBody}
-                                onChange={(e) => setIssuingBody(e.target.value)}
-                                required
-                                className="h-10 px-3 rounded-md border border-[var(--border-subtle)] bg-white font-normal"
-                                placeholder="e.g. Michigan Department of Education"
-                            />
-                        </label>
-                        <label className="flex flex-col gap-1 text-sm font-semibold">
-                            State (optional)
-                            <input
-                                value={stateField}
-                                onChange={(e) => setStateField(e.target.value)}
-                                className="h-10 px-3 rounded-md border border-[var(--border-subtle)] bg-white font-normal"
-                                placeholder="e.g. MI"
-                            />
-                        </label>
-                        <label className="flex flex-col gap-1 text-sm font-semibold">
-                            Issue date
-                            <input
-                                type="date"
-                                value={issueDate}
-                                onChange={(e) => setIssueDate(e.target.value)}
-                                required
-                                className="h-10 px-3 rounded-md border border-[var(--border-subtle)] bg-white font-normal"
-                            />
-                        </label>
-                        <label className="flex flex-col gap-1 text-sm font-semibold">
-                            Expiry date (optional)
-                            <input
-                                type="date"
-                                value={expiryDate}
-                                onChange={(e) => setExpiryDate(e.target.value)}
-                                className="h-10 px-3 rounded-md border border-[var(--border-subtle)] bg-white font-normal"
+                                type="file"
+                                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                                className="hidden"
+                                accept=".pdf,.png,.jpg,.jpeg"
                             />
                         </label>
                     </div>
-                    <label className="flex flex-col gap-1 text-sm font-semibold">
-                        Upload file (optional)
-                        <input
-                            type="file"
-                            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                            className="text-sm font-normal"
-                            accept=".pdf,.png,.jpg,.jpeg"
-                        />
-                    </label>
+
                     {formError && <p className="text-sm text-red-600 font-semibold">{formError}</p>}
                     <div className="flex items-center gap-3">
                         <PrimaryButton type="submit" disabled={!canSubmit || submitting}>
@@ -319,10 +344,34 @@ export function CredentialsSection() {
             )}
 
             {credentials.length === 0 ? (
-                <p className="text-sm text-[var(--text-tertiary)]">
-                    No credentials yet.{" "}
-                    {!isDemo && "Click “Add credential” to upload your first one."}
-                </p>
+                isDemo ? (
+                    <p className="text-sm text-[var(--text-tertiary)]">No credentials to show.</p>
+                ) : (
+                    !showForm && (
+                        <div className="flex flex-col items-center text-center rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-subtle)] px-6 py-10">
+                            <div className="w-12 h-12 rounded-full bg-white border border-[var(--border-subtle)] flex items-center justify-center mb-4">
+                                <Certificate weight="regular" className="w-6 h-6 text-[var(--text-tertiary)]" />
+                            </div>
+                            <h3 className="font-heading text-base font-bold text-[var(--text-primary)] mb-1">
+                                Add your first credential
+                            </h3>
+                            <p className="text-sm text-[var(--text-secondary)] max-w-sm mb-5">
+                                Teaching certificates, National Board certification, endorsements, or degrees —
+                                anything that shows districts you&apos;re qualified.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowForm(true);
+                                    setFormError(null);
+                                }}
+                                className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent-primary)] px-5 py-2.5 text-sm font-bold text-white hover:bg-[var(--accent-primary-h)]"
+                            >
+                                <Plus weight="bold" className="w-4 h-4" /> Add a credential
+                            </button>
+                        </div>
+                    )
+                )
             ) : (
                 <ul className="grid gap-3">
                     {credentials.map((c) => (
@@ -331,39 +380,50 @@ export function CredentialsSection() {
                             className="flex items-start justify-between gap-4 p-4 rounded-lg border border-[var(--border-subtle)] bg-white"
                             data-testid="credential-card"
                         >
-                            <div className="min-w-0">
-                                <p className="text-xs uppercase tracking-wide text-[var(--text-tertiary)] font-bold">
-                                    {formatCredentialType(c.type)}
-                                </p>
-                                <p className="font-heading text-base font-bold text-[var(--text-primary)] truncate">
-                                    {c.title}
-                                </p>
-                                <p className="text-sm text-[var(--text-secondary)] truncate">
-                                    {c.issuingBody}
-                                    {c.state ? ` · ${c.state}` : ""}
-                                </p>
-                                <p className="text-xs text-[var(--text-tertiary)] mt-1">
-                                    Issued {c.issueDate} · {formatExpiry(c.expiryDate)}
-                                </p>
+                            <div className="flex items-start gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 mt-0.5">
+                                    <Certificate weight="regular" className="w-5 h-5 text-[var(--text-tertiary)]" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-xs uppercase tracking-wide text-[var(--text-tertiary)] font-bold">
+                                        {formatCredentialType(c.type)}
+                                    </p>
+                                    <p className="font-heading text-base font-bold text-[var(--text-primary)] truncate">
+                                        {c.title}
+                                    </p>
+                                    <p className="text-sm text-[var(--text-secondary)] truncate">
+                                        {c.issuingBody}
+                                        {c.state ? ` · ${c.state}` : ""}
+                                    </p>
+                                    <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                                        Issued {c.issueDate} · {formatExpiry(c.expiryDate)}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-3 shrink-0">
-                                {c.verified && (
-                                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md">
-                                        Verified
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                                {c.verified ? (
+                                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md">
+                                        <CheckCircle weight="fill" className="w-3.5 h-3.5" /> Verified
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2 py-1 rounded-md">
+                                        <Clock weight="bold" className="w-3.5 h-3.5" /> Pending review
                                     </span>
                                 )}
-                                {!isDemo && (c.storageId || c.documentUrl) && (
-                                    <CredentialFileLink credentialId={c._id} />
-                                )}
-                                {!isDemo && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRemove(c._id)}
-                                        className="text-xs font-semibold text-red-700 hover:underline"
-                                    >
-                                        Remove
-                                    </button>
-                                )}
+                                <div className="flex items-center gap-3">
+                                    {!isDemo && (c.storageId || c.documentUrl) && (
+                                        <CredentialFileLink credentialId={c._id} />
+                                    )}
+                                    {!isDemo && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemove(c._id)}
+                                            className="text-xs font-semibold text-red-700 hover:underline"
+                                        >
+                                            Remove
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </li>
                     ))}

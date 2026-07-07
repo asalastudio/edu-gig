@@ -1,22 +1,14 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "convex/react";
-import { toast, Toaster } from "sonner";
+import { useQuery } from "convex/react";
+import { Toaster } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
 import { getAreaOfNeedLabel, TAXONOMY } from "@/lib/taxonomy";
 import { isDistrictRole } from "@/lib/roles";
 import { CurrencyDollar, Buildings, Briefcase, Clock, PlusCircle } from "@phosphor-icons/react";
@@ -119,21 +111,6 @@ export default function GigBoardPage() {
         isDistrict ? {} : "skip"
     ) as NeedWithCounts[] | undefined;
 
-    const submitProposal = useMutation(api.proposals.submit);
-
-    const [openNeedId, setOpenNeedId] = useState<Id<"needs"> | null>(null);
-    const [message, setMessage] = useState("");
-    const [proposedRate, setProposedRate] = useState("");
-    const [proposedRateUnit, setProposedRateUnit] = useState<"hourly" | "daily" | "fixed">("hourly");
-    const [submitting, setSubmitting] = useState(false);
-    const [submittedNeedIds, setSubmittedNeedIds] = useState<Set<string>>(new Set());
-    const [formError, setFormError] = useState<string | null>(null);
-
-    const activeNeed = useMemo(
-        () => needs?.find((n) => n._id === openNeedId) ?? null,
-        [needs, openNeedId]
-    );
-
     // Needs the educator has already proposed on (persistent, from listMine).
     const proposedNeedIds = useMemo(() => {
         const set = new Set<string>();
@@ -142,51 +119,6 @@ export default function GigBoardPage() {
         }
         return set;
     }, [myProposals]);
-
-    function openForm(needId: Id<"needs">) {
-        setOpenNeedId(needId);
-        setMessage("");
-        setProposedRate("");
-        setProposedRateUnit("hourly");
-        setFormError(null);
-    }
-
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setFormError(null);
-        if (!openNeedId) return;
-        if (!message.trim()) {
-            setFormError("A short message is required.");
-            return;
-        }
-        setSubmitting(true);
-        try {
-            const rateNum = proposedRate ? Number(proposedRate) : undefined;
-            if (rateNum !== undefined && Number.isNaN(rateNum)) {
-                setFormError("Proposed rate must be a number.");
-                setSubmitting(false);
-                return;
-            }
-            await submitProposal({
-                needId: openNeedId,
-                message: message.trim(),
-                proposedRate: rateNum,
-                proposedRateUnit: rateNum !== undefined ? proposedRateUnit : undefined,
-            });
-            toast.success("Proposal submitted");
-            setSubmittedNeedIds((prev) => {
-                const next = new Set(prev);
-                next.add(openNeedId as unknown as string);
-                return next;
-            });
-            setOpenNeedId(null);
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : "Could not submit proposal.";
-            setFormError(msg);
-        } finally {
-            setSubmitting(false);
-        }
-    }
 
     const isSignedOut = viewer === null;
     const isSuperadmin = !!viewer && viewer.role === "superadmin";
@@ -260,9 +192,9 @@ export default function GigBoardPage() {
                             )}
 
                             {needs?.map((need) => {
-                                const submitted =
-                                    submittedNeedIds.has(need._id as unknown as string) ||
-                                    proposedNeedIds.has(need._id as unknown as string);
+                                const submitted = proposedNeedIds.has(
+                                    need._id as unknown as string
+                                );
                                 const grade = gradeLabel(need.gradeLevel);
                                 return (
                                     <div
@@ -312,12 +244,13 @@ export default function GigBoardPage() {
                                                         Proposal submitted ✓
                                                     </span>
                                                 ) : (
-                                                    <PrimaryButton
-                                                        onClick={() => openForm(need._id)}
-                                                        className="shadow-md bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90"
-                                                    >
-                                                        Submit proposal
-                                                    </PrimaryButton>
+                                                    <Link href={`/dashboard/board/${need._id}/propose`}>
+                                                        <PrimaryButton
+                                                            className="w-full shadow-md bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90"
+                                                        >
+                                                            Submit proposal
+                                                        </PrimaryButton>
+                                                    </Link>
                                                 )}
                                             </div>
                                         </div>
@@ -430,95 +363,6 @@ export default function GigBoardPage() {
                     )}
                 </div>
             </main>
-
-            <Dialog
-                open={openNeedId !== null}
-                onOpenChange={(open) => {
-                    if (!open) setOpenNeedId(null);
-                }}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Submit a proposal</DialogTitle>
-                        {activeNeed && (
-                            <DialogDescription>
-                                {activeNeed.orgName} · {getAreaOfNeedLabel(activeNeed.areaOfNeed)}
-                            </DialogDescription>
-                        )}
-                    </DialogHeader>
-
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                        <div className="flex flex-col gap-2">
-                            <label htmlFor="proposal-message" className="text-sm font-semibold text-[var(--text-primary)]">
-                                Your message <span className="text-red-500">*</span>
-                            </label>
-                            <textarea
-                                id="proposal-message"
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                rows={5}
-                                placeholder="Introduce yourself and describe how you can help."
-                                className="w-full p-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
-                                required
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-2">
-                                <label htmlFor="proposal-rate" className="text-sm font-semibold text-[var(--text-primary)]">
-                                    Proposed rate
-                                </label>
-                                <input
-                                    id="proposal-rate"
-                                    type="number"
-                                    min={0}
-                                    value={proposedRate}
-                                    onChange={(e) => setProposedRate(e.target.value)}
-                                    placeholder="75"
-                                    className="w-full h-11 px-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <label htmlFor="proposal-unit" className="text-sm font-semibold text-[var(--text-primary)]">
-                                    Unit
-                                </label>
-                                <select
-                                    id="proposal-unit"
-                                    value={proposedRateUnit}
-                                    onChange={(e) =>
-                                        setProposedRateUnit(e.target.value as "hourly" | "daily" | "fixed")
-                                    }
-                                    className="w-full h-11 px-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
-                                >
-                                    <option value="hourly">Hourly</option>
-                                    <option value="daily">Daily</option>
-                                    <option value="fixed">Fixed</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        {formError && (
-                            <p className="text-sm text-red-600 font-medium">{formError}</p>
-                        )}
-
-                        <DialogFooter>
-                            <button
-                                type="button"
-                                onClick={() => setOpenNeedId(null)}
-                                className={cn(
-                                    "px-4 py-2 rounded-md text-sm font-medium text-[var(--text-secondary)]",
-                                    "hover:bg-[var(--bg-hover)] transition-colors"
-                                )}
-                            >
-                                Cancel
-                            </button>
-                            <PrimaryButton type="submit" disabled={submitting}>
-                                {submitting ? "Sending…" : "Send proposal"}
-                            </PrimaryButton>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

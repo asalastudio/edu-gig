@@ -272,6 +272,8 @@ export default defineSchema({
         educatorId: v.id("educators"),
         educatorUserId: v.id("users"), // denormalized for display
         message: v.string(),
+        attachmentStorageId: v.optional(v.id("_storage")),   // resume / proposal doc
+        attachmentName: v.optional(v.string()),
         proposedRate: v.optional(v.number()),
         proposedRateUnit: v.optional(v.union(v.literal("hourly"), v.literal("daily"), v.literal("fixed"))),
         status: v.union(

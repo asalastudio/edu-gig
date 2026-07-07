@@ -49,10 +49,21 @@ const proposedRateUnitValidator = v.union(
  * Rejects duplicate pending proposals from the same educator on the same need.
  * Notifies the district user that posted the need.
  */
+/** Short-lived upload URL for a proposal attachment (resume / proposal doc). Educator only. */
+export const generateAttachmentUploadUrl = mutation({
+    args: {},
+    handler: async (ctx) => {
+        await requireEducatorViewer(ctx);
+        return await ctx.storage.generateUploadUrl();
+    },
+});
+
 export const submit = mutation({
     args: {
         needId: v.id("needs"),
         message: v.string(),
+        attachmentStorageId: v.optional(v.id("_storage")),
+        attachmentName: v.optional(v.string()),
         proposedRate: v.optional(v.number()),
         proposedRateUnit: v.optional(proposedRateUnitValidator),
     },
@@ -87,6 +98,8 @@ export const submit = mutation({
             educatorId: educator._id,
             educatorUserId: user._id,
             message: trimmed,
+            attachmentStorageId: args.attachmentStorageId,
+            attachmentName: args.attachmentName?.trim() || undefined,
             proposedRate: args.proposedRate,
             proposedRateUnit: args.proposedRateUnit,
             status: "pending",
@@ -164,6 +177,33 @@ export const listForNeed = query({
             rows.push({ proposal, educator, user: educatorUser });
         }
         return rows;
+    },
+});
+
+/**
+ * Signed URL for a proposal's attachment. Visible to the educator who submitted
+ * it and to the district that can manage the need. Returns null otherwise.
+ */
+export const getAttachmentUrl = query({
+    args: { proposalId: v.id("proposals") },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
+        const user = await getUserByClerkId(ctx, identity.subject);
+        if (!user) return null;
+
+        const proposal = await ctx.db.get(args.proposalId);
+        if (!proposal || !proposal.attachmentStorageId) return null;
+
+        const isOwner = proposal.educatorUserId === user._id;
+        let allowed = isOwner;
+        if (!allowed) {
+            const need = await ctx.db.get(proposal.needId);
+            allowed = !!need && (await canManageNeed(ctx, user, need));
+        }
+        if (!allowed) return null;
+
+        return await ctx.storage.getUrl(proposal.attachmentStorageId);
     },
 });
 

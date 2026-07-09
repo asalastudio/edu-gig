@@ -14,7 +14,7 @@ const securityHeaders = [
       "form-action 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.k12gig.com https://challenges.cloudflare.com https://*.stripe.com",
       "style-src 'self' 'unsafe-inline' https://clerk.k12gig.com",
-      "img-src 'self' data: blob: https://randomuser.me https://img.clerk.com https://images.clerk.dev https://clerk.k12gig.com https://*.stripe.com",
+      "img-src 'self' data: blob: https://img.clerk.com https://images.clerk.dev https://clerk.k12gig.com https://*.stripe.com",
       "font-src 'self' data: https://clerk.k12gig.com",
       "connect-src 'self' https://*.convex.cloud https://*.convex.site wss://*.convex.cloud https://*.clerk.accounts.dev https://*.clerk.com https://clerk.k12gig.com https://clerk-telemetry.com https://*.clerk-telemetry.com https://api.stripe.com https://*.stripe.com https://*.sentry.io",
       "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.k12gig.com https://challenges.cloudflare.com https://*.stripe.com",
@@ -33,13 +33,7 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "randomuser.me",
-        pathname: "/api/**",
-      },
-    ],
+    remotePatterns: [],
   },
   async headers() {
     return [

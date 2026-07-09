@@ -30,19 +30,6 @@ const pricingTypeValidator = v.union(
     v.literal("fixed")
 );
 
-async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
-    const user = await getUserByClerkId(ctx, identity.subject);
-    if (
-        !user ||
-        !["district_admin", "district_hr", "superintendent", "superadmin"].includes(user.role)
-    ) {
-        throw new Error("Forbidden");
-    }
-    return user;
-}
-
 /** Educator creates a new service listing. */
 export const create = mutation({
     args: {
@@ -110,11 +97,23 @@ export const getById = query({
     },
 });
 
-/** District viewers: active bookable gigs for an educator profile. */
+/**
+ * Active bookable gigs for an educator profile. District (and superadmin)
+ * viewers may load any educator's; the owning educator may load their own for
+ * the self-preview. Any other educator is rejected.
+ */
 export const listActiveByEducatorForDistrict = query({
     args: { educatorId: v.id("educators") },
     handler: async (ctx, args) => {
-        await requireDistrictViewer(ctx);
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthorized");
+        const viewer = await getUserByClerkId(ctx, identity.subject);
+        if (!viewer) throw new Error("Unauthorized");
+        const educator = await ctx.db.get(args.educatorId);
+        if (!educator) return [];
+        const isOwner = educator.userId === viewer._id;
+        const isDistrict = ["district_admin", "district_hr", "superintendent", "superadmin"].includes(viewer.role);
+        if (!isOwner && !isDistrict) throw new Error("Forbidden");
         const gigs = await ctx.db
             .query("gigs")
             .withIndex("by_educator", (q) => q.eq("educatorId", args.educatorId))

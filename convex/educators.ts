@@ -143,13 +143,22 @@ export const listForBrowse = query({
     },
 });
 
-/** Full educator + user for profile view — district viewers only. */
+/**
+ * Full educator + user for profile view. District (and superadmin) viewers may
+ * view any active profile; the owning educator may view their own as a
+ * self-preview. Any other educator is rejected.
+ */
 export const getProfileForDistrict = query({
     args: { educatorId: v.id("educators") },
     handler: async (ctx, args) => {
-        await requireDistrictViewer(ctx);
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthorized");
+        const viewer = await getUserByClerkId(ctx, identity.subject);
+        if (!viewer) throw new Error("Unauthorized");
         const educator = await ctx.db.get(args.educatorId);
         if (!educator || !educator.isActive) return null;
+        const isOwner = educator.userId === viewer._id;
+        if (!isOwner && !isDistrictRole(viewer.role)) throw new Error("Forbidden");
         const user = await ctx.db.get(educator.userId);
         if (!user) return null;
         return { educator, user };

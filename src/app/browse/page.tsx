@@ -45,7 +45,7 @@ const QUICK_FILTERS = [
     { id: "quick_avail", label: "Available Now", icon: Clock, color: "text-emerald-700", active: "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 ring-emerald-100" },
     { id: "quick_top", label: "Top-Rated (4.8+)", icon: Star, color: "text-[var(--accent-secondary)]", active: "bg-amber-50 hover:bg-amber-100 border-amber-200 ring-amber-100" },
     { id: "quick_local", label: "Local to Me", icon: MapPin, color: "text-[var(--accent-tertiary)]", active: "bg-sky-50 hover:bg-sky-100 border-sky-200 ring-sky-100" },
-    { id: "quick_instant", label: "Instant Book", icon: Lightning, color: "text-[var(--accent-primary)]", active: "bg-green-50 hover:bg-green-100 border-green-200 ring-green-100" },
+    { id: "quick_instant", label: "Ready to Request", icon: Lightning, color: "text-[var(--accent-primary)]", active: "bg-green-50 hover:bg-green-100 border-green-200 ring-green-100" },
 ] as const;
 
 export default function BrowsePage() {

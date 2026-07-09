@@ -8,7 +8,11 @@ import { api } from "@/convex/_generated/api";
 import { PageHeader } from "@/components/shared/page-header";
 import { TaxonomyFilter } from "@/components/shared/taxonomy-filter";
 import { EducatorCard, type EducatorCardProps } from "@/components/shared/educator-card";
-import { TAXONOMY, getAreaOfNeedLabel, getAreaOfNeedMatchIds, getCoverageRegionLabel } from "@/lib/taxonomy";
+import { TAXONOMY, getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxonomy";
+import {
+    filterEducatorRoster,
+    type DirectoryQuickFilter,
+} from "@/lib/filter-educators";
 import { PrimaryButton } from "@/components/shared/button";
 import { ArrowLeft, FadersHorizontal, Lightning, Star, Clock, MapPin, Funnel } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
@@ -42,7 +46,7 @@ const QUICK_FILTERS = [
     { id: "quick_top", label: "Top-Rated (4.8+)", icon: Star, color: "text-[var(--accent-secondary)]", active: "bg-amber-50 hover:bg-amber-100 border-amber-200 ring-amber-100" },
     { id: "quick_local", label: "Local to Me", icon: MapPin, color: "text-[var(--accent-tertiary)]", active: "bg-sky-50 hover:bg-sky-100 border-sky-200 ring-sky-100" },
     { id: "quick_instant", label: "Instant Book", icon: Lightning, color: "text-[var(--accent-primary)]", active: "bg-green-50 hover:bg-green-100 border-green-200 ring-green-100" },
-];
+] as const;
 
 export default function BrowsePage() {
     const router = useRouter();
@@ -91,13 +95,13 @@ export default function BrowsePage() {
     const [savedEducatorIds] = useState<string[]>(() => savedEducatorIdsFromStorage());
     
     // Quick filter active state
-    const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
+    const [activeQuickFilter, setActiveQuickFilter] = useState<DirectoryQuickFilter>(null);
 
     const toggleFilter = (setter: React.Dispatch<React.SetStateAction<string[]>>, id: string) => {
         setter(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
     };
 
-    const handleQuickFilter = (id: string) => {
+    const handleQuickFilter = (id: Exclude<DirectoryQuickFilter, null>) => {
         if (!convexLive) return;
         if (activeQuickFilter === id) {
             setActiveQuickFilter(null);
@@ -109,27 +113,17 @@ export default function BrowsePage() {
     };
 
     // Filter logic
-    const filteredEducators = roster.filter((educator) => {
-        if (
-            selectedAreas.length > 0 &&
-            !selectedAreas.some((area) =>
-                getAreaOfNeedMatchIds(area).some((matchId) => educator.areasOfNeed.includes(matchId))
-            )
-        ) return false;
-        if (selectedGrades.length > 0 && !selectedGrades.some(grade => educator.gradeLevels.includes(grade))) return false;
-        if (selectedRegions.length > 0 && !selectedRegions.some(region => educator.coverageRegions.includes(region))) return false;
-        if (selectedEngagements.length > 0 && !selectedEngagements.some(eng => educator.engagementTypes.includes(eng))) return false;
-        if (showSavedOnly && !savedEducatorIds.includes(educator.id)) return false;
-        if (verifiedOnly && (educator.verificationTier as string) === 'basic') return false; 
-        if (availableNow && educator.availabilityStatus !== 'open') return false;
-        if (activeQuickFilter === "quick_top" && educator.overallRating < 4.8) return false;
-        if (activeQuickFilter === "quick_local") {
-            const districtRegion = districtMine?.region;
-            if (!districtRegion) return false;
-            if (!educator.coverageRegions.some((region) => region === "all" || region === districtRegion)) return false;
-        }
-        if (activeQuickFilter === "quick_instant" && (!educator.startingRate || educator.availabilityStatus !== "open")) return false;
-        return true;
+    const filteredEducators = filterEducatorRoster(roster, {
+        selectedAreas,
+        selectedGrades,
+        selectedRegions,
+        selectedEngagements,
+        verifiedOnly,
+        availableNow,
+        showSavedOnly,
+        savedEducatorIds,
+        activeQuickFilter,
+        districtRegion: districtMine?.region,
     });
 
     const activeFilterChips = [
@@ -458,7 +452,11 @@ export default function BrowsePage() {
                         {filteredEducators.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                                 {filteredEducators.map(educator => (
-                                    <EducatorCard key={educator.id} educator={educator} />
+                                    <EducatorCard
+                                        key={educator.id}
+                                        educator={educator}
+                                        highlightedAreaIds={selectedAreas}
+                                    />
                                 ))}
                             </div>
                         ) : (

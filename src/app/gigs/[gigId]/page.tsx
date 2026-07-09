@@ -15,8 +15,10 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { isCardCheckoutEnabled } from "@/lib/launch-flags";
+import { getActiveBetaCopy } from "@/lib/active-beta-copy";
 import { isDistrictRole } from "@/lib/roles";
 import { PLATFORM_FEE_PCT, computePricing } from "@/convex/pricing";
+import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
 
 type PaymentMethod = "card" | "invoice";
 
@@ -55,6 +57,8 @@ export default function GigCheckoutPage() {
     const [error, setError] = useState<string | null>(null);
     const [bookedOrderId, setBookedOrderId] = useState<string | null>(null);
     const cardCheckoutEnabled = isCardCheckoutEnabled();
+    const betaCopy = getActiveBetaCopy(cardCheckoutEnabled);
+    const startDateError = error === "Please choose a desired start date." ? error : undefined;
 
     const viewer = useQuery(api.users.viewer, {});
     const canPersist = !!viewer && isDistrictRole(viewer.role);
@@ -83,16 +87,25 @@ export default function GigCheckoutPage() {
             return;
         }
 
+        if (viewer === undefined) {
+            setError("We’re still checking your district session. Please try again.");
+            return;
+        }
+        if (viewer === null) {
+            const next = `/gigs/${encodeURIComponent(gigId)}`;
+            router.push(`/sign-in?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent(next)}`);
+            return;
+        }
+        if (!canPersist) {
+            setError("Use a district account to submit a booking request.");
+            return;
+        }
+        if (!looksLikeConvexId) {
+            setError("This sample gig cannot be booked. Open a real gig from the district directory.");
+            return;
+        }
+
         if (paymentMethod === "invoice") {
-            if (!canPersist) {
-                // Demo path: no real persist available; just show the success state by redirecting.
-                setBookedOrderId("demo-order");
-                return;
-            }
-            if (!looksLikeConvexId) {
-                setError("This demo gig cannot be booked. Open a real gig from the dashboard.");
-                return;
-            }
             setSubmitting(true);
             try {
                 const orderId = await createOrder({
@@ -145,7 +158,7 @@ export default function GigCheckoutPage() {
         }
     }
 
-    if (bookedOrderId || checkoutState === "success") {
+    if (bookedOrderId) {
         return (
             <CheckoutShell>
                 <div className="max-w-xl mx-auto text-center py-16">
@@ -153,10 +166,10 @@ export default function GigCheckoutPage() {
                         <CheckIcon className="h-10 w-10 text-emerald-500" />
                     </div>
                     <h1 className="font-heading text-3xl font-bold text-[var(--text-primary)] mb-3">
-                        Booking confirmed
+                        Booking request submitted
                     </h1>
                     <p className="text-[var(--text-secondary)] mb-8">
-                        We&apos;ve notified the educator and your district workspace has the order on file.
+                        Your district workspace has the request on file. The educator can now review the proposed start date.
                     </p>
                     <PrimaryButton onClick={() => router.push("/dashboard/district")}>
                         Back to dashboard
@@ -182,6 +195,11 @@ export default function GigCheckoutPage() {
                             Stripe checkout was cancelled. Your booking has not been placed.
                         </div>
                     )}
+                    {checkoutState === "success" && (
+                        <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-sm font-medium">
+                            We could not verify a completed booking from this URL. Return to your district workspace to confirm its status.
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit}>
                         <Card className="p-8 border-[var(--border-strong)] shadow-sm">
@@ -194,13 +212,18 @@ export default function GigCheckoutPage() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                 <Input
+                                    id="checkout-start-date"
+                                    name="startDate"
                                     label="Desired Start Date"
                                     type="date"
                                     min={todayISO}
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
+                                    error={startDateError}
                                 />
                                 <Input
+                                    id="checkout-po-number"
+                                    name="poNumber"
                                     label="Purchase Order (PO) Number"
                                     placeholder="Optional"
                                     value={poNumber}
@@ -227,7 +250,7 @@ export default function GigCheckoutPage() {
                                         checked={paymentMethod === "invoice"}
                                         onChange={() => setPaymentMethod("invoice")}
                                     />
-                                    <span className="font-medium text-[var(--text-primary)]">ACH Bank Transfer (Net-30 Invoice)</span>
+                                    <span className="font-medium text-[var(--text-primary)]">{betaCopy.checkoutInvoiceOption}</span>
                                 </label>
                                 {cardCheckoutEnabled ? (
                                     <label className={`flex items-center gap-3 p-4 border rounded-md cursor-pointer ${paymentMethod === "card" ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/5" : "border-[var(--border-default)] hover:border-[var(--border-strong)]"}`}>
@@ -243,22 +266,28 @@ export default function GigCheckoutPage() {
                                     </label>
                                 ) : (
                                     <p className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-                                        Invoice / PO is the active payment path for this controlled beta. Card checkout is hidden until Stripe production is verified.
+                                        {betaCopy.checkoutInvoiceNotice}
                                     </p>
                                 )}
                             </div>
 
-                            {error && (
-                                <p className="mt-4 text-sm text-red-600 font-medium">{error}</p>
+                            {error && !startDateError && (
+                                <p role="alert" className="mt-4 text-sm text-red-600 font-medium">{error}</p>
                             )}
 
                             <div className="mt-8 flex justify-end">
                                 <PrimaryButton
                                     type="submit"
-                                    disabled={submitting}
+                                    disabled={submitting || viewer === undefined}
                                     className="w-full md:w-auto px-8 py-3 bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90"
                                 >
-                                    {submitting ? "Processing…" : paymentMethod === "card" ? "Pay with Stripe" : "Confirm & Invoice"}
+                                    {viewer === undefined
+                                        ? "Checking account…"
+                                        : submitting
+                                          ? "Processing…"
+                                          : paymentMethod === "card"
+                                            ? "Pay with Stripe"
+                                            : betaCopy.checkoutInvoiceAction}
                                 </PrimaryButton>
                             </div>
                         </Card>

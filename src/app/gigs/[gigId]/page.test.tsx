@@ -1,7 +1,9 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import GigCheckoutPage from "./page";
+
+const mocks = vi.hoisted(() => ({ routerPush: vi.fn() }));
 
 vi.mock("next/link", () => ({
     default: ({
@@ -17,7 +19,7 @@ vi.mock("next/link", () => ({
 
 vi.mock("next/navigation", () => ({
     useParams: () => ({ gigId: "sample-gig-123" }),
-    useRouter: () => ({ push: vi.fn() }),
+    useRouter: () => ({ push: mocks.routerPush }),
     useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -49,11 +51,45 @@ vi.mock("@/components/shared/site-footer", () => ({
 }));
 
 describe("GigCheckoutPage", () => {
+    afterEach(() => {
+        cleanup();
+        mocks.routerPush.mockReset();
+    });
+
     it("hides Stripe card checkout by default for invoice-only beta", () => {
         render(<GigCheckoutPage />);
 
-        expect(screen.getByText(/ACH Bank Transfer/i)).toBeInTheDocument();
+        expect(screen.getByText(/Purchase order \/ Net-30 invoice/i)).toBeInTheDocument();
+        expect(screen.getByText(/Card payments are not yet available/i)).toBeInTheDocument();
         expect(screen.queryByText(/Credit Card/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/Pay with Stripe/i)).not.toBeInTheDocument();
+    });
+
+    it("labels checkout inputs and associates the required-date error", () => {
+        render(<GigCheckoutPage />);
+
+        const startDate = screen.getByLabelText("Desired Start Date");
+        expect(screen.getByLabelText("Purchase Order (PO) Number")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", { name: /Submit booking request/i }));
+
+        const error = screen.getByRole("alert");
+        expect(error).toHaveTextContent(/choose a desired start date/i);
+        expect(startDate).toHaveAttribute("aria-invalid", "true");
+        expect(startDate).toHaveAttribute("aria-describedby", error.id);
+    });
+
+    it("requires a real district session instead of fabricating a demo booking", () => {
+        render(<GigCheckoutPage />);
+
+        fireEvent.change(screen.getByLabelText("Desired Start Date"), {
+            target: { value: "2026-09-01" },
+        });
+        fireEvent.click(screen.getByRole("button", { name: /Submit booking request/i }));
+
+        expect(mocks.routerPush).toHaveBeenCalledWith(
+            expect.stringMatching(/^\/sign-in\?intent=district&next=/)
+        );
+        expect(screen.queryByRole("heading", { name: /Booking request submitted/i })).not.toBeInTheDocument();
     });
 });

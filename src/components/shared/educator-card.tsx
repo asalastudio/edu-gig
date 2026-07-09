@@ -3,7 +3,8 @@ import { PlayCircle, Star, ShieldCheck, Medal, GraduationCap, MapPin, CurrencyDo
 import { Card } from "./card"
 import { VerificationBadge } from "./verification-badge"
 import { AvailabilityPill } from "./availability-pill"
-import { getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxonomy"
+import { TAXONOMY, getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxonomy"
+import { orderAreasForDisplay } from "@/lib/filter-educators"
 import Link from "next/link";
 
 export interface EducatorCardProps {
@@ -27,9 +28,20 @@ export interface EducatorCardProps {
     badges?: string[];
 }
 
-export function EducatorCard({ educator }: { educator: EducatorCardProps }) {
-    const topAreas = educator.areasOfNeed.slice(0, 2).map(getAreaOfNeedLabel).join(", ");
+export function EducatorCard({
+    educator,
+    highlightedAreaIds = [],
+}: {
+    educator: EducatorCardProps;
+    highlightedAreaIds?: string[];
+}) {
+    const orderedAreas = orderAreasForDisplay(educator.areasOfNeed, highlightedAreaIds);
+    const primaryArea = orderedAreas[0] ? getAreaOfNeedLabel(orderedAreas[0]) : "K-12 support";
+    const remainingAreaCount = Math.max(0, orderedAreas.length - 1);
     const coverage = educator.coverageRegions[0] ? getCoverageRegionLabel(educator.coverageRegions[0]) : "Coverage varies";
+    const gradeLabels = educator.gradeLevels.map(
+        (grade) => TAXONOMY.gradeLevelBands.find((option) => option.id === grade)?.label ?? grade.replace("_", "–")
+    );
 
     return (
         <Card className="p-0 flex flex-col group hover:-translate-y-1 transition-all duration-300 bg-[var(--bg-surface)] overflow-hidden">
@@ -92,7 +104,12 @@ export function EducatorCard({ educator }: { educator: EducatorCardProps }) {
                     {/* Areas */}
                     <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                         <GraduationCap weight="regular" className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
-                        <span className="line-clamp-1 font-medium">{topAreas}</span>
+                        <span className="line-clamp-1 font-medium">{primaryArea}</span>
+                        {remainingAreaCount > 0 && (
+                            <span className="shrink-0 text-xs font-bold text-[var(--text-tertiary)]">
+                                +{remainingAreaCount} more
+                            </span>
+                        )}
                     </div>
                     
                     {/* Grades & Locations */}
@@ -102,7 +119,7 @@ export function EducatorCard({ educator }: { educator: EducatorCardProps }) {
                             <span className="font-medium line-clamp-1">{coverage}</span>
                         </div>
                         <div className="w-1 h-1 rounded-full bg-[var(--border-strong)]" />
-                        <span className="font-medium">Grades: {educator.gradeLevels.map(g => g.replace('_','-')).join(', ')}</span>
+                        <span className="font-medium">Grades: {gradeLabels.join(", ")}</span>
                     </div>
 
                     {/* Badges inline */}

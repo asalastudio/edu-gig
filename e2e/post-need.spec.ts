@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Post a Need", () => {
-    test("signed-out users see a real-post intercept and can preview the form", async ({ page }) => {
+    test("incomplete preview progress is preserved for sign-up instead of appearing published", async ({ page }) => {
         await page.goto("/post");
 
         await expect(page.getByRole("heading", { name: /Sign in to post a real need/i })).toBeVisible();
@@ -16,20 +16,27 @@ test.describe("Post a Need", () => {
         await page.locator('button:has-text("Continue")').click();
         await expect(page.getByRole("heading", { name: /The Logistics/i })).toBeVisible();
 
-        // Step 2 — Logistics
-        await page.locator("#startDate").fill("2026-05-15");
-        await page.locator("#duration").fill("1 semester");
+        // Step 2 — Logistics can remain incomplete because the work is saved as a draft.
         await page.locator('button:has-text("Continue")').click();
 
         await expect(page.getByRole("heading", { name: /The Details/i })).toBeVisible();
 
-        // Step 3 — Details
-        await page.locator("#compRange").fill("$80-$100/hr");
-        await page.locator("#description").fill("Curriculum support for Q4.");
+        await expect(page.getByRole("button", { name: /save draft/i })).toBeVisible();
+        await expect(page.getByRole("button", { name: /publish need/i })).toBeVisible();
 
-        // Submit preserves the draft and sends the user to account creation.
-        await page.locator('button[type="submit"]').click();
+        // An incomplete publish attempt preserves the work and sends the user to
+        // account creation; it never shows the published-success state.
+        await page.getByRole("button", { name: /publish need/i }).click();
 
         await expect(page).toHaveURL(/\/sign-up/);
+        await expect(page.getByText(/your need has been posted/i)).toHaveCount(0);
+
+        const savedDraft = await page.evaluate(() =>
+            JSON.parse(window.localStorage.getItem("k12gig_post_need_draft") ?? "null")
+        );
+        expect(savedDraft).toMatchObject({
+            orgName: "Ann Arbor Public Schools",
+            areaOfNeed: "instruction_curriculum",
+        });
     });
 });

@@ -159,24 +159,41 @@ describe("mapConvexEducatorToProfileView", () => {
             hasFile: false,
         });
         expect(view.certCount).toBe(2);
+        expect(view.badges).toContain("Credentials reviewed");
     });
 
-    it("keeps tier placeholder licenses when credentials are not fetched", () => {
-        const view = mapConvexEducatorToProfileView(educator, user);
-        expect(view.licenses).toEqual([
+    it("does not claim credentials were reviewed when every fetched row is only submitted", () => {
+        const rows: PublicCredentialRow[] = [
             {
-                type: "Professional credentials",
-                issuer: "State / district records",
-                status: "Verified",
-                expiry: "—",
+                id: "cred_submitted",
+                type: "certification",
+                title: "Literacy Coach Certification",
+                issuingBody: "Learning Forward",
+                issueDate: "2024-05-01",
+                verified: false,
+                hasFile: true,
             },
-        ]);
+        ];
+
+        const view = mapConvexEducatorToProfileView(educator, user, rows);
+
+        expect(view.badges).not.toContain("Credentials reviewed");
+        expect(view.badges).toContain("Premier educator");
+        expect(view.certCount).toBe(1);
+    });
+
+    it("never synthesizes placeholder credentials when rows are not fetched", () => {
+        const view = mapConvexEducatorToProfileView(educator, user);
+        expect(view.licenses).toEqual([]);
+        expect(view.certCount).toBe(0);
+        expect(view.badges).not.toContain("Credentials reviewed");
     });
 
     it("returns an empty credentials list (not placeholders) for a fetched empty set", () => {
         const view = mapConvexEducatorToProfileView(educator, user, []);
         expect(view.licenses).toEqual([]);
         expect(view.certCount).toBe(0);
+        expect(view.badges).not.toContain("Credentials reviewed");
     });
 
     it("passes through presenter bio and team members", () => {

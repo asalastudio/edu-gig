@@ -186,12 +186,14 @@ export default defineSchema({
         compensationRange: v.optional(v.string()),
         description: v.optional(v.string()),
         status: v.union(
+            v.literal("draft"),
             v.literal("open"),
             v.literal("interviewing"),
             v.literal("placed"),
             v.literal("closed")
         ),
         createdAt: v.number(),
+        updatedAt: v.optional(v.number()),
     }).index("by_district", ["districtId"])
         .index("by_posted_by", ["postedByUserId"])
         .index("by_status", ["status"]),

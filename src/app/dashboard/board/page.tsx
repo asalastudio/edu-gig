@@ -47,6 +47,8 @@ function gradeLabel(gradeId: string | undefined): string | null {
 
 function statusPillClass(status: string): string {
     switch (status) {
+        case "draft":
+            return "bg-slate-50 text-slate-700 border-slate-200";
         case "open":
             return "bg-emerald-50 text-emerald-700 border-emerald-200";
         case "interviewing":
@@ -80,6 +82,8 @@ function NeedSource({ orgName }: { orgName: string }) {
 
 function statusLabel(status: string): string {
     switch (status) {
+        case "draft":
+            return "Draft";
         case "open":
             return "Open";
         case "interviewing":
@@ -289,10 +293,11 @@ export default function GigBoardPage() {
 
                             {districtNeeds?.map((need) => {
                                 const grade = gradeLabel(need.gradeLevel);
+                                const isDraft = need.status === "draft";
                                 return (
                                     <Link
                                         key={need._id}
-                                        href={`/dashboard/district/needs/${need._id}`}
+                                        href={isDraft ? `/post?draft=${need._id}` : `/dashboard/district/needs/${need._id}`}
                                         className="block p-0 border border-[var(--border-subtle)] shadow-[0_8px_30px_rgba(0,0,0,0.03)] rounded-lg bg-white overflow-hidden group hover:-translate-y-0.5 hover:border-[var(--accent-primary)]/40 hover:shadow-lg transition-all"
                                     >
                                         <div className="p-8 flex flex-col lg:flex-row justify-between gap-6">
@@ -338,21 +343,23 @@ export default function GigBoardPage() {
                                             </div>
 
                                             <div className="flex flex-col items-stretch lg:items-end justify-center gap-2 min-w-[200px]">
-                                                <div className="text-right">
-                                                    <span className="font-heading text-2xl font-bold text-[var(--text-primary)]">
-                                                        {need.proposalCount}
-                                                    </span>{" "}
-                                                    <span className="text-sm font-semibold text-[var(--text-secondary)]">
-                                                        proposal{need.proposalCount === 1 ? "" : "s"}
-                                                    </span>
-                                                    {need.pendingCount > 0 && (
-                                                        <span className="ml-1 text-sm font-bold text-[var(--accent-primary)]">
-                                                            · {need.pendingCount} new
+                                                {!isDraft && (
+                                                    <div className="text-right">
+                                                        <span className="font-heading text-2xl font-bold text-[var(--text-primary)]">
+                                                            {need.proposalCount}
+                                                        </span>{" "}
+                                                        <span className="text-sm font-semibold text-[var(--text-secondary)]">
+                                                            proposal{need.proposalCount === 1 ? "" : "s"}
                                                         </span>
-                                                    )}
-                                                </div>
+                                                        {need.pendingCount > 0 && (
+                                                            <span className="ml-1 text-sm font-bold text-[var(--accent-primary)]">
+                                                                · {need.pendingCount} new
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                                 <span className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[var(--accent-primary)] text-white font-bold group-hover:bg-[var(--accent-primary-h)] transition-colors">
-                                                    Review proposals
+                                                    {isDraft ? "Continue editing" : "Review proposals"}
                                                 </span>
                                             </div>
                                         </div>

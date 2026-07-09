@@ -3,6 +3,11 @@ import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import {
+    getNeedPublishIssues,
+    normalizeNeedInput,
+    type NeedInput,
+} from "../src/lib/need-publish-policy";
 
 /** Cap the per-need email/notification fan-out so a single posting can't blast the whole roster. */
 const MATCH_FANOUT_CAP = 50;
@@ -68,28 +73,130 @@ async function matchEducatorsForNeed(ctx: MutationCtx, need: Doc<"needs">) {
     return matches.slice(0, MATCH_FANOUT_CAP);
 }
 
-const needStatusValidator = v.union(
+async function fanOutNeedAlerts(ctx: MutationCtx, need: Doc<"needs">) {
+    const matches = await matchEducatorsForNeed(ctx, need);
+    for (const { user: educatorUser } of matches) {
+        await ctx.db.insert("notifications", {
+            userId: educatorUser._id,
+            type: "new_need",
+            title: `New need at ${need.orgName}`,
+            body: "A district posted an open need that matches your profile.",
+            read: false,
+            actionUrl: "/dashboard/educator/needs",
+            createdAt: Date.now(),
+        });
+        if (educatorUser.email && educatorUser.emailRemindersOptOut !== true) {
+            await ctx.scheduler.runAfter(0, internal.emails.sendNewNeedAlert, {
+                needId: need._id,
+                recipientUserId: educatorUser._id,
+            });
+        }
+    }
+}
+
+const publishedNeedStatusValidator = v.union(
     v.literal("open"),
     v.literal("interviewing"),
     v.literal("placed"),
     v.literal("closed")
 );
 
-/** District posts a new open need. */
-export const create = mutation({
+const needInputArgs = {
+    orgName: v.string(),
+    areaOfNeed: v.string(),
+    subCategory: v.optional(v.string()),
+    gradeLevel: v.optional(v.string()),
+    engagementType: v.optional(v.string()),
+    startDate: v.optional(v.string()),
+    duration: v.optional(v.string()),
+    compensationRange: v.optional(v.string()),
+    description: v.optional(v.string()),
+};
+
+function assertDraftMinimum(input: NeedInput) {
+    const normalized = normalizeNeedInput(input);
+    if (!normalized.orgName) throw new Error("Organization name is required to save a draft.");
+    if (!normalized.areaOfNeed) throw new Error("Support type is required to save a draft.");
+    return normalized;
+}
+
+function assertReadyToPublish(input: NeedInput) {
+    const normalized = normalizeNeedInput(input);
+    const issues = getNeedPublishIssues(normalized);
+    if (issues.length > 0) {
+        throw new Error(`Need is not ready to publish. ${issues.map((issue) => issue.message).join(" ")}`);
+    }
+    return normalized;
+}
+
+/** Create or update an owned draft without exposing it to educators. */
+export const saveDraft = mutation({
     args: {
-        orgName: v.string(),
-        areaOfNeed: v.string(),
-        subCategory: v.optional(v.string()),
-        gradeLevel: v.optional(v.string()),
-        engagementType: v.optional(v.string()),
-        startDate: v.optional(v.string()),
-        duration: v.optional(v.string()),
-        compensationRange: v.optional(v.string()),
-        description: v.optional(v.string()),
+        needId: v.optional(v.id("needs")),
+        ...needInputArgs,
     },
     handler: async (ctx, args) => {
         const user = await requireDistrictViewer(ctx);
+        const input = assertDraftMinimum(args);
+        const now = Date.now();
+
+        if (args.needId) {
+            const existing = await ctx.db.get(args.needId);
+            if (!existing) throw new Error("Draft not found.");
+            if (!(await canManageNeed(ctx, user, existing))) throw new Error("Forbidden");
+            if (existing.status !== "draft") {
+                throw new Error("Only draft needs can be edited from the post flow.");
+            }
+            await ctx.db.patch(args.needId, { ...input, updatedAt: now });
+            return args.needId;
+        }
+
+        const district = await findDistrictForUser(ctx, user._id);
+        return await ctx.db.insert("needs", {
+            districtId: district?._id,
+            postedByUserId: user._id,
+            ...input,
+            status: "draft",
+            createdAt: now,
+            updatedAt: now,
+        });
+    },
+});
+
+/** Publish an owned, complete draft and only then alert matching educators. */
+export const publishDraft = mutation({
+    args: { needId: v.id("needs") },
+    handler: async (ctx, args) => {
+        const user = await requireDistrictViewer(ctx);
+        const draft = await ctx.db.get(args.needId);
+        if (!draft) throw new Error("Draft not found.");
+        if (!(await canManageNeed(ctx, user, draft))) throw new Error("Forbidden");
+        if (draft.status !== "draft") throw new Error("This need has already been published.");
+
+        const input = assertReadyToPublish(draft);
+        await ctx.db.patch(args.needId, {
+            ...input,
+            status: "open",
+            updatedAt: Date.now(),
+        });
+
+        try {
+            const published = await ctx.db.get(args.needId);
+            if (published) await fanOutNeedAlerts(ctx, published);
+        } catch (err) {
+            console.log("[needs.publishDraft] RFP alert fan-out skipped:", err);
+        }
+
+        return args.needId;
+    },
+});
+
+/** District posts a new open need. */
+export const create = mutation({
+    args: needInputArgs,
+    handler: async (ctx, args) => {
+        const user = await requireDistrictViewer(ctx);
+        const input = assertReadyToPublish(args);
 
         // Link to the district this user administers even when the district has
         // multiple admins. Convex array equality only matched single-admin rows.
@@ -99,15 +206,7 @@ export const create = mutation({
         const needId = await ctx.db.insert("needs", {
             districtId,
             postedByUserId: user._id,
-            orgName: args.orgName,
-            areaOfNeed: args.areaOfNeed,
-            subCategory: args.subCategory,
-            gradeLevel: args.gradeLevel,
-            engagementType: args.engagementType,
-            startDate: args.startDate,
-            duration: args.duration,
-            compensationRange: args.compensationRange,
-            description: args.description,
+            ...input,
             status: "open",
             createdAt: Date.now(),
         });
@@ -117,27 +216,7 @@ export const create = mutation({
         // internalAction, one scheduled send per matched educator.
         try {
             const need = await ctx.db.get(needId);
-            if (need) {
-                const matches = await matchEducatorsForNeed(ctx, need);
-                for (const { user: educatorUser } of matches) {
-                    await ctx.db.insert("notifications", {
-                        userId: educatorUser._id,
-                        type: "new_need",
-                        title: `New need at ${need.orgName}`,
-                        body: `A district posted an open need that matches your profile.`,
-                        read: false,
-                        actionUrl: `/dashboard/educator/needs`,
-                        createdAt: Date.now(),
-                    });
-                    // Email only opted-in educators who actually have an address.
-                    if (educatorUser.email && educatorUser.emailRemindersOptOut !== true) {
-                        await ctx.scheduler.runAfter(0, internal.emails.sendNewNeedAlert, {
-                            needId,
-                            recipientUserId: educatorUser._id,
-                        });
-                    }
-                }
-            }
+            if (need) await fanOutNeedAlerts(ctx, need);
         } catch (err) {
             console.log("[needs.create] RFP alert fan-out skipped:", err);
         }
@@ -245,7 +324,7 @@ export const listOpenForEducators = query({
 export const updateStatus = mutation({
     args: {
         needId: v.id("needs"),
-        status: needStatusValidator,
+        status: publishedNeedStatusValidator,
     },
     handler: async (ctx, args) => {
         const user = await requireDistrictViewer(ctx);

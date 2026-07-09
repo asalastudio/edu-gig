@@ -15,6 +15,7 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { isCardCheckoutEnabled } from "@/lib/launch-flags";
+import { getActiveBetaCopy } from "@/lib/active-beta-copy";
 import { isDistrictRole } from "@/lib/roles";
 import { PLATFORM_FEE_PCT, computePricing } from "@/convex/pricing";
 
@@ -55,6 +56,8 @@ export default function GigCheckoutPage() {
     const [error, setError] = useState<string | null>(null);
     const [bookedOrderId, setBookedOrderId] = useState<string | null>(null);
     const cardCheckoutEnabled = isCardCheckoutEnabled();
+    const betaCopy = getActiveBetaCopy(cardCheckoutEnabled);
+    const startDateError = error === "Please choose a desired start date." ? error : undefined;
 
     const viewer = useQuery(api.users.viewer, {});
     const canPersist = !!viewer && isDistrictRole(viewer.role);
@@ -153,10 +156,10 @@ export default function GigCheckoutPage() {
                         <CheckIcon className="h-10 w-10 text-emerald-500" />
                     </div>
                     <h1 className="font-heading text-3xl font-bold text-[var(--text-primary)] mb-3">
-                        Booking confirmed
+                        Booking request submitted
                     </h1>
                     <p className="text-[var(--text-secondary)] mb-8">
-                        We&apos;ve notified the educator and your district workspace has the order on file.
+                        Your district workspace has the request on file. The educator can now review the proposed start date.
                     </p>
                     <PrimaryButton onClick={() => router.push("/dashboard/district")}>
                         Back to dashboard
@@ -194,13 +197,18 @@ export default function GigCheckoutPage() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                 <Input
+                                    id="checkout-start-date"
+                                    name="startDate"
                                     label="Desired Start Date"
                                     type="date"
                                     min={todayISO}
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
+                                    error={startDateError}
                                 />
                                 <Input
+                                    id="checkout-po-number"
+                                    name="poNumber"
                                     label="Purchase Order (PO) Number"
                                     placeholder="Optional"
                                     value={poNumber}
@@ -227,7 +235,7 @@ export default function GigCheckoutPage() {
                                         checked={paymentMethod === "invoice"}
                                         onChange={() => setPaymentMethod("invoice")}
                                     />
-                                    <span className="font-medium text-[var(--text-primary)]">ACH Bank Transfer (Net-30 Invoice)</span>
+                                    <span className="font-medium text-[var(--text-primary)]">{betaCopy.checkoutInvoiceOption}</span>
                                 </label>
                                 {cardCheckoutEnabled ? (
                                     <label className={`flex items-center gap-3 p-4 border rounded-md cursor-pointer ${paymentMethod === "card" ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/5" : "border-[var(--border-default)] hover:border-[var(--border-strong)]"}`}>
@@ -243,13 +251,13 @@ export default function GigCheckoutPage() {
                                     </label>
                                 ) : (
                                     <p className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-                                        Invoice / PO is the active payment path for this controlled beta. Card checkout is hidden until Stripe production is verified.
+                                        {betaCopy.checkoutInvoiceNotice}
                                     </p>
                                 )}
                             </div>
 
-                            {error && (
-                                <p className="mt-4 text-sm text-red-600 font-medium">{error}</p>
+                            {error && !startDateError && (
+                                <p role="alert" className="mt-4 text-sm text-red-600 font-medium">{error}</p>
                             )}
 
                             <div className="mt-8 flex justify-end">
@@ -258,7 +266,7 @@ export default function GigCheckoutPage() {
                                     disabled={submitting}
                                     className="w-full md:w-auto px-8 py-3 bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90"
                                 >
-                                    {submitting ? "Processing…" : paymentMethod === "card" ? "Pay with Stripe" : "Confirm & Invoice"}
+                                    {submitting ? "Processing…" : paymentMethod === "card" ? "Pay with Stripe" : betaCopy.checkoutInvoiceAction}
                                 </PrimaryButton>
                             </div>
                         </Card>

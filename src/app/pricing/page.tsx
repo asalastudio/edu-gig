@@ -3,7 +3,8 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { PrimaryButton } from "@/components/shared/button";
 import { supportMailto } from "@/lib/legal";
-import { isCardCheckoutEnabled, paymentModeLabel } from "@/lib/launch-flags";
+import { isCardCheckoutEnabled } from "@/lib/launch-flags";
+import { getActiveBetaCopy } from "@/lib/active-beta-copy";
 import { PLATFORM_FEE_PCT, computePricing } from "@/convex/pricing";
 
 export const metadata = {
@@ -17,10 +18,7 @@ const sample = computePricing(SAMPLE_HOURLY_RATE);
 
 export default function PricingPage() {
     const cardCheckoutEnabled = isCardCheckoutEnabled();
-    const paymentLabel = paymentModeLabel();
-    const districtPaymentCopy = cardCheckoutEnabled
-        ? "Card checkout can be enabled when Stripe production is verified. Net-30 invoice with PO number remains supported for eligible district bookings."
-        : "Invoice / PO-first controlled beta. Card checkout is hidden until Stripe production keys, webhooks, and launch approval are verified.";
+    const betaCopy = getActiveBetaCopy(cardCheckoutEnabled);
 
     return (
         <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)]">
@@ -38,7 +36,7 @@ export default function PricingPage() {
                     {[
                         ["Educator rate", "Shown on cards and profiles when the educator has published a starting hourly or daily rate. Educators receive 100% of their listed rate."],
                         ["Platform fee", `Flat ${PLATFORM_FEE_PERCENT_LABEL} of the educator's rate, added at checkout and shown line-item in the final booking total before payment.`],
-                        ["District payment", `${paymentLabel}. ${districtPaymentCopy}`],
+                        ["District payment", `${betaCopy.paymentModeLabel}. ${betaCopy.districtPaymentCopy}`],
                     ].map(([title, body]) => (
                         <div key={title} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-subtle)] md:p-6">
                             <h2 className="font-heading text-xl font-bold">{title}</h2>

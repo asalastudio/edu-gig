@@ -27,7 +27,7 @@ describe("PricingPage", () => {
     it("describes invoice-first controlled beta payment posture by default", () => {
         render(<PricingPage />);
 
-        expect(screen.getByText(/invoice \/ PO-first/i)).toBeInTheDocument();
+        expect(screen.getByText(/During beta, districts pay by approved purchase order or Net-30 invoice/i)).toBeInTheDocument();
         expect(screen.queryByText(/card checkout via stripe today/i)).not.toBeInTheDocument();
     });
 });

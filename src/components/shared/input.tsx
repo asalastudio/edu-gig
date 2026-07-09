@@ -8,14 +8,27 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export function Input({ label, hint, error, className, ...props }: InputProps) {
+    const generatedId = React.useId();
+    const inputId = props.id ?? `input-${generatedId}`;
+    const hintId = `${inputId}-hint`;
+    const errorId = `${inputId}-error`;
+    const describedBy = [
+        props["aria-describedby"],
+        error ? errorId : hint ? hintId : undefined,
+    ].filter(Boolean).join(" ") || undefined;
+
     return (
         <div className="flex flex-col gap-1.5">
             {label && (
-                <label className="text-sm font-medium text-[var(--text-secondary)]">
+                <label htmlFor={inputId} className="text-sm font-medium text-[var(--text-secondary)]">
                     {label}
                 </label>
             )}
             <input
+                {...props}
+                id={inputId}
+                aria-describedby={describedBy}
+                aria-invalid={props["aria-invalid"] ?? (error ? true : undefined)}
                 className={cn(
                     // Base
                     "w-full px-3 py-2 rounded-md",
@@ -33,13 +46,12 @@ export function Input({ label, hint, error, className, ...props }: InputProps) {
                     "transition-[border-color,box-shadow] duration-150",
                     className
                 )}
-                {...props}
             />
             {hint && !error && (
-                <p className="text-xs text-[var(--text-tertiary)]">{hint}</p>
+                <p id={hintId} className="text-xs text-[var(--text-tertiary)]">{hint}</p>
             )}
             {error && (
-                <p className="text-xs text-[var(--accent-danger)]">{error}</p>
+                <p id={errorId} role="alert" className="text-xs text-[var(--accent-danger)]">{error}</p>
             )}
         </div>
     )

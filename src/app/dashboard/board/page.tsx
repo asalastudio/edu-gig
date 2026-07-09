@@ -128,6 +128,10 @@ export default function GigBoardPage() {
     const isSuperadmin = !!viewer && viewer.role === "superadmin";
     // Signed in but neither an educator nor a district-family role.
     const isOtherRole = !!viewer && !isEducator && !isDistrict;
+    const boardTitle = viewer === undefined ? "Needs" : isDistrict ? "Posted Needs" : "Gig Board";
+    const boardDescription = isDistrict
+        ? "Manage drafts, published needs, and educator proposals."
+        : "District-posted needs and RFPs. Educators respond with proposals.";
 
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
@@ -136,8 +140,8 @@ export default function GigBoardPage() {
             <main className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-[1600px] w-full mx-auto px-8 lg:px-12 py-10 flex flex-col gap-10">
                     <PageHeader
-                        title="Gig Board"
-                        description="District-posted needs and RFPs. Districts post; educators respond with proposals."
+                        title={boardTitle}
+                        description={boardDescription}
                         actions={
                             isDistrict ? (
                                 <Link href="/post">

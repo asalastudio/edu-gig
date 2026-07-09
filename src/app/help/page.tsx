@@ -3,6 +3,8 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { PrimaryButton } from "@/components/shared/button";
 import { SUPPORT_EMAIL, supportMailto } from "@/lib/legal";
+import { isCardCheckoutEnabled } from "@/lib/launch-flags";
+import { getActiveBetaCopy } from "@/lib/active-beta-copy";
 
 export const metadata = {
     title: "Help",
@@ -10,6 +12,7 @@ export const metadata = {
 };
 
 export default function HelpPage() {
+    const betaCopy = getActiveBetaCopy(isCardCheckoutEnabled());
     return (
         <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)]">
             <SiteHeader />
@@ -25,9 +28,9 @@ export default function HelpPage() {
                 <section className="grid gap-6 md:grid-cols-2">
                     {[
                         ["Districts", "Post a need, browse educators, request availability, message candidates, and keep booking records organized from the dashboard."],
-                        ["Educators", "Complete onboarding, publish your profile, create gigs, respond to district needs, manage credentials, and track bookings."],
-                        ["Billing", "Card checkout, Net-30 invoice PDFs, PO numbers, and payment notices are handled in the booking flow."],
-                        ["Trust and compliance", "Privacy, terms, DPA requests, credential review, and background-check status are available from profile and legal surfaces."],
+                        ["Educators", betaCopy.educatorHelp],
+                        ["Billing", betaCopy.billingHelp],
+                        ["Trust and compliance", "Privacy, terms, DPA requests, credential status, and current verification information are available from profile and legal surfaces."],
                     ].map(([title, body]) => (
                         <div key={title} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-subtle)] md:p-6">
                             <h2 className="font-heading text-xl font-bold">{title}</h2>

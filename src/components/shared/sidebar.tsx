@@ -12,6 +12,7 @@ import {
     Briefcase,
     Buildings,
     ClipboardText,
+    CurrencyDollar,
     EnvelopeSimple,
     Gear,
     GraduationCap,
@@ -37,6 +38,7 @@ export function Sidebar() {
     const mobileOpen = mobileOpenPath === pathname;
     const isAdminWorkspace = pathname.includes('/dashboard/admin');
     const showAdminNav = isAdminWorkspace && viewer?.role === "superadmin";
+    const isRoleLoading = viewer === undefined;
     // Derive workspace from the signed-in user's role, not the URL, so shared
     // pages like /browse always reflect the correct role (fixes educator seeing
     // a "District" label on the directory).
@@ -62,7 +64,9 @@ export function Sidebar() {
         };
     }, [mobileOpen]);
 
-    const navItems: NavItem[] = showAdminNav
+    const navItems: NavItem[] = isRoleLoading
+        ? []
+        : showAdminNav
         ? [
             { href: "/dashboard/admin", label: "Overview", icon: SquaresFour },
             { href: "/dashboard/admin/users", label: "Users", icon: Users },
@@ -79,12 +83,28 @@ export function Sidebar() {
             // item is district-only; an educator would otherwise land on the
             // "Use a district account" gate.
             ...(!isEducator ? [{ href: "/browse", label: "Directory", icon: Users }] : []),
-            { href: "/dashboard/board", label: "Gig Board", icon: Briefcase },
+            {
+                href: "/dashboard/board",
+                label: isEducator ? "Gig Board" : "Posted Needs",
+                icon: Briefcase,
+            },
+            ...(isEducator
+                ? [
+                    { href: "/dashboard/educator/my-gigs", label: "My Gigs", icon: ClipboardText },
+                    { href: "/dashboard/educator/earnings", label: "Earnings", icon: CurrencyDollar },
+                ]
+                : []),
             { href: "/dashboard/messages", label: "Messages", icon: EnvelopeSimple, count: messagesBadge },
             { href: settingsHref, label: "Settings", icon: Gear },
         ];
 
-    const workspaceLabel = showAdminNav ? "Admin" : isEducator ? "Educator" : "District";
+    const workspaceLabel = isRoleLoading
+        ? "Workspace"
+        : showAdminNav
+          ? "Admin"
+          : isEducator
+            ? "Educator"
+            : "District";
 
     const sidebarBody = (
         <>

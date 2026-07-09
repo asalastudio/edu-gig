@@ -73,7 +73,7 @@ export default function EducatorProfilePage() {
         }
     }, [viewer, router]);
 
-    if (useConvexProfile && convexData === undefined) {
+    if (useConvexProfile && (convexData === undefined || credentialRows === undefined)) {
         return (
             <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
                 <SiteHeader />

@@ -51,8 +51,7 @@ export function mapConvexEducatorToProfileView(
 
     // Real rows when the caller fetched them; tier-based placeholders keep the
     // legacy/mock path (no credentials arg) rendering as before.
-    const licenses: EducatorProfileView["licenses"] = credentials
-        ? credentials.map((credential) => ({
+    const licenses: EducatorProfileView["licenses"] = (credentials ?? []).map((credential) => ({
               type: credential.title,
               issuer: credential.state
                   ? `${credential.issuingBody} (${credential.state})`
@@ -61,17 +60,8 @@ export function mapConvexEducatorToProfileView(
               expiry: credential.expiryDate || "—",
               credentialId: credential.id,
               hasFile: credential.hasFile,
-          }))
-        : tier === "basic"
-          ? [{ type: "Credentials on file", issuer: "—", status: "Submitted", expiry: "—" }]
-          : [
-                {
-                    type: "Professional credentials",
-                    issuer: "State / district records",
-                    status: "Verified",
-                    expiry: "—",
-                },
-            ];
+          }));
+    const hasReviewedCredential = credentials?.some((credential) => credential.verified) ?? false;
 
     const amOpen = educator.availabilityStatus === "open";
     const pmOpen = educator.availabilityStatus !== "closed";
@@ -93,12 +83,14 @@ export function mapConvexEducatorToProfileView(
         location: "Michigan (see coverage regions)",
         education: "See credentials",
         areas: areaLabels.length ? areaLabels : ["K-12 support"],
-        badges:
-            tier === "premier"
-                ? ["Credentials reviewed", "Premier educator"]
+        badges: [
+            ...(hasReviewedCredential ? ["Credentials reviewed"] : []),
+            ...(tier === "premier"
+                ? ["Premier educator"]
                 : tier === "verified"
-                  ? ["Credentials reviewed"]
-                  : ["Profile in progress"],
+                  ? ["Verified educator"]
+                  : ["Profile in progress"]),
+        ],
         licenses,
         presenterBio: educator.presenterBio?.trim() || undefined,
         teamMembers: educator.teamMembers?.length ? educator.teamMembers : undefined,

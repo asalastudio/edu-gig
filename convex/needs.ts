@@ -8,6 +8,7 @@ import {
     normalizeNeedInput,
     type NeedInput,
 } from "../src/lib/need-publish-policy";
+import { educatorMatchesNeed } from "../src/lib/match-need";
 
 /** Cap the per-need email/notification fan-out so a single posting can't blast the whole roster. */
 const MATCH_FANOUT_CAP = 50;
@@ -57,13 +58,7 @@ async function matchEducatorsForNeed(ctx: MutationCtx, need: Doc<"needs">) {
 
     for (const educator of educators) {
         if (!educator.isActive) continue;
-        if (!educator.areasOfNeed.includes(need.areaOfNeed)) continue;
-        if (need.gradeLevel) {
-            const coversGrade =
-                educator.gradeLevelBands.includes(need.gradeLevel) ||
-                educator.gradeLevelBands.includes("all");
-            if (!coversGrade) continue;
-        }
+        if (!educatorMatchesNeed(educator, need)) continue;
         const user = await ctx.db.get(educator.userId);
         if (!user || !user.onboarded) continue;
         matches.push({ educator, user });
@@ -300,6 +295,22 @@ export const getById = query({
         if (!need) return null;
         if (!(await canManageNeed(ctx, user, need))) throw new Error("Forbidden");
         return need;
+    },
+});
+
+/** Safe draft lookup for URL-driven editing; malformed and unauthorized ids do not throw. */
+export const getDraftForEditing = query({
+    args: { needId: v.string() },
+    handler: async (ctx, args) => {
+        const user = await requireDistrictViewer(ctx);
+        const needId = ctx.db.normalizeId("needs", args.needId);
+        if (!needId) return { status: "unavailable" as const };
+        const need = await ctx.db.get(needId);
+        if (!need || !(await canManageNeed(ctx, user, need))) {
+            return { status: "unavailable" as const };
+        }
+        if (need.status !== "draft") return { status: "not_draft" as const };
+        return { status: "ready" as const, need };
     },
 });
 

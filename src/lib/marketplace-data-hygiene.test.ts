@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
     classifyMarketplaceNeed,
+    classifyMarketplaceNeedReviewSignals,
     classifyMarketplaceUser,
     classifyMarketplaceDistrict,
+    computeCandidateDigest,
     getIncompletePublishedNeedFields,
 } from "./marketplace-data-hygiene";
 
@@ -72,13 +74,23 @@ describe("classifyMarketplaceDistrict", () => {
 });
 
 describe("classifyMarketplaceNeed", () => {
-    it("flags QA organizations and obvious test descriptions", () => {
+    it("limits automatic cleanup candidates to QA/test organization markers", () => {
         expect(
             classifyMarketplaceNeed({
                 orgName: "QA Walkthrough Public Schools",
                 description: "test listing please ignore",
             })
-        ).toEqual(expect.arrayContaining(["qa_org_name", "test_description"]));
+        ).toEqual(["qa_org_name"]);
+    });
+
+    it("keeps broad narrative words review-only so legitimate listings cannot be deleted", () => {
+        const need = {
+            orgName: "Lansing Public Schools",
+            description: "Help our team analyze state test results and improve assessment practice.",
+        };
+
+        expect(classifyMarketplaceNeed(need)).toEqual([]);
+        expect(classifyMarketplaceNeedReviewSignals(need)).toEqual(["test_description"]);
     });
 
     it("does not flag normal opportunity language", () => {
@@ -88,6 +100,17 @@ describe("classifyMarketplaceNeed", () => {
                 description: "Support teachers with assessment design and curriculum alignment.",
             })
         ).toEqual([]);
+    });
+});
+
+describe("computeCandidateDigest", () => {
+    it("is order-independent and changes when the reviewed candidate set drifts", async () => {
+        const reviewed = await computeCandidateDigest(["need:b", "user:a"]);
+        const reordered = await computeCandidateDigest(["user:a", "need:b"]);
+        const drifted = await computeCandidateDigest(["user:a", "need:b", "proposal:c"]);
+
+        expect(reordered).toBe(reviewed);
+        expect(drifted).not.toBe(reviewed);
     });
 });
 

@@ -6,9 +6,11 @@ This runbook inventories and removes QA/test marketplace records before launch. 
 
 - `npm run beta-launch:audit` and `npm run beta-launch:cleanup` are read-only.
 - Incomplete legitimate open needs appear under `incompleteNeeds` for manual review. They are never automatic cleanup candidates solely because they are incomplete.
+- Broad narrative signals such as the word “test” in a description appear under `reviewOnlyNeedSignals`; they never enter automatic cleanup by themselves.
 - Founding profiles with `beta:founding:` Clerk ids are not classified as test records unless their email is on the explicit cleanup list.
 - Deletion requires `BETA_LAUNCH_ENABLED=true`, the production launch secret, and the exact confirmation token embedded by `beta-launch:cleanup:confirm`.
 - Cleanup removes related rows and stored uploads before owners so it does not intentionally leave orphaned marketplace data.
+- Confirmed cleanup must include the exact candidate digest from the reviewed audit and the same exclusion list. Any data drift aborts deletion.
 
 ## 1. Prepare and export
 
@@ -28,9 +30,17 @@ The result contains:
 - flagged users, districts, and needs with explicit reasons;
 - incomplete published needs and their missing fields (review-only);
 - a cascade-count preview for every table and storage objects;
+- a `candidateDigest`, exclusion list, and safety-check results;
 - the confirmation phrase required by the destructive mutation.
 
-Review every candidate with the product owner. Add legitimate false positives to an approved exception before cleanup; do not rely on name recognition alone.
+Review every candidate with the product owner. To exclude a legitimate primary user, district, or need, set its exact Convex id in a comma-separated environment value and re-run the audit:
+
+```bash
+export BETA_CLEANUP_EXCLUDE_IDS="user_or_district_id,another_primary_id"
+npm run beta-launch:audit
+```
+
+Record the final exclusions and audit output. Do not rely on name recognition alone.
 
 `npm run beta-launch:cleanup` is an alias for the same non-destructive preview and can be used in operational checklists.
 
@@ -39,10 +49,11 @@ Review every candidate with the product owner. Add legitimate false positives to
 Only after the export and candidate review are recorded:
 
 ```bash
+export BETA_CLEANUP_CANDIDATE_DIGEST="digest-from-the-reviewed-audit"
 npm run beta-launch:cleanup:confirm
 ```
 
-Save the returned removal counts. Compare them with the approved preview. If they differ unexpectedly, stop before running any seed or follow-up mutation and inspect the deployment.
+The cleanup recomputes its complete cascade and aborts if the digest or safety assertions differ. Save the returned removal counts and compare them with the approved preview. If they differ unexpectedly, stop before running any seed or follow-up mutation and inspect the deployment.
 
 ## 4. Verify and close the maintenance window
 

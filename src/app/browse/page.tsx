@@ -112,6 +112,13 @@ export default function BrowsePage() {
         }
     };
 
+    const clearAvailableNow = () => {
+        setAvailableNow(false);
+        setActiveQuickFilter((current) =>
+            current === "quick_avail" || current === "quick_instant" ? null : current
+        );
+    };
+
     // Filter logic
     const filteredEducators = filterEducatorRoster(roster, {
         selectedAreas,
@@ -131,7 +138,7 @@ export default function BrowsePage() {
         ...selectedGrades.map((id) => ({ id: `grade:${id}`, label: TAXONOMY.gradeLevelBands.find((g) => g.id === id)?.label ?? id, clear: () => setSelectedGrades((prev) => prev.filter((v) => v !== id)) })),
         ...selectedRegions.map((id) => ({ id: `region:${id}`, label: getCoverageRegionLabel(id), clear: () => setSelectedRegions((prev) => prev.filter((v) => v !== id)) })),
         ...selectedEngagements.map((id) => ({ id: `engagement:${id}`, label: TAXONOMY.engagementTypes.find((e) => e.id === id)?.label ?? id, clear: () => setSelectedEngagements((prev) => prev.filter((v) => v !== id)) })),
-        ...(availableNow ? [{ id: "available", label: "Available now", clear: () => setAvailableNow(false) }] : []),
+        ...(availableNow ? [{ id: "available", label: "Available now", clear: clearAvailableNow }] : []),
         ...(activeQuickFilter === "quick_top" ? [{ id: "quick_top", label: "Top-rated", clear: () => setActiveQuickFilter(null) }] : []),
         ...(activeQuickFilter === "quick_local" ? [{ id: "quick_local", label: "Local coverage", clear: () => setActiveQuickFilter(null) }] : []),
         ...(activeQuickFilter === "quick_instant" ? [{ id: "quick_instant", label: "Ready to request", clear: () => setActiveQuickFilter(null) }] : []),
@@ -204,6 +211,7 @@ export default function BrowsePage() {
                         setVerifiedOnly(false);
                         setAvailableNow(false);
                         setActiveQuickFilter(null);
+                        setShowSavedOnly(false);
                     }}
                 >
                     Clear filters
@@ -379,6 +387,7 @@ export default function BrowsePage() {
                                     setVerifiedOnly(false);
                                     setAvailableNow(false);
                                     setActiveQuickFilter(null);
+                                    setShowSavedOnly(false);
                                 }}
                             >
                                 Clear All Filters

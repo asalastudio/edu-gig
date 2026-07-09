@@ -5,7 +5,7 @@ const cardCheckoutEnabled = /^(1|true|yes|on)$/i.test(
 );
 
 test.describe("Gig checkout (demo invoice path)", () => {
-    test("defaults to invoice/PO and submits a booking request in demo mode", async ({ page }) => {
+    test("defaults to invoice/PO and requires a district session before submission", async ({ page }) => {
         await page.goto("/gigs/sample-gig-123");
         const futureStartDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
             .toISOString()
@@ -24,7 +24,8 @@ test.describe("Gig checkout (demo invoice path)", () => {
         await page.getByLabel("Desired Start Date").fill(futureStartDate);
         await page.getByRole("button", { name: /Submit booking request|Pay with Stripe/i }).click();
 
-        await expect(page.getByRole("heading", { name: /Booking request submitted/i })).toBeVisible();
+        await expect(page).toHaveURL(/\/sign-in\?intent=district/);
+        await expect(page.getByRole("heading", { name: /Booking request submitted/i })).toHaveCount(0);
     });
 
     test("hides card checkout and explains the invoice-only beta", async ({ page }) => {

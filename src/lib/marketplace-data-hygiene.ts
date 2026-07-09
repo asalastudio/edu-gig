@@ -55,11 +55,23 @@ export function classifyMarketplaceNeed(need: MarketplaceNeedIdentity): string[]
     if (hasToken(need.orgName, "test")) reasons.push("test_org_name");
     if (hasToken(need.orgName, "qa")) reasons.push("qa_org_name");
     if (hasToken(need.orgName, "demo")) reasons.push("demo_org_name");
-    if (need.description && hasToken(need.description, "test")) {
-        reasons.push("test_description");
-    }
-    if (need.description && hasToken(need.description, "qa")) reasons.push("qa_description");
     return [...new Set(reasons)];
+}
+
+export function classifyMarketplaceNeedReviewSignals(need: MarketplaceNeedIdentity): string[] {
+    const reasons: string[] = [];
+    if (need.description && hasToken(need.description, "test")) reasons.push("test_description");
+    if (need.description && hasToken(need.description, "qa")) reasons.push("qa_description");
+    return reasons;
+}
+
+export async function computeCandidateDigest(candidateKeys: string[]): Promise<string> {
+    const canonical = [...new Set(candidateKeys)].sort().join("\n");
+    const bytes = new TextEncoder().encode(canonical);
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+    return [...new Uint8Array(digest)]
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("");
 }
 
 export function getIncompletePublishedNeedFields(

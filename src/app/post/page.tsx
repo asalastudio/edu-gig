@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
@@ -15,6 +15,7 @@ import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
 import {
     getNeedPublishIssues,
     normalizeNeedInput,
+    parseStoredNeedDraft,
     type NeedInput,
     type NeedPublishField,
 } from "@/lib/need-publish-policy";
@@ -43,6 +44,10 @@ function PostNeedPageInner() {
     const requestedDraftId = searchParams.get("draft");
     const [draftId, setDraftId] = useState<string | null>(requestedDraftId);
     const [hydratedDraftId, setHydratedDraftId] = useState<string | null>(null);
+    const [localDraftTransferState, setLocalDraftTransferState] = useState<
+        "idle" | "transferring" | "complete" | "failed"
+    >("idle");
+    const localDraftTransferStarted = useRef(false);
 
     // Form state
     // null = untouched; the district profile name is used until the user edits.
@@ -67,12 +72,14 @@ function PostNeedPageInner() {
     const district = useQuery(api.districts.getMine, canPersist ? {} : "skip");
     const saveNeedDraft = useMutation(api.needs.saveDraft);
     const publishNeedDraft = useMutation(api.needs.publishDraft);
-    const existingDraft = useQuery(
-        api.needs.getById,
+    const existingDraftResult = useQuery(
+        api.needs.getDraftForEditing,
         canPersist && requestedDraftId
-            ? { needId: requestedDraftId as Id<"needs"> }
+            ? { needId: requestedDraftId }
             : "skip"
     );
+    const existingDraft =
+        existingDraftResult?.status === "ready" ? existingDraftResult.need : null;
     const educatorName = searchParams.get("name");
     const requestedSlot = searchParams.get("slot");
 
@@ -82,10 +89,6 @@ function PostNeedPageInner() {
 
     useEffect(() => {
         if (!existingDraft || existingDraft._id === hydratedDraftId) return;
-        if (existingDraft.status !== "draft") {
-            setSubmitError("This need has already been published and can no longer be edited as a draft.");
-            return;
-        }
         setOrgNameInput(existingDraft.orgName);
         setAreaId(existingDraft.areaOfNeed);
         setSpecId(existingDraft.subCategory ?? "");
@@ -100,10 +103,77 @@ function PostNeedPageInner() {
     }, [existingDraft, hydratedDraftId]);
 
     useEffect(() => {
-        if (requestedDraftId && canPersist && existingDraft === null) {
-            setSubmitError("Draft not found. Return to Posted Needs and choose an available draft.");
+        if (!requestedDraftId || !canPersist || !existingDraftResult) return;
+        if (existingDraftResult.status === "unavailable") {
+            setSubmitError("Draft unavailable. Return to Posted Needs and choose a draft you can edit.");
+        } else if (existingDraftResult.status === "not_draft") {
+            setSubmitError("This need has already been published and can no longer be edited as a draft.");
         }
-    }, [requestedDraftId, canPersist, existingDraft]);
+    }, [requestedDraftId, canPersist, existingDraftResult]);
+
+    useEffect(() => {
+        if (
+            !canPersist ||
+            requestedDraftId ||
+            localDraftTransferState !== "idle" ||
+            localDraftTransferStarted.current
+        ) {
+            return;
+        }
+        const raw = window.localStorage.getItem("k12gig_post_need_draft");
+        if (!raw) return;
+        const storedDraft = parseStoredNeedDraft(raw);
+        if (!storedDraft) {
+            window.localStorage.removeItem("k12gig_post_need_draft");
+            return;
+        }
+
+        localDraftTransferStarted.current = true;
+        setLocalDraftTransferState("transferring");
+        setOrgNameInput(storedDraft.orgName);
+        setAreaId(storedDraft.areaOfNeed);
+        setSpecId(storedDraft.subCategory ?? "");
+        setGradeLevel(storedDraft.gradeLevel ?? "");
+        setStartDate(storedDraft.startDate ?? "");
+        setDuration(storedDraft.duration ?? "");
+        setCompensationRange(storedDraft.compensationRange ?? "");
+        setDescription(storedDraft.description ?? "");
+
+        void saveNeedDraft(storedDraft)
+            .then((savedId) => {
+                const savedIdString = savedId as unknown as string;
+                window.localStorage.removeItem("k12gig_post_need_draft");
+                setDraftId(savedIdString);
+                setLocalDraftTransferState("complete");
+                setDraftNotice("Your saved progress is now in your district workspace.");
+                router.replace(`/post?draft=${encodeURIComponent(savedIdString)}`, { scroll: false });
+            })
+            .catch((err: unknown) => {
+                localDraftTransferStarted.current = false;
+                setLocalDraftTransferState("failed");
+                setSubmitError(
+                    err instanceof Error
+                        ? err.message
+                        : "Could not transfer your saved draft. Your browser copy is still available."
+                );
+            });
+    }, [
+        canPersist,
+        localDraftTransferState,
+        requestedDraftId,
+        router,
+        saveNeedDraft,
+    ]);
+
+    const requestedDraftLoading =
+        !!requestedDraftId && canPersist && existingDraftResult === undefined;
+    const requestedDraftUnavailable =
+        !!requestedDraftId &&
+        canPersist &&
+        !!existingDraftResult &&
+        existingDraftResult.status !== "ready";
+    const editorLoading =
+        requestedDraftLoading || localDraftTransferState === "transferring";
 
     const selectedAreaObj = TAXONOMY.areasOfNeed.find(a => a.id === areaId);
     const specs = selectedAreaObj?.subCategories || [];
@@ -295,7 +365,22 @@ function PostNeedPageInner() {
                     </div>
                 )}
 
-                {sessionReady && !wrongRole && (!signedOut || previewMode) && !isSuccess ? (
+                {sessionReady && !wrongRole && (!signedOut || previewMode) && !isSuccess && (
+                    editorLoading ? (
+                        <div className="bg-white p-10 rounded-lg border border-[var(--border-subtle)] text-center text-[var(--text-secondary)]">
+                            {requestedDraftLoading ? "Loading your draft…" : "Moving your saved draft into your workspace…"}
+                        </div>
+                    ) : requestedDraftUnavailable ? (
+                        <div className="bg-white p-10 rounded-lg border border-[var(--border-subtle)] text-center">
+                            <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-3">Draft unavailable</h1>
+                            <p className="text-[var(--text-secondary)] mb-6">
+                                This link is invalid, the draft was already published, or it belongs to another district workspace.
+                            </p>
+                            <Link href="/dashboard/board">
+                                <PrimaryButton>Return to Posted Needs</PrimaryButton>
+                            </Link>
+                        </div>
+                    ) : (
                     <div className="animate-in fade-in duration-500">
                         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                             <div>
@@ -554,7 +639,9 @@ function PostNeedPageInner() {
                             </div>
                         </form>
                     </div>
-                ) : viewer !== undefined && !wrongRole && (!signedOut || previewMode) && (
+                    )
+                )}
+                {isSuccess && viewer !== undefined && !wrongRole && (!signedOut || previewMode) && (
                     <div className="flex flex-col items-center justify-center text-center py-24 animate-in zoom-in-95 duration-500">
                         <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-emerald-50/50">
                             <CheckCircle weight="fill" className="w-12 h-12 text-emerald-500" />

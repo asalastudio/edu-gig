@@ -3,6 +3,7 @@ import {
     getNeedPublishIssues,
     isNeedPublishReady,
     normalizeNeedInput,
+    parseStoredNeedDraft,
     type NeedInput,
 } from "./need-publish-policy";
 
@@ -33,6 +34,15 @@ describe("normalizeNeedInput", () => {
             subCategory: undefined,
             duration: "One semester",
         });
+    });
+
+    it("parses resumable local draft JSON and rejects malformed or incomplete values", () => {
+        expect(parseStoredNeedDraft(JSON.stringify(completeNeed))).toMatchObject({
+            orgName: "Ann Arbor Public Schools",
+            areaOfNeed: "instruction_curriculum",
+        });
+        expect(parseStoredNeedDraft("not json")).toBeNull();
+        expect(parseStoredNeedDraft(JSON.stringify({ orgName: "District" }))).toBeNull();
     });
 });
 

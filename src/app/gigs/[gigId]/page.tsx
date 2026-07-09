@@ -18,6 +18,7 @@ import { isCardCheckoutEnabled } from "@/lib/launch-flags";
 import { getActiveBetaCopy } from "@/lib/active-beta-copy";
 import { isDistrictRole } from "@/lib/roles";
 import { PLATFORM_FEE_PCT, computePricing } from "@/convex/pricing";
+import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
 
 type PaymentMethod = "card" | "invoice";
 
@@ -86,16 +87,25 @@ export default function GigCheckoutPage() {
             return;
         }
 
+        if (viewer === undefined) {
+            setError("We’re still checking your district session. Please try again.");
+            return;
+        }
+        if (viewer === null) {
+            const next = `/gigs/${encodeURIComponent(gigId)}`;
+            router.push(`/sign-in?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent(next)}`);
+            return;
+        }
+        if (!canPersist) {
+            setError("Use a district account to submit a booking request.");
+            return;
+        }
+        if (!looksLikeConvexId) {
+            setError("This sample gig cannot be booked. Open a real gig from the district directory.");
+            return;
+        }
+
         if (paymentMethod === "invoice") {
-            if (!canPersist) {
-                // Demo path: no real persist available; just show the success state by redirecting.
-                setBookedOrderId("demo-order");
-                return;
-            }
-            if (!looksLikeConvexId) {
-                setError("This demo gig cannot be booked. Open a real gig from the dashboard.");
-                return;
-            }
             setSubmitting(true);
             try {
                 const orderId = await createOrder({
@@ -148,7 +158,7 @@ export default function GigCheckoutPage() {
         }
     }
 
-    if (bookedOrderId || checkoutState === "success") {
+    if (bookedOrderId) {
         return (
             <CheckoutShell>
                 <div className="max-w-xl mx-auto text-center py-16">
@@ -183,6 +193,11 @@ export default function GigCheckoutPage() {
                     {checkoutState === "cancelled" && (
                         <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-sm font-medium">
                             Stripe checkout was cancelled. Your booking has not been placed.
+                        </div>
+                    )}
+                    {checkoutState === "success" && (
+                        <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-sm font-medium">
+                            We could not verify a completed booking from this URL. Return to your district workspace to confirm its status.
                         </div>
                     )}
 
@@ -263,10 +278,16 @@ export default function GigCheckoutPage() {
                             <div className="mt-8 flex justify-end">
                                 <PrimaryButton
                                     type="submit"
-                                    disabled={submitting}
+                                    disabled={submitting || viewer === undefined}
                                     className="w-full md:w-auto px-8 py-3 bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90"
                                 >
-                                    {submitting ? "Processing…" : paymentMethod === "card" ? "Pay with Stripe" : betaCopy.checkoutInvoiceAction}
+                                    {viewer === undefined
+                                        ? "Checking account…"
+                                        : submitting
+                                          ? "Processing…"
+                                          : paymentMethod === "card"
+                                            ? "Pay with Stripe"
+                                            : betaCopy.checkoutInvoiceAction}
                                 </PrimaryButton>
                             </div>
                         </Card>

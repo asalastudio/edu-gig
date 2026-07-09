@@ -3,6 +3,7 @@ import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { acceptsEducatorProposals } from "../src/lib/need-status";
 
 const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
 
@@ -78,6 +79,9 @@ export const submit = mutation({
 
         const need = await ctx.db.get(args.needId);
         if (!need) throw new Error("Not found");
+        if (!acceptsEducatorProposals(need.status)) {
+            throw new Error("This need is not accepting proposals.");
+        }
 
         // Block duplicate pending proposals on the same need from the same educator.
         const existing = await ctx.db

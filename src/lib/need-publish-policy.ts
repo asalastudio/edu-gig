@@ -53,6 +53,32 @@ export function normalizeNeedInput(input: NeedInput): NormalizedNeedInput {
     };
 }
 
+export function parseStoredNeedDraft(raw: string): NormalizedNeedInput | null {
+    try {
+        const value: unknown = JSON.parse(raw);
+        if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+        const candidate = value as Record<string, unknown>;
+        const input: NeedInput = {
+            orgName: typeof candidate.orgName === "string" ? candidate.orgName : undefined,
+            areaOfNeed: typeof candidate.areaOfNeed === "string" ? candidate.areaOfNeed : undefined,
+            subCategory: typeof candidate.subCategory === "string" ? candidate.subCategory : undefined,
+            gradeLevel: typeof candidate.gradeLevel === "string" ? candidate.gradeLevel : undefined,
+            engagementType: typeof candidate.engagementType === "string" ? candidate.engagementType : undefined,
+            startDate: typeof candidate.startDate === "string" ? candidate.startDate : undefined,
+            duration: typeof candidate.duration === "string" ? candidate.duration : undefined,
+            compensationRange:
+                typeof candidate.compensationRange === "string"
+                    ? candidate.compensationRange
+                    : undefined,
+            description: typeof candidate.description === "string" ? candidate.description : undefined,
+        };
+        const normalized = normalizeNeedInput(input);
+        return normalized.orgName && normalized.areaOfNeed ? normalized : null;
+    } catch {
+        return null;
+    }
+}
+
 function supportTypeRequiresSubcategory(areaOfNeed: string): boolean {
     const area = TAXONOMY.areasOfNeed.find((candidate) => candidate.id === areaOfNeed);
     return (area?.subCategories.length ?? 0) > 0;

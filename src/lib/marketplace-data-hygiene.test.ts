@@ -5,8 +5,18 @@ import {
     classifyMarketplaceUser,
     classifyMarketplaceDistrict,
     computeCandidateDigest,
+    getBetaLaunchAuthorizationIssue,
     getIncompletePublishedNeedFields,
 } from "./marketplace-data-hygiene";
+
+describe("getBetaLaunchAuthorizationIssue", () => {
+    it("requires the maintenance flag and exact secret", () => {
+        expect(getBetaLaunchAuthorizationIssue(false, "expected", "expected")).toBe("disabled");
+        expect(getBetaLaunchAuthorizationIssue(true, "expected", "wrong")).toBe("forbidden");
+        expect(getBetaLaunchAuthorizationIssue(true, undefined, "expected")).toBe("forbidden");
+        expect(getBetaLaunchAuthorizationIssue(true, "expected", "expected")).toBeNull();
+    });
+});
 
 describe("classifyMarketplaceUser", () => {
     it.each([

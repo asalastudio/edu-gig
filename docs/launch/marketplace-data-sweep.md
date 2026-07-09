@@ -7,9 +7,12 @@ This runbook inventories and removes QA/test marketplace records before launch. 
 - `npm run beta-launch:audit` and `npm run beta-launch:cleanup` are read-only.
 - Incomplete legitimate open needs appear under `incompleteNeeds` for manual review. They are never automatic cleanup candidates solely because they are incomplete.
 - Broad narrative signals such as the word “test” in a description appear under `reviewOnlyNeedSignals`; they never enter automatic cleanup by themselves.
+- Procurement requests matched only by district-name heuristics and notifications matched only by title text appear in `reviewOnlyProcurementSignals` and `reviewOnlyNotificationSignals`. Only exact owner, district, or entity URL references enter the automatic cascade.
+- Legacy credential `documentUrl` values are normalized against Convex’s `_storage` table before inclusion. Invalid or missing legacy objects appear under `reviewOnlyLegacyStorage` and are not passed to deletion.
 - Founding profiles with `beta:founding:` Clerk ids are not classified as test records unless their email is on the explicit cleanup list.
 - Deletion requires `BETA_LAUNCH_ENABLED=true`, the production launch secret, and the exact confirmation token embedded by `beta-launch:cleanup:confirm`.
 - Cleanup removes related rows and stored uploads before owners so it does not intentionally leave orphaned marketplace data.
+- Storage deletion is fail-closed: if any reviewed storage object cannot be deleted, the mutation aborts instead of reporting a partial success.
 - Confirmed cleanup must include the exact candidate digest from the reviewed audit and the same exclusion list. Any data drift aborts deletion.
 
 ## 1. Prepare and export
@@ -28,7 +31,7 @@ npm run beta-launch:audit
 The result contains:
 
 - flagged users, districts, and needs with explicit reasons;
-- incomplete published needs and their missing fields (review-only);
+- incomplete published needs, heuristic procurement/notification matches, and unresolved legacy storage values (review-only);
 - a cascade-count preview for every table and storage objects;
 - a `candidateDigest`, exclusion list, and safety-check results;
 - the confirmation phrase required by the destructive mutation.

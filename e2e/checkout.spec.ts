@@ -4,7 +4,7 @@ const cardCheckoutEnabled = /^(1|true|yes|on)$/i.test(
     (process.env.NEXT_PUBLIC_ENABLE_CARD_CHECKOUT ?? "").trim()
 );
 
-test.describe("Gig checkout (demo invoice path)", () => {
+test.describe("Gig checkout (controlled beta path)", () => {
     test("defaults to invoice/PO and requires a district session before submission", async ({ page }) => {
         await page.goto("/gigs/sample-gig-123");
         const futureStartDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
@@ -13,6 +13,13 @@ test.describe("Gig checkout (demo invoice path)", () => {
 
         await expect(page.getByRole("heading", { name: /Checkout/i })).toBeVisible();
         await expect(page.getByText(/Order Summary/i)).toBeVisible();
+
+        const checkingAccount = page.getByRole("button", { name: /Checking account/i });
+        if (await checkingAccount.isVisible()) {
+            await expect(checkingAccount).toBeDisabled();
+            await expect(page.getByRole("heading", { name: /Booking request submitted/i })).toHaveCount(0);
+            return;
+        }
 
         // Invoice / PO is pre-selected; submit without a date first to hit validation.
         await page.getByRole("button", { name: /Submit booking request|Pay with Stripe/i }).click();

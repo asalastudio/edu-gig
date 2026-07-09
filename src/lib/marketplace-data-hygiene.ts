@@ -17,6 +17,16 @@ type MarketplaceNeedIdentity = {
     description?: string;
 };
 
+export function getBetaLaunchAuthorizationIssue(
+    enabled: boolean,
+    expectedSecret: string | undefined,
+    providedSecret: string
+): "disabled" | "forbidden" | null {
+    if (!enabled) return "disabled";
+    if (!expectedSecret || providedSecret !== expectedSecret) return "forbidden";
+    return null;
+}
+
 function tokens(value: string): string[] {
     return value.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 }

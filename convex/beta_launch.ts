@@ -13,21 +13,28 @@ import {
     classifyMarketplaceNeedReviewSignals,
     classifyMarketplaceUser,
     computeCandidateDigest,
+    getBetaLaunchAuthorizationIssue,
     getIncompletePublishedNeedFields,
 } from "../src/lib/marketplace-data-hygiene";
+import {
+    actionUrlReferencesEntity,
+    getMarketplaceCleanupSafetyIssues,
+} from "../src/lib/marketplace-cleanup-safety";
 
 export const CLEANUP_CONFIRMATION = "DELETE_FLAGGED_MARKETPLACE_DATA";
 
 function assertBetaLaunchAllowed(launchSecret: string) {
-    if (process.env.BETA_LAUNCH_ENABLED !== "true") {
+    const issue = getBetaLaunchAuthorizationIssue(
+        process.env.BETA_LAUNCH_ENABLED === "true",
+        process.env.BETA_LAUNCH_SECRET,
+        launchSecret
+    );
+    if (issue === "disabled") {
         throw new Error(
             "Beta launch mutations are disabled. Set BETA_LAUNCH_ENABLED=true on production Convex only during launch, then unset."
         );
     }
-    const expected = process.env.BETA_LAUNCH_SECRET;
-    if (!expected || launchSecret !== expected) {
-        throw new Error("Forbidden");
-    }
+    if (issue === "forbidden") throw new Error("Forbidden");
 }
 
 type SweepCtx = QueryCtx | MutationCtx;
@@ -154,9 +161,15 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
     const flaggedProcurementRequests = procurementRequests.filter(
         (request) =>
             (request.districtId ? flaggedDistrictIds.has(request.districtId) : false) ||
-            (request.requesterUserId ? flaggedUserIds.has(request.requesterUserId) : false) ||
-            classifyMarketplaceDistrict({ name: request.districtName }).length > 0
+            (request.requesterUserId ? flaggedUserIds.has(request.requesterUserId) : false)
     );
+    const reviewOnlyProcurementSignals = procurementRequests.flatMap((request) => {
+        if (flaggedProcurementRequests.some((candidate) => candidate._id === request._id)) return [];
+        const reasons = classifyMarketplaceDistrict({ name: request.districtName });
+        return reasons.length > 0
+            ? [{ id: request._id, districtName: request.districtName, reasons }]
+            : [];
+    });
     const flaggedProcurementIds = new Set<Id<"procurementRequests">>(
         flaggedProcurementRequests.map((request) => request._id)
     );
@@ -178,11 +191,23 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
         (notification) =>
             flaggedUserIds.has(notification.userId) ||
             (notification.actionUrl
-                ? [...flaggedEntityIds].some((entityId) => notification.actionUrl?.includes(entityId))
-                : false) ||
-            (notification.type === "new_need" &&
-                [...flaggedNeedOrgNames].some((orgName) => notification.title.includes(orgName)))
+                ? actionUrlReferencesEntity(notification.actionUrl, flaggedEntityIds)
+                : false)
     );
+    const reviewOnlyNotificationSignals = notifications.flatMap((notification) => {
+        if (flaggedNotifications.some((candidate) => candidate._id === notification._id)) return [];
+        const matchedOrgName =
+            notification.type === "new_need"
+                ? [...flaggedNeedOrgNames].find((orgName) => notification.title.includes(orgName))
+                : undefined;
+        return matchedOrgName
+            ? [{
+                id: notification._id,
+                reasons: ["title_matches_flagged_need_org"],
+                matchedOrgName,
+            }]
+            : [];
+    });
     const flaggedAdminNotes = adminNotes.filter(
         (note) => flaggedUserIds.has(note.authorUserId) || flaggedEntityIds.has(note.entityId)
     );
@@ -207,9 +232,31 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
     for (const user of users.filter((user) => flaggedUserIds.has(user._id))) {
         if (user.avatarStorageId) storageIds.add(user.avatarStorageId);
     }
+    const reviewOnlyLegacyStorage: Array<{
+        credentialId: Id<"credentials">;
+        reason: string;
+    }> = [];
     for (const credential of flaggedCredentials) {
         if (credential.storageId) storageIds.add(credential.storageId);
-        if (credential.documentUrl) storageIds.add(credential.documentUrl as Id<"_storage">);
+        if (!credential.storageId && credential.documentUrl) {
+            const candidate = ctx.db.system.normalizeId("_storage", credential.documentUrl);
+            if (!candidate) {
+                reviewOnlyLegacyStorage.push({
+                    credentialId: credential._id,
+                    reason: "invalid_legacy_storage_id",
+                });
+                continue;
+            }
+            const metadata = await ctx.db.system.get("_storage", candidate);
+            if (metadata) {
+                storageIds.add(candidate);
+            } else {
+                reviewOnlyLegacyStorage.push({
+                    credentialId: credential._id,
+                    reason: "legacy_storage_object_not_found",
+                });
+            }
+        }
     }
     for (const proposal of flaggedProposals) {
         if (proposal.attachmentStorageId) storageIds.add(proposal.attachmentStorageId);
@@ -246,150 +293,85 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
     ];
     const candidateDigest = await computeCandidateDigest(candidateKeys);
 
-    const safetyIssues: string[] = [];
-    for (const patch of districtAdminPatches) {
-        if (patch.adminIds.length === 0) {
-            safetyIssues.push(`district_adminless:${patch.districtId}`);
-        }
-    }
-    const removedUserIds = new Set(rows.users.map((row) => row._id));
-    const removedDistrictIds = new Set(rows.districts.map((row) => row._id));
-    const removedEducatorIds = new Set(rows.educators.map((row) => row._id));
-    const removedCredentialIds = new Set(rows.credentials.map((row) => row._id));
-    const removedGigIds = new Set(rows.gigs.map((row) => row._id));
-    const removedNeedIds = new Set(rows.needs.map((row) => row._id));
-    const removedProposalIds = new Set(rows.proposals.map((row) => row._id));
-    const removedOrderIds = new Set(rows.orders.map((row) => row._id));
-    const removedReviewIds = new Set(rows.reviews.map((row) => row._id));
-    const removedMessageIds = new Set(rows.messages.map((row) => row._id));
-    const removedNotificationIds = new Set(rows.notifications.map((row) => row._id));
-    const removedProcurementIds = new Set(rows.procurementRequests.map((row) => row._id));
-    const removedAdminNoteIds = new Set(rows.adminNotes.map((row) => row._id));
-    const removedAdminAuditEventIds = new Set(rows.adminAuditEvents.map((row) => row._id));
-    const removedStripeEventIds = new Set(rows.stripeWebhookEvents.map((row) => row._id));
-
-    if (educators.some((row) => !removedEducatorIds.has(row._id) && removedUserIds.has(row.userId))) {
-        safetyIssues.push("surviving_educator_references_removed_user");
-    }
-    if (
-        credentials.some(
-            (row) => !removedCredentialIds.has(row._id) && removedEducatorIds.has(row.educatorId)
-        )
-    ) {
-        safetyIssues.push("surviving_credential_references_removed_educator");
-    }
-    if (gigs.some((row) => !removedGigIds.has(row._id) && removedEducatorIds.has(row.educatorId))) {
-        safetyIssues.push("surviving_gig_references_removed_educator");
-    }
-    if (
-        educators.some(
-            (row) =>
-                !removedEducatorIds.has(row._id) &&
-                row.stateLicenses.some((credentialId) => removedCredentialIds.has(credentialId))
-        )
-    ) {
-        safetyIssues.push("surviving_educator_references_removed_credential");
-    }
-    if (
-        needs.some(
-            (row) =>
-                !removedNeedIds.has(row._id) &&
-                (removedUserIds.has(row.postedByUserId) ||
-                    (row.districtId ? removedDistrictIds.has(row.districtId) : false))
-        )
-    ) {
-        safetyIssues.push("surviving_need_references_removed_owner");
-    }
-    if (
-        proposals.some(
-            (row) =>
-                !removedProposalIds.has(row._id) &&
-                (removedNeedIds.has(row.needId) ||
-                    removedEducatorIds.has(row.educatorId) ||
-                    removedUserIds.has(row.educatorUserId))
-        )
-    ) {
-        safetyIssues.push("surviving_proposal_references_removed_entity");
-    }
-    if (
-        orders.some(
-            (row) =>
-                !removedOrderIds.has(row._id) &&
-                (removedGigIds.has(row.gigId) ||
-                    removedEducatorIds.has(row.educatorId) ||
-                    removedDistrictIds.has(row.districtId) ||
-                    removedUserIds.has(row.buyerUserId))
-        )
-    ) {
-        safetyIssues.push("surviving_order_references_removed_entity");
-    }
-    if (
-        reviews.some(
-            (row) =>
-                !removedReviewIds.has(row._id) &&
-                (removedOrderIds.has(row.orderId) || removedUserIds.has(row.revieweeId))
-        )
-    ) {
-        safetyIssues.push("surviving_review_references_removed_entity");
-    }
-    if (
-        messages.some(
-            (row) =>
-                !removedMessageIds.has(row._id) &&
-                (removedUserIds.has(row.senderId) || removedUserIds.has(row.recipientId))
-        )
-    ) {
-        safetyIssues.push("surviving_message_references_removed_user");
-    }
-    if (
-        notifications.some(
-            (row) =>
-                !removedNotificationIds.has(row._id) &&
-                (removedUserIds.has(row.userId) ||
-                    (row.actionUrl
-                        ? [...flaggedEntityIds].some((entityId) => row.actionUrl?.includes(entityId))
-                        : false))
-        )
-    ) {
-        safetyIssues.push("surviving_notification_references_removed_user");
-    }
-    if (
-        procurementRequests.some(
-            (row) =>
-                !removedProcurementIds.has(row._id) &&
-                ((row.districtId ? removedDistrictIds.has(row.districtId) : false) ||
-                    (row.requesterUserId ? removedUserIds.has(row.requesterUserId) : false))
-        )
-    ) {
-        safetyIssues.push("surviving_procurement_request_references_removed_entity");
-    }
-    if (
-        adminNotes.some(
-            (row) =>
-                !removedAdminNoteIds.has(row._id) &&
-                (removedUserIds.has(row.authorUserId) || flaggedEntityIds.has(row.entityId))
-        )
-    ) {
-        safetyIssues.push("surviving_admin_note_references_removed_entity");
-    }
-    if (
-        adminAuditEvents.some(
-            (row) =>
-                !removedAdminAuditEventIds.has(row._id) &&
-                (removedUserIds.has(row.actorUserId) || flaggedEntityIds.has(row.entityId))
-        )
-    ) {
-        safetyIssues.push("surviving_admin_audit_event_references_removed_entity");
-    }
-    if (
-        stripeWebhookEvents.some(
-            (row) =>
-                !removedStripeEventIds.has(row._id) &&
-                (row.orderId ? removedOrderIds.has(row.orderId) : false)
-        )
-    ) {
-        safetyIssues.push("surviving_stripe_event_references_removed_order");
-    }
+    const safetyIssues = getMarketplaceCleanupSafetyIssues({
+        dataset: {
+            educators: educators.map((row) => ({
+                id: String(row._id),
+                userId: String(row.userId),
+                stateLicenseIds: row.stateLicenses.map(String),
+            })),
+            credentials: credentials.map((row) => ({
+                id: String(row._id),
+                educatorId: String(row.educatorId),
+            })),
+            gigs: gigs.map((row) => ({ id: String(row._id), educatorId: String(row.educatorId) })),
+            needs: needs.map((row) => ({
+                id: String(row._id),
+                postedByUserId: String(row.postedByUserId),
+                districtId: row.districtId ? String(row.districtId) : undefined,
+            })),
+            proposals: proposals.map((row) => ({
+                id: String(row._id),
+                needId: String(row.needId),
+                educatorId: String(row.educatorId),
+                educatorUserId: String(row.educatorUserId),
+            })),
+            orders: orders.map((row) => ({
+                id: String(row._id),
+                gigId: String(row.gigId),
+                educatorId: String(row.educatorId),
+                districtId: String(row.districtId),
+                buyerUserId: String(row.buyerUserId),
+            })),
+            reviews: reviews.map((row) => ({
+                id: String(row._id),
+                orderId: String(row.orderId),
+                revieweeId: String(row.revieweeId),
+            })),
+            messages: messages.map((row) => ({
+                id: String(row._id),
+                senderId: String(row.senderId),
+                recipientId: String(row.recipientId),
+            })),
+            notifications: notifications.map((row) => ({
+                id: String(row._id),
+                userId: String(row.userId),
+                actionUrl: row.actionUrl,
+            })),
+            procurementRequests: procurementRequests.map((row) => ({
+                id: String(row._id),
+                districtId: row.districtId ? String(row.districtId) : undefined,
+                requesterUserId: row.requesterUserId ? String(row.requesterUserId) : undefined,
+            })),
+            adminNotes: adminNotes.map((row) => ({
+                id: String(row._id),
+                authorUserId: String(row.authorUserId),
+                entityId: row.entityId,
+            })),
+            adminAuditEvents: adminAuditEvents.map((row) => ({
+                id: String(row._id),
+                actorUserId: String(row.actorUserId),
+                entityId: row.entityId,
+            })),
+            stripeWebhookEvents: stripeWebhookEvents.map((row) => ({
+                id: String(row._id),
+                orderId: row.orderId ? String(row.orderId) : undefined,
+            })),
+        },
+        removed: Object.fromEntries(
+            Object.entries(rows).map(([table, records]) => [
+                table,
+                records.map((record) => String(record._id)),
+            ])
+        ) as {
+            [K in keyof typeof rows]: string[];
+        },
+        districtAdminPatches: districtAdminPatches.map((patch) => ({
+            districtId: String(patch.districtId),
+            adminIds: patch.adminIds.map(String),
+        })),
+        flaggedEntityIds,
+    });
 
     return {
         findings: {
@@ -398,6 +380,9 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
             needs: needFindings,
             incompleteNeeds,
             reviewOnlyNeedSignals,
+            reviewOnlyProcurementSignals,
+            reviewOnlyNotificationSignals,
+            reviewOnlyLegacyStorage,
         },
         rows,
         counts: {
@@ -460,13 +445,7 @@ export const cleanupPreLaunch = mutation({
         if (args.candidateDigest !== sweep.candidateDigest) {
             throw new Error("Cleanup candidate set changed after audit. Run and review the audit again.");
         }
-        for (const storageId of sweep.storageIds) {
-            try {
-                await ctx.storage.delete(storageId);
-            } catch (err) {
-                console.warn(`[beta_launch.cleanup] storage object already unavailable: ${storageId}`, err);
-            }
-        }
+        for (const storageId of sweep.storageIds) await ctx.storage.delete(storageId);
         for (const row of sweep.rows.reviews) await ctx.db.delete(row._id);
         for (const row of sweep.rows.stripeWebhookEvents) await ctx.db.delete(row._id);
         for (const row of sweep.rows.proposals) await ctx.db.delete(row._id);

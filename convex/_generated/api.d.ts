@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as beta_founding_profiles from "../beta_founding_profiles.js";
 import type * as beta_launch from "../beta_launch.js";
 import type * as credentials from "../credentials.js";
+import type * as crons from "../crons.js";
 import type * as dashboards from "../dashboards.js";
 import type * as demo_seed_constants from "../demo_seed_constants.js";
 import type * as districts from "../districts.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   beta_founding_profiles: typeof beta_founding_profiles;
   beta_launch: typeof beta_launch;
   credentials: typeof credentials;
+  crons: typeof crons;
   dashboards: typeof dashboards;
   demo_seed_constants: typeof demo_seed_constants;
   districts: typeof districts;

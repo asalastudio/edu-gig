@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { canSendMessage } from "../src/lib/messaging-policy";
 
 async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
     return await ctx.db
@@ -37,6 +38,18 @@ export const send = mutation({
         if (!recipient) throw new Error("Recipient not found");
 
         const conversationId = conversationKey(sender._id, args.recipientUserId);
+
+        // One-way initiation: only districts start conversations. An educator may
+        // send only once the district has already reached out (thread exists).
+        const existingInThread = await ctx.db
+            .query("messages")
+            .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
+            .first();
+        if (!canSendMessage({ senderRole: sender.role, conversationHasMessages: !!existingInThread })) {
+            throw new Error(
+                "Districts start conversations on K12Gig. You'll be able to reply here once a district reaches out."
+            );
+        }
 
         const messageId = await ctx.db.insert("messages", {
             conversationId,

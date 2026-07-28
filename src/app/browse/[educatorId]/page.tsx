@@ -9,7 +9,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { PrimaryButton } from "@/components/shared/button";
 import { VerificationBadge } from "@/components/shared/verification-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, Star, ShieldCheck, Certificate, CalendarCheck, CurrencyDollar } from "@phosphor-icons/react";
+import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, Star, ShieldCheck, Certificate, CalendarCheck, CurrencyDollar, ArrowLeft } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -44,8 +44,15 @@ export default function EducatorProfilePage() {
 
     const viewer = useQuery(api.users.viewer, {});
     const districtOK = !!viewer && isDistrictRole(viewer.role);
+    // The viewer's own educator row, so they can preview their public profile.
+    const mine = useQuery(
+        api.educators.getMine,
+        viewer?.role === "educator" ? {} : "skip"
+    );
+    const isOwnProfile = !!mine && mine._id === educatorId;
+    const canViewConvex = districtOK || isOwnProfile;
     const useConvexProfile =
-        USE_CONVEX && districtOK && viewer !== undefined && !educatorId.startsWith("e_");
+        USE_CONVEX && canViewConvex && viewer !== undefined && !educatorId.startsWith("e_");
 
     const convexData = useQuery(
         api.educators.getProfileForDistrict,
@@ -64,16 +71,21 @@ export default function EducatorProfilePage() {
         useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
     );
 
-    // Educators must not be able to browse other educators. Bounce a signed-in
-    // educator to the shared Gig Board. Only redirect once the viewer is loaded
-    // and confirmed educator — never districts or signed-out users.
+    // Educators must not browse OTHER educators, but they may preview their own
+    // public profile. Bounce a signed-in educator to the shared Gig Board only
+    // once we know (mine !== undefined) the profile isn't theirs. Never redirect
+    // on the owner's own profile, districts, or signed-out users.
     useEffect(() => {
-        if (viewer?.role === "educator") {
+        if (viewer?.role === "educator" && mine !== undefined && mine?._id !== educatorId) {
             router.replace("/dashboard/board");
         }
-    }, [viewer, router]);
+    }, [viewer, mine, educatorId, router]);
 
-    if (useConvexProfile && (convexData === undefined || credentialRows === undefined)) {
+    // Hold on a loading state while we resolve whether an educator viewer owns
+    // this profile, so the owner's self-preview never flashes "not available".
+    const resolvingOwnership = viewer?.role === "educator" && mine === undefined;
+
+    if (resolvingOwnership || (useConvexProfile && (convexData === undefined || credentialRows === undefined))) {
         return (
             <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
                 <SiteHeader />
@@ -253,9 +265,25 @@ export default function EducatorProfilePage() {
 
     const profileMain = (
             <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-                <button onClick={() => router.back()} className="text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8 inline-flex items-center gap-2 transition-colors">
-                    &larr; Back to Browse
-                </button>
+                {isOwnProfile && (
+                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                        <p className="text-sm font-semibold text-amber-900">
+                            Preview — this is how districts see your profile.
+                        </p>
+                        <Link href="/dashboard/educator/settings" className="text-sm font-bold text-amber-900 hover:underline whitespace-nowrap">
+                            Back to settings
+                        </Link>
+                    </div>
+                )}
+                {isOwnProfile ? (
+                    <Link href="/dashboard/educator/settings" className="text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8 inline-flex items-center gap-2 transition-colors">
+                        &larr; Back to settings
+                    </Link>
+                ) : (
+                    <button onClick={() => router.back()} className="text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8 inline-flex items-center gap-2 transition-colors">
+                        &larr; Back to Browse
+                    </button>
+                )}
 
                 {messageError && (
                     <div role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
@@ -328,17 +356,25 @@ export default function EducatorProfilePage() {
                                 </span>
                             </div>
 
-                            <div className="hidden md:flex flex-row gap-3 w-full sm:w-auto mt-2">
-                                <button onClick={() => handleRequestEducator()} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-lg hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
-                                    <CalendarCheck weight="fill" className="w-5 h-5" /> Request Availability
-                                </button>
-                                <button onClick={handleMessageEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
-                                    <ChatCircle weight="fill" className="w-5 h-5" /> Message Educator
-                                </button>
-                                <button onClick={handleSaveEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
-                                    <BookmarkSimple weight={saved ? "fill" : "bold"} className="w-5 h-5" /> {savedLabel}
-                                </button>
-                            </div>
+                            {isOwnProfile ? (
+                                <div className="hidden md:flex flex-row gap-3 w-full sm:w-auto mt-2">
+                                    <Link href="/dashboard/educator/settings" className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
+                                        <ArrowLeft weight="bold" className="w-5 h-5" /> Back to settings
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="hidden md:flex flex-row gap-3 w-full sm:w-auto mt-2">
+                                    <button onClick={() => handleRequestEducator()} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-lg hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
+                                        <CalendarCheck weight="fill" className="w-5 h-5" /> Request Availability
+                                    </button>
+                                    <button onClick={handleMessageEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
+                                        <ChatCircle weight="fill" className="w-5 h-5" /> Message Educator
+                                    </button>
+                                    <button onClick={handleSaveEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
+                                        <BookmarkSimple weight={saved ? "fill" : "bold"} className="w-5 h-5" /> {savedLabel}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -697,7 +733,13 @@ export default function EducatorProfilePage() {
             </main>
     );
 
-    const mobileCta = (
+    const mobileCta = isOwnProfile ? (
+            <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-[var(--border-subtle)] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-50">
+                <Link href="/dashboard/educator/settings" className="flex items-center justify-center gap-2 w-full h-11 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)]">
+                    <ArrowLeft weight="bold" className="w-5 h-5" /> Back to settings
+                </Link>
+            </div>
+    ) : (
             <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-[var(--border-subtle)] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-50">
                 <div className="flex items-center gap-3">
                     <div className="min-w-0 flex-1">

@@ -114,14 +114,23 @@ export const submit = mutation({
 // ─── Queries ───────────────────────────────────────────────
 
 /**
- * List reviews received by a specific educator. Public (no role check) —
- * profile pages and browse grid use this.
+ * List reviews received by a specific educator for the profile Reviews tab.
+ * District (and superadmin) viewers may load any educator's reviews; the owning
+ * educator may load their own for the self-preview. Any other viewer gets [].
  */
 export const listForEducator = query({
     args: { educatorId: v.id("educators") },
     handler: async (ctx, args) => {
         const educator = await ctx.db.get(args.educatorId);
         if (!educator) return [];
+
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return [];
+        const viewer = await getUserByClerkId(ctx, identity.subject);
+        if (!viewer) return [];
+        const isOwner = educator.userId === viewer._id;
+        const isDistrict = ["district_admin", "district_hr", "superintendent", "superadmin"].includes(viewer.role);
+        if (!isOwner && !isDistrict) return [];
 
         const reviews = await ctx.db
             .query("reviews")

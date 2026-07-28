@@ -86,6 +86,107 @@ Resend, Sentry, and shared rate limiting are recommended before a wider invite
 wave. Stripe and Checkr credentials are not required for this invoice/PO-only,
 Checkr-deferred preview.
 
+## Auth branding follow-up
+
+The visible authentication vendor is **Clerk**, not Convex. Convex accepts the
+Clerk JWT and stores application profile/role data; it does not render the
+login UI.
+
+Current state: **partially complete, and sufficient to evaluate in preview**.
+
+- `/sign-in` and `/sign-up` embed Clerk's React components inside K12Gig pages;
+  they do not redirect users to a standalone Convex or Clerk-hosted login page.
+- The pages retain the K12Gig header/footer, apply K12Gig form styling through
+  `src/lib/clerk-appearance.ts`, and override the primary Clerk copy to say
+  K12Gig in `src/components/providers.tsx`.
+- Clerk still owns the inner authentication, recovery, verification, OAuth,
+  session, and MFA UI. `UserButton` also opens Clerk's account-management
+  surface. Depending on Clerk instance configuration and subscription, that
+  surface can retain Clerk branding.
+- The code cannot prove which Clerk plan is paid for. Clerk's current published
+  pricing associates removal of Clerk branding with its Business plan, while a
+  production/custom domain is configured separately at the instance/domain
+  level. The actual account, plan entitlement, production domain, and branding
+  dashboard settings must be checked rather than inferred from “paid plan.”
+- Educator name editing is presented in the K12Gig settings UI and writes to
+  Convex through `users.updateMyName`. It does **not** update Clerk's first/last
+  name, so the two identity stores can diverge. District settings still rely on
+  Clerk's `UserButton` account UI. This is a bounded follow-up, not complete
+  identity synchronization.
+
+Auth-branding follow-up acceptance criteria:
+
+1. K12Gig visual identity and naming remain present through sign-in, sign-up,
+   email verification, password recovery, OAuth callback/error, and any enabled
+   MFA/passkey path.
+2. No redirect or modal presents a confusing differently branded vendor
+   experience; any provider/security disclosure that remains is intentional.
+3. Name/profile edits occur in K12Gig UI for both roles and update Clerk plus
+   Convex through a single authenticated server-owned flow, with retry or
+   reconciliation behavior for partial failure.
+4. Email/identifier, password, MFA, session revocation, and recovery stay owned
+   by Clerk or an equivalently secure server flow; branding work must not
+   weaken verification, redirect allowlists, CSRF/session protections, or
+   account-recovery safeguards.
+5. Recovery and error states are keyboard/screen-reader usable, focus-managed,
+   and tested at mobile and desktop sizes.
+6. Preview uses a dedicated non-production Clerk application/domain or other
+   explicitly approved safe configuration paired to preview Convex.
+
+This does not block the public, signed-out preview. It is a controlled-beta
+gate if the preview still displays unapproved Clerk branding or if profile-name
+consistency is part of beta acceptance. No Clerk settings or secrets were
+changed in this integration.
+
+### ANSAR Family reference comparison
+
+Read-only reference: the current `origin/main` of
+`/Users/jordanrichter/Projects/Clients/Ansar Family/ansar-platform`.
+
+K12Gig already shares the architectural baseline:
+
+- embedded Clerk components inside app-owned sign-in/sign-up routes;
+- `ConvexProviderWithClerk` supplies the verified Clerk session token to
+  Convex;
+- app-owned role/profile records live in Convex;
+- redirects are constrained to internal destinations.
+
+ANSAR's newer hardening adds three reusable patterns K12Gig does not yet have:
+
+1. A stronger, app-native branded auth shell (`AnsarSignInShell`) that contains
+   Clerk through sign-in/sign-up and recovery states. K12Gig has its normal
+   header/footer and styled form card, but not the same purpose-built,
+   end-to-end auth shell treatment. This is code plus Clerk dashboard
+   configuration, not configuration-only.
+2. A server-owned `requireVerifiedClerkIdentity` boundary. ANSAR derives
+   subject/email/name from the Convex-verified JWT, requires
+   `identity.emailVerified === true`, and accepts no browser-supplied Clerk
+   identity fields. K12Gig checks for an authenticated identity, but
+   `completeOnboarding` does not fail closed on a missing/unverified email and
+   can store a placeholder email. Matching ANSAR requires code, tests, and Clerk
+   session-token claims (`email`, `email_verified`, audience `convex`) plus a
+   matching issuer.
+3. App-owned name preservation. ANSAR's current upsert refreshes verified email
+   and activity but does not overwrite an existing application name from the
+   Clerk name on every login. K12Gig similarly keeps its app name after
+   onboarding, but its K12Gig name editor updates only Convex. The narrow delta
+   is an explicit ownership contract: Convex/app profile names are canonical;
+   Clerk may be updated intentionally for account display, but login upserts
+   must never overwrite the app-owned name. This requires a small code/test
+   follow-up, not merely plan configuration.
+
+Plan/config prerequisites remain separate: verify Clerk branding-removal
+entitlement, production/custom domain, app name/logo/email templates, enabled
+methods, OAuth redirect allowlists, and preview-versus-production instance
+separation. A paid subscription alone does not prove any of these settings.
+
+Decision: this comparison does not block the signed-out PR preview. The verified
+identity boundary and an explicit name-ownership/synchronization contract should
+block inviting controlled-beta users who will create or edit real profiles.
+The deeper visual-shell polish can remain a bounded follow-up if the preview
+shows no confusing vendor-branded transition and Chris accepts the current
+embedded treatment.
+
 ## Verification evidence
 
 Disposable integrated-clone and dedicated integration-worktree verification on

@@ -145,7 +145,7 @@ function PostNeedPageInner() {
                 window.localStorage.removeItem("k12gig_post_need_draft");
                 setDraftId(savedIdString);
                 setLocalDraftTransferState("complete");
-                setDraftNotice("Your saved progress is now in your district workspace.");
+                setDraftNotice("Your saved progress is now in your district account.");
                 router.replace(`/post?draft=${encodeURIComponent(savedIdString)}`, { scroll: false });
             })
             .catch((err: unknown) => {
@@ -321,10 +321,10 @@ function PostNeedPageInner() {
                 {signedOut && !previewMode && (
                     <div className="bg-white p-8 md:p-10 rounded-lg shadow-sm border border-[var(--border-subtle)]">
                         <h1 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-4">
-                            Sign in to post a real need
+                            Sign in to post a need
                         </h1>
                         <p className="text-lg text-[var(--text-secondary)] mb-6">
-                            K12Gig saves district requests to your workspace so educators can respond, message you, and move toward booking.
+                            K12Gig saves district requests to your account so educators can respond, message you, and move toward booking.
                             Sign in or create a district account before posting.
                         </p>
                         {(educatorName || requestedSlot) && (
@@ -357,7 +357,7 @@ function PostNeedPageInner() {
                     <div className="bg-white p-8 md:p-10 rounded-lg shadow-sm border border-[var(--border-subtle)]">
                         <h1 className="font-heading text-3xl font-bold text-[var(--text-primary)] mb-3">Use a district account to post</h1>
                         <p className="text-[var(--text-secondary)] mb-6">
-                            Educator accounts can browse open needs and manage gigs. Posting new district demand requires a district hiring workspace.
+                            Educator accounts can browse open needs and manage gigs. Posting new district demand requires a district hiring account.
                         </p>
                         <Link href="/login">
                             <PrimaryButton>Choose another account</PrimaryButton>
@@ -368,13 +368,13 @@ function PostNeedPageInner() {
                 {sessionReady && !wrongRole && (!signedOut || previewMode) && !isSuccess && (
                     editorLoading ? (
                         <div className="bg-white p-10 rounded-lg border border-[var(--border-subtle)] text-center text-[var(--text-secondary)]">
-                            {requestedDraftLoading ? "Loading your draft…" : "Moving your saved draft into your workspace…"}
+                            {requestedDraftLoading ? "Loading your draft…" : "Moving your saved draft into your district account…"}
                         </div>
                     ) : requestedDraftUnavailable ? (
                         <div className="bg-white p-10 rounded-lg border border-[var(--border-subtle)] text-center">
                             <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-3">Draft unavailable</h1>
                             <p className="text-[var(--text-secondary)] mb-6">
-                                This link is invalid, the draft was already published, or it belongs to another district workspace.
+                                This link is invalid, the draft was already published, or it belongs to another district account.
                             </p>
                             <Link href="/dashboard/board">
                                 <PrimaryButton>Return to Posted Needs</PrimaryButton>
@@ -384,7 +384,7 @@ function PostNeedPageInner() {
                     <div className="animate-in fade-in duration-500">
                         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                             <div>
-                                <h1 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-2">Post a Need</h1>
+                            <h1 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-2">Post a need</h1>
                                 <p className="text-lg text-[var(--text-secondary)]">
                                     {signedOut
                                         ? "Preview the request form. You’ll sign in before posting it for real."

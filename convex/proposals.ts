@@ -4,6 +4,7 @@ import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { acceptsEducatorProposals } from "../src/lib/need-status";
+import { createEngagementFromAcceptance } from "./lib/createEngagement";
 
 const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
 
@@ -45,6 +46,26 @@ const proposedRateUnitValidator = v.union(
     v.literal("fixed")
 );
 
+const proposalDocValidator = v.object({
+    _id: v.id("proposals"),
+    _creationTime: v.number(),
+    needId: v.id("needs"),
+    educatorId: v.id("educators"),
+    educatorUserId: v.id("users"),
+    message: v.string(),
+    attachmentStorageId: v.optional(v.id("_storage")),
+    attachmentName: v.optional(v.string()),
+    proposedRate: v.optional(v.number()),
+    proposedRateUnit: v.optional(proposedRateUnitValidator),
+    status: v.union(
+        v.literal("pending"),
+        v.literal("accepted"),
+        v.literal("rejected"),
+        v.literal("withdrawn")
+    ),
+    createdAt: v.number(),
+});
+
 /**
  * Educator submits a proposal on a district-posted need.
  * Rejects duplicate pending proposals from the same educator on the same need.
@@ -53,6 +74,7 @@ const proposedRateUnitValidator = v.union(
 /** Short-lived upload URL for a proposal attachment (resume / proposal doc). Educator only. */
 export const generateAttachmentUploadUrl = mutation({
     args: {},
+    returns: v.string(),
     handler: async (ctx) => {
         await requireEducatorViewer(ctx);
         return await ctx.storage.generateUploadUrl();
@@ -68,6 +90,7 @@ export const submit = mutation({
         proposedRate: v.optional(v.number()),
         proposedRateUnit: v.optional(proposedRateUnitValidator),
     },
+    returns: v.id("proposals"),
     handler: async (ctx, args) => {
         const user = await requireEducatorViewer(ctx);
 
@@ -76,6 +99,9 @@ export const submit = mutation({
             .withIndex("by_user_id", (q) => q.eq("userId", user._id))
             .first();
         if (!educator) throw new Error("No educator profile");
+        if (!args.attachmentStorageId && !educator.resumeStorageId) {
+            throw new Error("Attach a resume/CV or upload one on your profile before submitting a proposal.");
+        }
 
         const need = await ctx.db.get(args.needId);
         if (!need) throw new Error("Not found");
@@ -102,8 +128,8 @@ export const submit = mutation({
             educatorId: educator._id,
             educatorUserId: user._id,
             message: trimmed,
-            attachmentStorageId: args.attachmentStorageId,
-            attachmentName: args.attachmentName?.trim() || undefined,
+            attachmentStorageId: args.attachmentStorageId ?? educator.resumeStorageId,
+            attachmentName: args.attachmentName?.trim() || educator.resumeFileName,
             proposedRate: args.proposedRate,
             proposedRateUnit: args.proposedRateUnit,
             status: "pending",
@@ -135,6 +161,7 @@ export const submit = mutation({
 /** Educator's own proposals, newest first. */
 export const listMine = query({
     args: {},
+    returns: v.array(proposalDocValidator),
     handler: async (ctx) => {
         const user = await requireEducatorViewer(ctx);
         const educator = await ctx.db
@@ -156,6 +183,17 @@ export const listMine = query({
  */
 export const listForNeed = query({
     args: { needId: v.id("needs") },
+    returns: v.array(v.object({
+        proposal: proposalDocValidator,
+        user: v.union(
+            v.object({
+                firstName: v.string(),
+                lastName: v.string(),
+                avatarUrl: v.optional(v.string()),
+            }),
+            v.null()
+        ),
+    })),
     handler: async (ctx, args) => {
         const user = await requireDistrictViewer(ctx);
         const need = await ctx.db.get(args.needId);
@@ -172,13 +210,20 @@ export const listForNeed = query({
 
         const rows: Array<{
             proposal: Doc<"proposals">;
-            educator: Doc<"educators"> | null;
-            user: Doc<"users"> | null;
+            user: { firstName: string; lastName: string; avatarUrl?: string } | null;
         }> = [];
         for (const proposal of proposals) {
-            const educator = await ctx.db.get(proposal.educatorId);
             const educatorUser = await ctx.db.get(proposal.educatorUserId);
-            rows.push({ proposal, educator, user: educatorUser });
+            rows.push({
+                proposal,
+                user: educatorUser
+                    ? {
+                          firstName: educatorUser.firstName,
+                          lastName: educatorUser.lastName,
+                          avatarUrl: educatorUser.avatarUrl,
+                      }
+                    : null,
+            });
         }
         return rows;
     },
@@ -190,6 +235,7 @@ export const listForNeed = query({
  */
 export const getAttachmentUrl = query({
     args: { proposalId: v.id("proposals") },
+    returns: v.union(v.string(), v.null()),
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) return null;
@@ -220,6 +266,10 @@ export const getAttachmentUrl = query({
  */
 export const accept = mutation({
     args: { proposalId: v.id("proposals") },
+    returns: v.object({
+        proposalId: v.id("proposals"),
+        engagementId: v.id("engagements"),
+    }),
     handler: async (ctx, args) => {
         const user = await requireDistrictViewer(ctx);
         const proposal = await ctx.db.get(args.proposalId);
@@ -234,7 +284,6 @@ export const accept = mutation({
         await ctx.db.patch(args.proposalId, { status: "accepted" });
         await ctx.db.patch(proposal.needId, { status: "placed" });
 
-        // Reject all other pending proposals on this need.
         const siblings = await ctx.db
             .query("proposals")
             .withIndex("by_need", (q) => q.eq("needId", proposal.needId))
@@ -245,13 +294,22 @@ export const accept = mutation({
             }
         }
 
+        const accepted = await ctx.db.get(args.proposalId);
+        if (!accepted) throw new Error("Not found");
+        const engagementId = await createEngagementFromAcceptance(ctx, {
+            proposal: accepted,
+            need: { ...need, status: "placed" },
+            buyerUserId: user._id,
+            now: Date.now(),
+        });
+
         await ctx.db.insert("notifications", {
             userId: proposal.educatorUserId,
             type: "proposal_accepted",
             title: "Your proposal was accepted",
-            body: `${need.orgName} accepted your proposal.`,
+            body: `${need.orgName} accepted your proposal. Open My Gigs to coordinate the engagement.`,
             read: false,
-            actionUrl: `/dashboard/educator/needs`,
+            actionUrl: `/dashboard/engagements/${engagementId}`,
             createdAt: Date.now(),
         });
 
@@ -263,13 +321,14 @@ export const accept = mutation({
             console.log("[proposals.accept] email schedule skipped:", err);
         }
 
-        return args.proposalId;
+        return { proposalId: args.proposalId, engagementId };
     },
 });
 
 /** District rejects a proposal. */
 export const reject = mutation({
     args: { proposalId: v.id("proposals") },
+    returns: v.id("proposals"),
     handler: async (ctx, args) => {
         const user = await requireDistrictViewer(ctx);
         const proposal = await ctx.db.get(args.proposalId);
@@ -289,7 +348,7 @@ export const reject = mutation({
             title: "Your proposal was not selected",
             body: `${need.orgName} moved in another direction.`,
             read: false,
-            actionUrl: `/dashboard/educator/needs`,
+            actionUrl: `/dashboard/board`,
             createdAt: Date.now(),
         });
 
@@ -300,6 +359,7 @@ export const reject = mutation({
 /** Educator withdraws a pending proposal. */
 export const withdraw = mutation({
     args: { proposalId: v.id("proposals") },
+    returns: v.id("proposals"),
     handler: async (ctx, args) => {
         const user = await requireEducatorViewer(ctx);
         const proposal = await ctx.db.get(args.proposalId);

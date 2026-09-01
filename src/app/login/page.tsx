@@ -16,7 +16,7 @@ export default function LoginHubPage() {
                     Sign in or create your account
                 </h1>
                 <p className="text-lg text-[var(--text-secondary)] font-medium mb-12 max-w-xl mx-auto">
-                    Choose how you use K12Gig to continue. New or returning, this is where you start — you can switch roles later in account settings.
+                    Choose your account path once to continue. New or returning, this is where you start — you can switch to another path later from account settings.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">

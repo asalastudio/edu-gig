@@ -9,22 +9,18 @@ export type ActiveBetaCopy = {
 };
 
 export function getActiveBetaCopy(cardCheckoutEnabled: boolean): ActiveBetaCopy {
+    void cardCheckoutEnabled;
     return {
         educatorHelp:
-            "Complete onboarding, publish your profile, respond to district needs, manage credentials, and track bookings.",
-        billingHelp: cardCheckoutEnabled
-            ? "Card payments, Net-30 invoices, PO numbers, and payment notices are handled in the booking flow."
-            : "Net-30 invoices, PO numbers, and payment notices are handled in the booking flow. Card payments are not yet available.",
-        paymentModeLabel: cardCheckoutEnabled
-            ? "Card or purchase order / Net-30 invoice"
-            : "Purchase order / Net-30 invoice",
-        districtPaymentCopy: cardCheckoutEnabled
-            ? "Card payment and approved purchase order / Net-30 invoice are available in the booking flow."
-            : "During beta, districts pay by approved purchase order or Net-30 invoice. Card payments are not yet available.",
-        checkoutInvoiceOption: "Purchase order / Net-30 invoice",
-        checkoutInvoiceNotice: cardCheckoutEnabled
-            ? "Choose card payment or submit an approved purchase order / Net-30 invoice request."
-            : "During beta, districts pay by approved purchase order or Net-30 invoice. Card payments are not yet available.",
-        checkoutInvoiceAction: "Submit booking request",
+            "Complete onboarding, publish your profile, upload a resume, respond to district needs, and coordinate accepted work in My Gigs and Contract Hub.",
+        billingHelp:
+            "K12Gig does not process payments, payouts, ACH, or 1099s. After a proposal is accepted, districts and consultants arrange payment directly and keep working documents in Contract Hub.",
+        paymentModeLabel: "Off-platform (district and consultant)",
+        districtPaymentCopy:
+            "Payment is arranged directly with the consultant. Use Contract Hub for working documents; K12Gig does not run checkout.",
+        checkoutInvoiceOption: "Off-platform payment",
+        checkoutInvoiceNotice:
+            "K12Gig checkout is retired. Accept a proposal, then coordinate the contract and payment outside the platform.",
+        checkoutInvoiceAction: "Post a need",
     };
 }

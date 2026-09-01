@@ -1,12 +1,23 @@
 # Production Environment Audit
 
-Date: 2026-05-02
+Date: 2026-05-02, refreshed August 2026 for the off-platform payment launch.
 
-This audit supports Linear Lane 1: production/env/vendor readiness.
+This audit supports production/env/vendor readiness. Launch no longer requires live Stripe checkout. It does require production Clerk JWT verification, a production Convex URL, live browse enabled, demo seeding disabled, and (for email alerts) a verified Resend sender.
 
-## Summary
+## Launch configuration that must be proven (do not guess)
 
-The codebase has production-readiness support for env auditing, Upstash-backed checkout rate limiting, and Convex/Stripe webhook secret checks. The remaining launch risk is vendor/account configuration: the linked Vercel production project and Convex production deployment are not yet fully production-shaped.
+Run `npm run check:env:beta` against production env, then confirm in Vercel and Convex dashboards:
+
+| Item | Launch expectation |
+|------|--------------------|
+| Clerk JWT issuer | Production issuer (not `*.clerk.accounts.dev`) in Convex `CLERK_JWT_ISSUER_DOMAIN` |
+| Convex URL | Production deployment, not the known unique-eagle-379 dev deployment |
+| Resend | `RESEND_API_KEY` + verified `RESEND_FROM_EMAIL` for proposal/engagement mail |
+| Demo seed | `ALLOW_DEMO_SEED` unset/false on production Convex |
+| Live browse | `NEXT_PUBLIC_USE_CONVEX_BROWSE=true` |
+| Legacy checkout | `NEXT_PUBLIC_ENABLE_LEGACY_CHECKOUT` unset/false |
+
+Stripe, Checkr, and Upstash remain optional for this launch model. Report remaining vendor setup as needed; do not treat local `.env.local` as production proof.
 
 ## Related runbooks
 
@@ -88,7 +99,7 @@ Do not use local `.env.local` as proof of production readiness.
 ## Linear follow-up
 
 - `K12-15` — update Convex prod `CLERK_JWT_ISSUER_DOMAIN`.
-- `K12-54` / `K12-67` — provision and verify production Stripe.
+- Stripe production (`K12-54` / `K12-67`) — superseded for launch; checkout stays retired.
 - `K12-57` / `K12-61` — provision Resend and authenticate sending domain.
 - `K12-63` — provision Upstash and add REST env vars.
 - `K12-64` — provision Checkr.

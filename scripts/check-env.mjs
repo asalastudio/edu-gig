@@ -7,8 +7,9 @@ const env = { ...fileEnv, ...process.env };
 const target = process.argv.includes("--production") ? "production" : "local";
 const betaMode = process.argv.includes("--beta");
 const cardCheckoutEnabled = flagEnabled(env.NEXT_PUBLIC_ENABLE_CARD_CHECKOUT);
+const legacyCheckoutEnabled = flagEnabled(env.NEXT_PUBLIC_ENABLE_LEGACY_CHECKOUT) && cardCheckoutEnabled;
 const checkrEnabled = flagEnabled(env.NEXT_PUBLIC_ENABLE_CHECKR);
-const stripeRequired = !betaMode || cardCheckoutEnabled;
+const stripeRequired = legacyCheckoutEnabled;
 const checkrRequired = checkrEnabled;
 
 const required = [
@@ -28,6 +29,7 @@ const recommended = [
   "NEXT_PUBLIC_CLERK_SIGN_UP_URL",
   "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL",
   "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL",
+  "NEXT_PUBLIC_USE_CONVEX_BROWSE",
   "UPSTASH_REDIS_REST_URL",
   "UPSTASH_REDIS_REST_TOKEN",
   "RESEND_API_KEY",
@@ -96,10 +98,21 @@ if (target === "production") {
   if (betaMode && present("CLERK_JWT_ISSUER_DOMAIN") && env.CLERK_JWT_ISSUER_DOMAIN !== "https://clerk.k12gig.com") {
     warnings.push("Beta launch expects CLERK_JWT_ISSUER_DOMAIN=https://clerk.k12gig.com");
   }
+  if (target === "production" && env.ALLOW_DEMO_SEED === "true") {
+    warnings.push("ALLOW_DEMO_SEED is true — disable demo seeding on production Convex.");
+  }
+  if (target === "production" && env.NEXT_PUBLIC_USE_CONVEX_BROWSE !== "true") {
+    warnings.push("NEXT_PUBLIC_USE_CONVEX_BROWSE is not true — live directory will stay gated.");
+  }
+  if (target === "production" && flagEnabled(env.NEXT_PUBLIC_ENABLE_LEGACY_CHECKOUT)) {
+    warnings.push("NEXT_PUBLIC_ENABLE_LEGACY_CHECKOUT is enabled — launch should keep checkout retired.");
+  }
 }
 
-console.log(`K12Gig env audit (${target}${betaMode ? ", invoice-only beta" : ""})`);
-console.log(`Payment lane: ${cardCheckoutEnabled ? "card + invoice" : "invoice / PO only"}`);
+console.log(`K12Gig env audit (${target}${betaMode ? ", off-platform payment beta" : ""})`);
+console.log(`Payment lane: ${legacyCheckoutEnabled ? "legacy card checkout enabled" : "off-platform (no K12Gig checkout)"}`);
+console.log(`Live browse: ${flagEnabled(env.NEXT_PUBLIC_USE_CONVEX_BROWSE) ? "enabled" : "gated"}`);
+console.log(`Demo seed: ${env.ALLOW_DEMO_SEED === "true" ? "ENABLED (unsafe for production)" : "disabled"}`);
 console.log(`Checkr lane: ${checkrEnabled ? "enabled" : "deferred"}`);
 console.log("");
 for (const name of [...required, ...productionRequired, ...recommended]) {

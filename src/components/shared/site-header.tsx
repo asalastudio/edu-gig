@@ -74,7 +74,7 @@ function SiteHeaderView({
                 
                 <nav className="hidden lg:flex items-center gap-6 text-sm font-semibold text-[var(--text-secondary)]">
                     <Link href="/browse" className="hover:text-[var(--accent-primary)] transition-colors">Browse Educators</Link>
-                    <Link href="/post" className="hover:text-[var(--accent-primary)] transition-colors">Post a Need</Link>
+                    <Link href="/post" className="hover:text-[var(--accent-primary)] transition-colors">Post a need</Link>
                     <Link href="/pricing" className="hover:text-[var(--accent-primary)] transition-colors">Pricing</Link>
                     <Link href="/#for-districts" className="hover:text-[var(--accent-primary)] transition-colors">How It Works</Link>
                 </nav>
@@ -128,7 +128,7 @@ function SiteHeaderView({
             {mobileMenuOpen && (
                 <div className="lg:hidden absolute top-16 left-0 w-full bg-[var(--bg-surface)] border-b border-[var(--border-default)] shadow-[var(--shadow-soft)] flex flex-col p-6 gap-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <Link href="/browse" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Browse Educators</Link>
-                    <Link href="/post" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Post a Need</Link>
+                    <Link href="/post" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Post a need</Link>
                     <Link href="/pricing" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
                     <Link href="/#for-districts" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>How It Works</Link>
                     

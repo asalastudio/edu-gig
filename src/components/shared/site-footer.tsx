@@ -9,15 +9,15 @@ export function SiteFooter() {
                     <Link href="/" aria-label="K12Gig home" className="w-fit">
                         <BrandLogo inverse />
                     </Link>
-                    <p className="text-sm text-white/60">Where educators grow and districts hire with clarity.</p>
+                    <p className="text-sm text-white/60">Where consultants and districts connect with clarity.</p>
                 </div>
                 
                 <div className="flex flex-col gap-4">
                     <h4 className="text-sm font-semibold text-white/40 uppercase tracking-wider">Explore</h4>
-                    <Link href="/browse" className="text-sm text-white/70 hover:text-white">Browse Educators</Link>
-                    <Link href="/post" className="text-sm text-white/70 hover:text-white">Post a Need (districts)</Link>
+                    <Link href="/browse" className="text-sm text-white/70 hover:text-white">Browse consultants</Link>
+                    <Link href="/post" className="text-sm text-white/70 hover:text-white">Post a need</Link>
                     <Link href="/#for-districts" className="text-sm text-white/70 hover:text-white">How Districts Hire</Link>
-                    <Link href="/#for-educators" className="text-sm text-white/70 hover:text-white">For Educators</Link>
+                    <Link href="/#for-educators" className="text-sm text-white/70 hover:text-white">For Consultants</Link>
                     <Link href="/login" className="text-sm text-white/80 hover:text-white font-semibold">Sign in</Link>
                 </div>
                 

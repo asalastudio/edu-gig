@@ -1,6 +1,5 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 
 function isDistrictRole(role: string): boolean {
@@ -43,22 +42,6 @@ function verificationToTier(
     return "premier";
 }
 
-async function reviewSummary(ctx: QueryCtx | MutationCtx, userId: Doc<"users">["_id"]) {
-    const reviews = await ctx.db
-        .query("reviews")
-        .withIndex("by_reviewee", (q) => q.eq("revieweeId", userId))
-        .collect();
-    if (reviews.length === 0) {
-        return { overallRating: 0, reviewCount: 0 };
-    }
-    const average =
-        reviews.reduce((sum, review) => sum + review.overallRating, 0) / reviews.length;
-    return {
-        overallRating: Math.round(average * 10) / 10,
-        reviewCount: reviews.length,
-    };
-}
-
 // ─── Queries ───────────────────────────────────────────────
 
 /** @deprecated Prefer `listForBrowse` — kept for backwards compatibility; requires district viewer. */
@@ -66,7 +49,7 @@ export const list = query({
     args: {},
     handler: async (ctx) => {
         await requireDistrictViewer(ctx);
-        const educators = await ctx.db.query("educators").order("desc").collect();
+        const educators = await ctx.db.query("educators").order("desc").take(200);
         return await Promise.all(
             educators.map(async (educator) => {
                 const user = await ctx.db.get(educator.userId);
@@ -86,7 +69,7 @@ export const listForBrowse = query({
     args: {},
     handler: async (ctx) => {
         await requireDistrictViewer(ctx);
-        const educators = await ctx.db.query("educators").collect();
+        const educators = await ctx.db.query("educators").take(200);
         const out: Array<{
             id: string;
             name: string;
@@ -105,6 +88,7 @@ export const listForBrowse = query({
             availabilityStatus: "open" | "limited" | "closed";
             hasVideoIntro: boolean;
             badges: string[];
+            profileType: "individual" | "firm";
         }> = [];
 
         for (const educator of educators) {
@@ -113,7 +97,18 @@ export const listForBrowse = query({
             if (!user) continue;
             const personalName = `${user.firstName} ${user.lastName}`.trim();
             const businessName = educator.businessName?.trim();
-            const rating = await reviewSummary(ctx, user._id);
+            const credentials = await ctx.db
+                .query("credentials")
+                .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
+                .collect();
+            const hasReviewedCredential = credentials.some((credential) => credential.verified);
+            const hasBackgroundCheck =
+                !!educator.backgroundCheckId &&
+                (educator.verificationStatus === "verified" || educator.verificationStatus === "premier");
+            const badges: string[] = [];
+            if (hasReviewedCredential) badges.push("Credentials reviewed");
+            if (hasBackgroundCheck) badges.push("Background check complete");
+            if (badges.length === 0) badges.push("Profile in progress");
             out.push({
                 id: educator._id,
                 name: businessName || personalName,
@@ -121,8 +116,8 @@ export const listForBrowse = query({
                 headline: educator.headline,
                 avatarUrl: user.avatarUrl,
                 verificationTier: verificationToTier(educator.verificationStatus),
-                overallRating: rating.overallRating,
-                reviewCount: rating.reviewCount,
+                overallRating: 0,
+                reviewCount: 0,
                 gradeLevels: educator.gradeLevelBands,
                 areasOfNeed: educator.areasOfNeed,
                 engagementTypes: educator.engagementTypes,
@@ -131,12 +126,8 @@ export const listForBrowse = query({
                 rateUnit: educator.hourlyRate ? "hour" : educator.dailyRate ? "day" : undefined,
                 availabilityStatus: educator.availabilityStatus,
                 hasVideoIntro: !!educator.videoIntroUrl,
-                badges:
-                    educator.verificationStatus === "premier"
-                        ? ["Background Checked", "Premier"]
-                        : educator.verificationStatus === "verified"
-                          ? ["Background Checked"]
-                          : ["New to K12Gig"],
+                badges,
+                profileType: educator.profileType ?? (businessName ? "firm" : "individual"),
             });
         }
         return out;
@@ -206,6 +197,7 @@ export const updateMyProfile = mutation({
         engagementTypes: v.optional(v.array(v.string())),
         coverageRegions: v.optional(v.array(v.string())),
         yearsExperience: v.optional(v.number()),
+        profileType: v.optional(v.union(v.literal("individual"), v.literal("firm"))),
     },
     handler: async (ctx, args) => {
         const user = await requireEducatorViewer(ctx);
@@ -238,8 +230,82 @@ export const updateMyProfile = mutation({
         if (args.engagementTypes !== undefined) patch.engagementTypes = args.engagementTypes;
         if (args.coverageRegions !== undefined) patch.coverageRegions = args.coverageRegions;
         if (args.yearsExperience !== undefined) patch.yearsExperience = args.yearsExperience;
+        if (args.profileType !== undefined) patch.profileType = args.profileType;
         if (Object.keys(patch).length) await ctx.db.patch(edu._id, patch);
         return edu._id;
+    },
+});
+
+export const generateResumeUploadUrl = mutation({
+    args: {},
+    returns: v.string(),
+    handler: async (ctx) => {
+        await requireEducatorViewer(ctx);
+        return await ctx.storage.generateUploadUrl();
+    },
+});
+
+export const setResume = mutation({
+    args: {
+        storageId: v.id("_storage"),
+        fileName: v.string(),
+    },
+    returns: v.id("educators"),
+    handler: async (ctx, args) => {
+        const user = await requireEducatorViewer(ctx);
+        const edu = await ctx.db
+            .query("educators")
+            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+            .first();
+        if (!edu) throw new Error("No educator profile");
+        if (edu.resumeStorageId && edu.resumeStorageId !== args.storageId) {
+            await ctx.storage.delete(edu.resumeStorageId);
+        }
+        await ctx.db.patch(edu._id, {
+            resumeStorageId: args.storageId,
+            resumeFileName: args.fileName.trim() || "Resume.pdf",
+        });
+        return edu._id;
+    },
+});
+
+export const clearResume = mutation({
+    args: {},
+    returns: v.id("educators"),
+    handler: async (ctx) => {
+        const user = await requireEducatorViewer(ctx);
+        const edu = await ctx.db
+            .query("educators")
+            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+            .first();
+        if (!edu) throw new Error("No educator profile");
+        if (edu.resumeStorageId) await ctx.storage.delete(edu.resumeStorageId);
+        await ctx.db.patch(edu._id, {
+            resumeStorageId: undefined,
+            resumeFileName: undefined,
+        });
+        return edu._id;
+    },
+});
+
+export const getResumeUrl = query({
+    args: { educatorId: v.id("educators") },
+    returns: v.union(
+        v.object({ url: v.string(), fileName: v.string() }),
+        v.null()
+    ),
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
+        const viewer = await getUserByClerkId(ctx, identity.subject);
+        if (!viewer) return null;
+        const educator = await ctx.db.get(args.educatorId);
+        if (!educator || !educator.resumeStorageId) return null;
+        const isOwner = educator.userId === viewer._id;
+        if (!isOwner && !isDistrictRole(viewer.role)) return null;
+        const url = await ctx.storage.getUrl(educator.resumeStorageId);
+        if (!url) return null;
+        return { url, fileName: educator.resumeFileName ?? "Resume.pdf" };
     },
 });
 

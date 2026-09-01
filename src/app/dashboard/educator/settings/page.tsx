@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { CredentialsSection } from "@/components/educator/credentials-section";
 import { AvatarUpload } from "@/components/educator/avatar-upload";
+import { ResumeUpload } from "@/components/educator/resume-upload";
 import { TeamMembersEditor, type TeamMember } from "@/components/educator/team-members-editor";
 import { PrimaryButton } from "@/components/shared/button";
 import { RateField } from "@/components/educator/rate-field";
@@ -40,6 +41,7 @@ export default function EducatorSettingsPage() {
     const [engagementTypes, setEngagementTypes] = useState<string[]>([]);
     const [coverageRegions, setCoverageRegions] = useState<string[]>([]);
     const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+    const [profileType, setProfileType] = useState<"individual" | "firm">("individual");
     const [saving, setSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
     const hydrated = useRef(false);
@@ -82,6 +84,7 @@ export default function EducatorSettingsPage() {
         setEngagementTypes(mine.engagementTypes ?? []);
         setCoverageRegions(mine.coverageRegions);
         setTeamMembers(mine.teamMembers ?? []);
+        setProfileType(mine.profileType ?? (mine.businessName ? "firm" : "individual"));
     }, [mine]);
 
     useEffect(() => {
@@ -147,6 +150,7 @@ export default function EducatorSettingsPage() {
                 engagementTypes: engagementTypes.length ? engagementTypes : ["consulting"],
                 teamMembers,
                 coverageRegions,
+                profileType,
             });
             setSaveMessage("Profile updated.");
         } catch (err) {
@@ -184,6 +188,7 @@ export default function EducatorSettingsPage() {
                                         </p>
                                     </div>
                                     <AvatarUpload />
+                                    <ResumeUpload />
                                     <form onSubmit={handleSaveName} className="flex flex-col gap-4">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-sm font-semibold text-[var(--text-primary)]">Display name on K12Gig</span>
@@ -238,6 +243,22 @@ export default function EducatorSettingsPage() {
                                             <label htmlFor="businessName" className="text-sm font-semibold text-[var(--text-primary)]">Business / organization name (optional)</label>
                                             <input id="businessName" value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
                                             <p className="text-sm text-[var(--text-secondary)]">Shown as your public profile name. Your personal name appears beneath it.</p>
+                                        </div>
+                                        <div className="flex flex-col gap-2">
+                                            <span className="text-sm font-semibold text-[var(--text-primary)]">Profile type</span>
+                                            <div className="flex flex-wrap gap-3">
+                                                {(["individual", "firm"] as const).map((type) => (
+                                                    <label key={type} className="inline-flex items-center gap-2 text-sm font-semibold">
+                                                        <input
+                                                            type="radio"
+                                                            name="profileType"
+                                                            checked={profileType === type}
+                                                            onChange={() => setProfileType(type)}
+                                                        />
+                                                        {type === "individual" ? "Individual" : "Firm"}
+                                                    </label>
+                                                ))}
+                                            </div>
                                         </div>
                                         <div className="flex flex-col gap-2">
                                             <label htmlFor="headline" className="text-sm font-semibold text-[var(--text-primary)]">Headline</label>

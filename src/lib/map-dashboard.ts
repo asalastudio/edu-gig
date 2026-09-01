@@ -1,36 +1,31 @@
 /**
  * View-model mappers that turn raw Convex dashboard rows into display-ready strings.
- * Keeps currency / status formatting out of the React components.
+ * Keeps status formatting out of the React components.
  */
 
 export type DistrictKpis = {
     activeOpenings: number;
     placementsThisMonth: number;
-    avgTimeToFillDays: number | null;
-    totalSpendYtd: number;
     needsCount: number;
-    ordersCount: number;
+    engagementCount: number;
 };
 
 export type DistrictKpiDisplay = {
     activeOpenings: string;
     placementsThisMonth: string;
-    avgTimeToFill: string;
-    totalSpendYtd: string;
+    engagementCount: string;
 };
 
 export type EducatorKpis = {
-    pipelineValue: number;
     activeCount: number;
-    ytdPayout: number;
     completedCount: number;
+    pendingProposals: number;
     firstName: string;
 };
 
 export type EducatorKpiDisplay = {
-    pipelineValue: string;
     activeCount: string;
-    ytdPayout: string;
+    pendingLabel: string;
     completedLabel: string;
     greetingName: string;
 };
@@ -49,53 +44,47 @@ export type EducatorPipelineRow = {
     title: string;
     district: string;
     status: string;
-    amount: number;
+    amount?: number;
     startDate?: string;
 };
 
-function formatUsd(n: number): string {
-    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 10_000) return `$${(n / 1_000).toFixed(1)}K`;
-    if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-    return `$${n.toFixed(0)}`;
-}
-
-function formatUsdExact(n: number): string {
-    return `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-}
+export type RecentPlacementRow = {
+    id: string;
+    title: string;
+    consultantName: string;
+    orgName: string;
+    status: string;
+    createdAt: number;
+};
 
 export function formatDistrictKpis(kpis: DistrictKpis | null | undefined): DistrictKpiDisplay {
     if (!kpis) {
         return {
             activeOpenings: "0",
             placementsThisMonth: "0",
-            avgTimeToFill: "—",
-            totalSpendYtd: "$0",
+            engagementCount: "0",
         };
     }
     return {
         activeOpenings: String(kpis.activeOpenings),
         placementsThisMonth: String(kpis.placementsThisMonth),
-        avgTimeToFill: kpis.avgTimeToFillDays === null ? "—" : `${kpis.avgTimeToFillDays} days`,
-        totalSpendYtd: kpis.totalSpendYtd === 0 ? "$0" : formatUsd(kpis.totalSpendYtd),
+        engagementCount: String(kpis.engagementCount),
     };
 }
 
 export function formatEducatorKpis(kpis: EducatorKpis | null | undefined): EducatorKpiDisplay {
     if (!kpis) {
         return {
-            pipelineValue: "$0",
             activeCount: "0 Active Gigs",
-            ytdPayout: "$0",
-            completedLabel: "0 completed tasks",
+            pendingLabel: "0 pending proposals",
+            completedLabel: "0 completed engagements",
             greetingName: "there",
         };
     }
     return {
-        pipelineValue: formatUsdExact(kpis.pipelineValue),
         activeCount: `${kpis.activeCount} Active ${kpis.activeCount === 1 ? "Gig" : "Gigs"}`,
-        ytdPayout: formatUsdExact(kpis.ytdPayout),
-        completedLabel: `${kpis.completedCount} completed ${kpis.completedCount === 1 ? "task" : "tasks"}`,
+        pendingLabel: `${kpis.pendingProposals} pending ${kpis.pendingProposals === 1 ? "proposal" : "proposals"}`,
+        completedLabel: `${kpis.completedCount} completed ${kpis.completedCount === 1 ? "engagement" : "engagements"}`,
         greetingName: kpis.firstName,
     };
 }
@@ -118,16 +107,28 @@ export function formatPipelineStatus(status: string): { text: string; color: Sta
 
 export function formatOrderStatus(status: string): { text: string; color: StatusColor } {
     switch (status) {
-        case "accepted":
+        case "active":
+            return { text: "Accepted", color: "emerald" };
         case "in_progress":
+        case "accepted":
             return { text: "In Progress", color: "blue" };
         case "completed":
             return { text: "Completed", color: "emerald" };
         case "cancelled":
         case "disputed":
-            return { text: "On Hold", color: "amber" };
+            return { text: "Cancelled", color: "amber" };
         case "pending":
+            return { text: "Pending", color: "amber" };
         default:
-            return { text: "Awaiting signature", color: "amber" };
+            return { text: status.replace(/_/g, " "), color: "blue" };
     }
+}
+
+export function formatAgreedRate(amount?: number, unit?: string | null): string {
+    if (amount === undefined || amount === null) return "Rate agreed off-platform";
+    const dollars = `$${Math.round(amount).toLocaleString("en-US")}`;
+    if (unit === "hourly") return `${dollars}/hr`;
+    if (unit === "daily") return `${dollars}/day`;
+    if (unit === "fixed") return `${dollars} flat`;
+    return dollars;
 }

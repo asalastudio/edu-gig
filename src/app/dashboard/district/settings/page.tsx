@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { UserButton, SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { ProcurementRequestList } from "@/components/procurement/procurement-request-list";
@@ -10,11 +12,26 @@ import { ArrowLeft } from "@phosphor-icons/react";
 
 export default function DistrictSettingsPage() {
     const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    const [notifications, setNotifications] = useState({
-        messages: true,
-        proposals: true,
-        receipts: true,
-    });
+    const district = useQuery(api.districts.getMine, hasClerk ? {} : "skip");
+    const updatePrefs = useMutation(api.districts.updateNotificationPreferences);
+    const prefs = district?.notificationPreferences ?? {
+        emailNewProposals: true,
+        emailNewMessages: true,
+        emailPlacementUpdates: true,
+    };
+
+    async function toggle(
+        key: "emailNewProposals" | "emailNewMessages" | "emailPlacementUpdates",
+        checked: boolean
+    ) {
+        if (!district) return;
+        await updatePrefs({
+            districtId: district._id,
+            emailNewProposals: key === "emailNewProposals" ? checked : prefs.emailNewProposals,
+            emailNewMessages: key === "emailNewMessages" ? checked : prefs.emailNewMessages,
+            emailPlacementUpdates: key === "emailPlacementUpdates" ? checked : prefs.emailPlacementUpdates,
+        });
+    }
 
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
@@ -28,7 +45,7 @@ export default function DistrictSettingsPage() {
                         <ArrowLeft className="w-4 h-4" /> Back to dashboard
                     </Link>
                     <PageHeader
-                        title="District workspace settings"
+                        title="District account settings"
                         description="Account and organization preferences for hiring teams."
                     />
                     <div className="mt-10 space-y-8">
@@ -51,34 +68,36 @@ export default function DistrictSettingsPage() {
                             <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-4">Notifications</h2>
                             <div className="space-y-4">
                                 {[
-                                    { id: "messages" as const, label: "New educator messages" },
-                                    { id: "proposals" as const, label: "Proposals and booking updates" },
-                                    { id: "receipts" as const, label: "Receipts, invoices, and payment notices" },
+                                    { id: "emailNewMessages" as const, label: "New consultant messages" },
+                                    { id: "emailNewProposals" as const, label: "New proposals" },
+                                    { id: "emailPlacementUpdates" as const, label: "Engagement and placement updates" },
                                 ].map((item) => (
                                     <label key={item.id} className="flex items-center justify-between gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-4">
                                         <span className="text-sm font-semibold text-[var(--text-primary)]">{item.label}</span>
                                         <input
                                             type="checkbox"
-                                            checked={notifications[item.id]}
-                                            onChange={(e) => setNotifications((prev) => ({ ...prev, [item.id]: e.target.checked }))}
+                                            checked={prefs[item.id]}
+                                            disabled={!district}
+                                            onChange={(e) => void toggle(item.id, e.target.checked)}
                                             className="h-4 w-4 rounded border-[var(--border-strong)] text-[var(--accent-primary)]"
                                         />
                                     </label>
                                 ))}
                             </div>
                             <p className="mt-4 text-xs font-medium text-[var(--text-tertiary)]">
-                                Notification preferences are saved for this browser while account-level preferences are being connected.
+                                These preferences are saved to your district account.
                             </p>
                         </section>
                         <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm">
-                            <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-4">Hiring workspace</h2>
+                            <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-4">Hiring account</h2>
                             <p className="text-sm text-[var(--text-secondary)] mb-4">
-                                Manage requests, messages, and booking records from the district dashboard.
+                                Manage needs, messages, accepted engagements, and contract documents from the district dashboard.
                             </p>
                             <div className="flex flex-wrap gap-3">
                                 <Link href="/post" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Post a need</Link>
                                 <Link href="/dashboard/messages" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Open messages</Link>
-                                <Link href="/browse" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Browse educators</Link>
+                                <Link href="/browse" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Browse consultants</Link>
+                                <Link href="/dashboard/district/contract-hub" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Contract Hub</Link>
                             </div>
                         </section>
                         <section id="procurement" className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm">
@@ -86,7 +105,7 @@ export default function DistrictSettingsPage() {
                                 <div>
                                     <h2 className="font-heading text-lg font-bold text-[var(--text-primary)]">Procurement and DPA requests</h2>
                                     <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-                                        Track legal, privacy, invoice, and DPA packet requests for this district workspace.
+                                        Track legal, privacy, and DPA packet requests for this district account.
                                     </p>
                                 </div>
                                 <Link href="/dpa" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border-strong)] px-4 text-sm font-bold">

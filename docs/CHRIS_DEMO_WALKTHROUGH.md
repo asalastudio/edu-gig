@@ -58,7 +58,7 @@ Click the **avatar (UserButton)** at the bottom of the dark sidebar → **Sign o
 
 ## What to tell Chris upfront (30 seconds)
 
-> “K12Gig has two workspaces: **district hiring** (browse, post needs, book services) and **educator** (profile, gigs, earnings). We’ll walk the public site first, then the district hiring path end-to-end, then the educator side. Everything today is on our dev environment with seeded demo accounts.”
+> “K12Gig has two workspaces: **district hiring** (post needs, review proposals, Contract Hub) and **consultant** (profile, proposals, My Gigs, Contract Hub). We’ll walk the public site first, then the district path end-to-end, then the consultant side. Payment stays off-platform. Everything today is on our dev environment with seeded demo accounts.”
 
 ---
 
@@ -90,8 +90,8 @@ After sign-in you should land on the **District dashboard** (`/dashboard/distric
 
 | Step | Go to | Point out |
 |------|-------|-----------|
-| 2.1 | `/dashboard/district` | KPI cards (openings, placements, spend), talent pipeline table |
-| 2.2 | Sidebar | **District** workspace badge, nav: Dashboard · Directory · Create Request · Messages · Settings |
+| 2.1 | `/dashboard/district` | KPI cards (openings, placements, engagements), pipeline of posted needs |
+| 2.2 | Sidebar | **District** workspace badge, nav: Dashboard · Directory · Posted Needs · Contract Hub · Messages · Settings |
 
 ### 2.2 Browse & discover educators
 
@@ -101,21 +101,15 @@ After sign-in you should land on the **District dashboard** (`/dashboard/distric
 | 2.4 | Use filters | Support type, grade band, engagement type, quick filters |
 | 2.5 | Click **Sarah Jenkins** | Full profile: headline, bio, verification badge, tabs |
 
-### 2.3 Profile → book a service
+### 2.3 Profile → post a need
 
 | Step | Go to | Point out |
 |------|-------|-----------|
-| 2.6 | Sarah’s profile → **Services** tab | Two bookable gigs from seed data |
-| 2.7 | **Curriculum Mapping Workshop** ($450 fixed) → **Book this service** | Checkout page with order summary, platform fee breakdown |
-| 2.8 | Fill checkout form | Start date, optional PO number, invoice / PO payment path |
-| 2.9 | Submit booking | Confirmation state; order created in Convex when signed in as district |
+| 2.6 | Sarah’s profile → **Areas of Support** | Support details, not a checkout cart |
+| 2.7 | **Post a need** | Need form targeted at that consultant |
+| 2.8 | Submit | Need appears on Posted Needs |
 
-**Sarah’s seeded services:**
-
-- Curriculum Mapping Workshop — **$450 fixed**
-- Literacy Coaching Block — **$75/hr**
-
-**Talking point:** This is the core “district finds educator → books service” loop.
+**Talking point:** Districts hire by posting a need and accepting a proposal. There is no K12Gig checkout or 18% fee.
 
 ### 2.4 Post a need (alternative district flow)
 
@@ -124,7 +118,7 @@ After sign-in you should land on the **District dashboard** (`/dashboard/distric
 | 2.10 | `/post` (Create Request in sidebar) | Multi-step need form: org, support type, grade, engagement, compensation |
 | 2.11 | Complete & submit | Need saved to district workspace (preview/submit flow) |
 
-**Talking point:** “Post a Need” is for open reqs; “Book this service” is for educator-listed gigs.
+**Talking point:** “Post a Need” is the hiring path. Consultants respond with proposals; acceptance creates an engagement.
 
 ### 2.5 Other district surfaces (optional, time permitting)
 
@@ -146,15 +140,15 @@ After sign-in you should land on the **District dashboard** (`/dashboard/distric
 | Step | Go to | Point out |
 |------|-------|-----------|
 | 3.1 | `/dashboard/educator` | **“Welcome back, Sarah”** as primary heading; pipeline stats, availability toggle |
-| 3.2 | Sidebar | **Educator** workspace badge; nav: Dashboard · Directory · My Gigs · Messages · Settings |
+| 3.2 | Sidebar | **Consultant** workspace badge; nav: Dashboard · Gig Board · My Gigs · Contract Hub · Messages · Settings |
 | 3.3 | Toggle availability | “Accepting district requests” vs closed |
 
 ### 3.2 Manage gigs
 
 | Step | Go to | Point out |
 |------|-------|-----------|
-| 3.4 | `/dashboard/educator/my-gigs` | Sarah’s two live gigs (Curriculum Mapping, Literacy Coaching) |
-| 3.5 | `/dashboard/educator/gigs/new` | Create new gig flow (show form; submitting creates real gig if signed in) |
+| 3.4 | `/dashboard/educator/my-gigs` | Accepted engagements, not consultant-created listings |
+| 3.5 | `/dashboard/educator/contract-hub` | Document coordination; payment stays off-platform |
 
 ### 3.3 Profile & credentials
 
@@ -175,8 +169,8 @@ After sign-in you should land on the **District dashboard** (`/dashboard/distric
 
 | Step | Go to | Point out |
 |------|-------|-----------|
-| 3.9 | `/dashboard/educator/earnings` | Earnings view |
-| 3.10 | `/dashboard/educator/needs` | District needs visible to educators |
+| 3.9 | `/dashboard/educator/contract-hub` | Working documents; payment stays off-platform |
+| 3.10 | `/dashboard/educator/needs` | District needs visible to consultants |
 
 ---
 
@@ -196,13 +190,13 @@ Only show if Chris asks about first-time signup.
 
 ## Part 5 — Quick comparison slide (verbal, 1 min)
 
-| | District (Jordan) | Educator (Sarah) |
+| | District (Jordan) | Consultant (Sarah) |
 |--|-------------------|------------------|
-| **Primary job** | Hire & book | Get hired & manage gigs |
+| **Primary job** | Post needs and accept proposals | Propose and manage accepted work |
 | **Directory** | Full live roster | Blocked (by design) |
-| **Create** | Post a Need | My Gigs / new gig |
-| **Book** | Book from profile Services tab | N/A |
-| **Dashboard** | HR overview & pipeline | Welcome + earnings pipeline |
+| **Create** | Post a Need | Proposal on an open need |
+| **After accept** | Engagement + Contract Hub | My Gigs + Contract Hub |
+| **Dashboard** | Openings, placements, pipeline | Active/completed engagements |
 
 ---
 
@@ -223,9 +217,9 @@ Only show if Chris asks about first-time signup.
 
 | What you might see | Why | What to say |
 |--------------------|-----|-------------|
-| Empty pipeline on dashboards | No orders booked yet in this session | “Pipeline fills once bookings exist — we can create one live in the district flow.” |
-| No messages | No threads started | “Messaging UI is in place; threads appear after district–educator contact.” |
-| Card payment hidden | Controlled beta is invoice / PO-first | “Card checkout is intentionally deferred until production Stripe is verified.” |
+| Empty pipeline on dashboards | No accepted engagements yet in this session | “Pipeline fills once a proposal is accepted — we can do that live in the district flow.” |
+| No messages | No threads started | “Messaging UI is in place; districts start conversations.” |
+| No checkout | Payment is off-platform | “K12Gig does not process cards, ACH, or 1099s. Contract Hub holds the working documents.” |
 | Brief “Choose your workspace” after sign-in | Seed link takes a moment, or sign-in without `?intent=` | “Seeded accounts auto-redirect; use intent URLs to skip.” |
 | Admin dashboard | Requires superadmin account | “Admin is internal-only — not part of today’s district/educator demo.” |
 
@@ -245,14 +239,14 @@ Only show if Chris asks about first-time signup.
 
 ## After the meeting — optional follow-ups
 
-- [ ] Book a second service (Literacy Coaching) to show hourly pricing
+- [ ] Accept a proposal and open Contract Hub on both dashboards
 - [ ] Sign in as Miguel or Alana to show roster variety
-- [ ] Run Playwright smoke tests: `npx playwright test e2e/smoke.spec.ts e2e/checkout.spec.ts`
+- [ ] Run Playwright: `npx playwright test e2e/smoke.spec.ts e2e/checkout.spec.ts e2e/launch-flow.spec.ts`
 - [ ] Capture screenshots / Loom for async review
 
 ---
 
 ## One-line story for Chris
 
-**District:** Sign in → browse 3 educators → open Sarah → Services → book workshop → optionally post a need.  
-**Educator:** Sign in → see personalized dashboard → manage gigs & profile → districts book you from the directory.
+**District:** Sign in → browse consultants → post a need → accept a proposal → engagement + Contract Hub.  
+**Consultant:** Sign in → publish profile and resume → propose → see the engagement on My Gigs → coordinate documents in Contract Hub. Payment and legally binding signatures stay off-platform.

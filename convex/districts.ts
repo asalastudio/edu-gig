@@ -24,10 +24,34 @@ async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
 /** Current user's district (first match where they are listed as admin). */
 export const getMine = query({
     args: {},
+    returns: v.union(
+        v.object({
+            _id: v.id("districts"),
+            name: v.string(),
+            state: v.string(),
+            region: v.string(),
+            nceaId: v.optional(v.string()),
+            notificationPreferences: v.optional(v.object({
+                emailNewProposals: v.boolean(),
+                emailNewMessages: v.boolean(),
+                emailPlacementUpdates: v.boolean(),
+            })),
+        }),
+        v.null()
+    ),
     handler: async (ctx) => {
         const user = await requireDistrictViewer(ctx);
         const districts = await ctx.db.query("districts").collect();
-        return districts.find((d) => d.adminIds.includes(user._id)) ?? null;
+        const district = districts.find((d) => d.adminIds.includes(user._id)) ?? null;
+        if (!district) return null;
+        return {
+            _id: district._id,
+            name: district.name,
+            state: district.state,
+            region: district.region,
+            nceaId: district.nceaId,
+            notificationPreferences: district.notificationPreferences,
+        };
     },
 });
 
@@ -39,6 +63,7 @@ export const update = mutation({
         state: v.optional(v.string()),
         region: v.optional(v.string()),
     },
+    returns: v.id("districts"),
     handler: async (ctx, args) => {
         const user = await requireDistrictViewer(ctx);
         const district = await ctx.db.get(args.districtId);
@@ -51,6 +76,32 @@ export const update = mutation({
         if (args.state !== undefined) patch.state = args.state;
         if (args.region !== undefined) patch.region = args.region;
         if (Object.keys(patch).length) await ctx.db.patch(args.districtId, patch);
+        return args.districtId;
+    },
+});
+
+export const updateNotificationPreferences = mutation({
+    args: {
+        districtId: v.id("districts"),
+        emailNewProposals: v.boolean(),
+        emailNewMessages: v.boolean(),
+        emailPlacementUpdates: v.boolean(),
+    },
+    returns: v.id("districts"),
+    handler: async (ctx, args) => {
+        const user = await requireDistrictViewer(ctx);
+        const district = await ctx.db.get(args.districtId);
+        if (!district) throw new Error("Not found");
+        if (!district.adminIds.includes(user._id) && user.role !== "superadmin") {
+            throw new Error("Forbidden");
+        }
+        await ctx.db.patch(args.districtId, {
+            notificationPreferences: {
+                emailNewProposals: args.emailNewProposals,
+                emailNewMessages: args.emailNewMessages,
+                emailPlacementUpdates: args.emailPlacementUpdates,
+            },
+        });
         return args.districtId;
     },
 });

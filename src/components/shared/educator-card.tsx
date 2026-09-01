@@ -1,5 +1,5 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { PlayCircle, Star, ShieldCheck, Medal, GraduationCap, MapPin, CurrencyDollar } from "@phosphor-icons/react"
+import { PlayCircle, ShieldCheck, Medal, GraduationCap, MapPin, CurrencyDollar } from "@phosphor-icons/react"
 import { Card } from "./card"
 import { VerificationBadge } from "./verification-badge"
 import { AvailabilityPill } from "./availability-pill"
@@ -67,17 +67,6 @@ export function EducatorCard({
                     
                     <div className="flex flex-col items-end gap-2">
                         <AvailabilityPill status={educator.availabilityStatus} />
-                        <div className="flex items-center gap-1 bg-[var(--accent-secondary)]/10 px-2 py-0.5 rounded-md border border-[var(--accent-secondary)]/20">
-                            <Star weight="fill" className="h-3 w-3 text-[var(--accent-secondary)]" />
-                            <span className="text-xs font-bold text-[var(--text-primary)]">
-                                {educator.reviewCount > 0 ? educator.overallRating.toFixed(1) : "New"}
-                            </span>
-                            {educator.reviewCount > 0 && (
-                                <span className="text-[10px] text-[var(--text-tertiary)] font-medium">
-                                    ({educator.reviewCount})
-                                </span>
-                            )}
-                        </div>
                     </div>
                 </div>
 
@@ -128,10 +117,10 @@ export function EducatorCard({
                             {educator.badges.some(b => b.includes('Background')) && (
                                 <ShieldCheck weight="fill" className="h-4 w-4 text-emerald-500" />
                             )}
-                            {educator.badges.some(b => b.includes('Licensed')) && (
+                            {educator.badges.some(b => b.includes('Credential')) && (
                                 <Medal weight="fill" className="h-4 w-4 text-[var(--accent-secondary)]" />
                             )}
-                            <span className="text-xs font-semibold text-[var(--text-tertiary)]">Verified Cleared</span>
+                            <span className="text-xs font-semibold text-[var(--text-tertiary)]">{educator.badges[0]}</span>
                         </div>
                     )}
                 </div>

@@ -2,7 +2,7 @@
 
 **Audience:** Jordan (engineering)  
 **Target date:** June 15, 2026  
-**Launch mode:** Controlled beta · invoice/PO only · no live card payments  
+**Launch mode:** Controlled beta · proposal-centered connection marketplace · payment off-platform · Contract Hub for documents  
 **Blocked on:** Chris DNS access for `k12gig.com`
 
 This is the **execute-when-ready** checklist. When Chris gives DNS control, work top to bottom — most steps are copy-paste.
@@ -14,11 +14,11 @@ This is the **execute-when-ready** checklist. When Chris gives DNS control, work
 - [x] Auth UX — single `/login` role hub; `intent` carried through sign-in/sign-up/onboarding
 - [x] Clerk UI branding → K12Gig
 - [x] Sidebar role label fix on shared pages (`/browse`)
-- [x] Date inputs block past dates on post + checkout
+- [x] Date inputs block past dates on post-a-need
 - [x] App defaults to `k12gig.com` in email templates and legal/support addresses
-- [x] Beta data tooling — `convex/beta_launch.ts` (cleanup + founding profiles with gigs)
+- [x] Beta data tooling — `convex/beta_launch.ts` (cleanup + founding profiles; engagements included)
 - [x] Launch helper script — `scripts/beta-launch.mjs`
-- [x] Env audit — `npm run check:env:beta` (invoice-only beta, no Stripe required)
+- [x] Env audit — `npm run check:env:beta` (off-platform payment; Stripe not required)
 
 ---
 
@@ -114,7 +114,7 @@ printf '%s' 'https://k12gig.com' | vercel env add NEXT_PUBLIC_APP_URL production
 # CONVEX_WEBHOOK_SHARED_SECRET — already set
 ```
 
-**Invoice-only beta — Stripe NOT required.** Leave `STRIPE_*` unset; checkout uses PO/invoice path.
+**Off-platform payment — Stripe NOT required.** Leave `STRIPE_*` unset. Keep `NEXT_PUBLIC_ENABLE_LEGACY_CHECKOUT` unset/false.
 Set or keep these public flags unset/false unless Chris explicitly re-approves the lane:
 
 ```bash

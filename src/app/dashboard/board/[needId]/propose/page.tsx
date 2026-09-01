@@ -109,6 +109,7 @@ export default function ProposePage() {
         isEducator ? {} : "skip"
     ) as OpenNeed[] | undefined;
     const myProposals = useQuery(api.proposals.listMine, isEducator ? {} : "skip");
+    const mine = useQuery(api.educators.getMine, isEducator ? {} : "skip");
 
     const generateAttachmentUploadUrl = useMutation(api.proposals.generateAttachmentUploadUrl);
     const submitProposal = useMutation(api.proposals.submit);
@@ -237,6 +238,10 @@ export default function ProposePage() {
             setFormError("Your proposal message is required.");
             return;
         }
+        if (!file && !mine?.resumeStorageId) {
+            setFormError("Attach a resume/CV or upload one in Settings before submitting a proposal.");
+            return;
+        }
         const rateNum = proposedRate ? Number(proposedRate) : undefined;
         if (rateNum !== undefined && Number.isNaN(rateNum)) {
             setFormError("Proposed rate must be a number.");
@@ -347,8 +352,15 @@ export default function ProposePage() {
                 <div className="flex flex-col gap-2">
                     <span className="text-sm font-semibold text-[var(--text-primary)]">
                         Attach your resume or proposal{" "}
-                        <span className="font-normal text-[var(--text-tertiary)]">(optional)</span>
+                        <span className="font-normal text-[var(--text-tertiary)]">
+                            {mine?.resumeStorageId ? "(optional — your profile resume will be used)" : "(required unless a resume is on your profile)"}
+                        </span>
                     </span>
+                    {mine?.resumeFileName && !file && (
+                        <p className="text-sm text-[var(--text-secondary)]">
+                            Profile resume on file: {mine.resumeFileName}
+                        </p>
+                    )}
                     {file ? (
                         <div className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3">
                             <span className="flex items-center gap-3 min-w-0">

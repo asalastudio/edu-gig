@@ -29,7 +29,10 @@ export const send = mutation({
     args: {
         recipientUserId: v.id("users"),
         content: v.string(),
+        needId: v.optional(v.id("needs")),
+        engagementId: v.optional(v.id("engagements")),
     },
+    returns: v.id("messages"),
     handler: async (ctx, args) => {
         const sender = await requireViewer(ctx);
         if (sender._id === args.recipientUserId) throw new Error("Cannot message yourself");
@@ -57,6 +60,8 @@ export const send = mutation({
             recipientId: args.recipientUserId,
             content: args.content,
             read: false,
+            needId: args.needId,
+            engagementId: args.engagementId,
             createdAt: Date.now(),
         });
 
@@ -85,8 +90,15 @@ export const listMyConversations = query({
     args: {},
     handler: async (ctx) => {
         const user = await requireViewer(ctx);
-        const all = await ctx.db.query("messages").collect();
-        const mine = all.filter((m) => m.senderId === user._id || m.recipientId === user._id);
+        const sent = await ctx.db
+            .query("messages")
+            .withIndex("by_sender", (q) => q.eq("senderId", user._id))
+            .collect();
+        const received = await ctx.db
+            .query("messages")
+            .withIndex("by_recipient", (q) => q.eq("recipientId", user._id))
+            .collect();
+        const mine = [...sent, ...received];
 
         type Conversation = {
             conversationId: string;
@@ -125,10 +137,14 @@ export const listMyConversations = query({
 /** Count of unread messages the viewer has received — powers the Messages nav badge. */
 export const unreadCount = query({
     args: {},
+    returns: v.number(),
     handler: async (ctx) => {
         const user = await requireViewer(ctx);
-        const all = await ctx.db.query("messages").collect();
-        return all.filter((m) => m.recipientId === user._id && !m.read).length;
+        const unread = await ctx.db
+            .query("messages")
+            .withIndex("by_recipient_and_read", (q) => q.eq("recipientId", user._id).eq("read", false))
+            .take(50);
+        return unread.length;
     },
 });
 
@@ -140,7 +156,7 @@ export const listConversation = query({
         const messages = await ctx.db
             .query("messages")
             .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
-            .collect();
+            .take(200);
         if (!messages.some((m) => m.senderId === user._id || m.recipientId === user._id)) {
             throw new Error("Forbidden");
         }

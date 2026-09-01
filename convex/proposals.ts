@@ -5,6 +5,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { acceptsEducatorProposals } from "../src/lib/need-status";
 import { createEngagementFromAcceptance } from "./lib/createEngagement";
+import { assertProposalAcceptable, assertProposalRejectable } from "./lib/proposalAcceptance";
 
 const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
 
@@ -259,10 +260,16 @@ export const getAttachmentUrl = query({
 
 /**
  * District accepts a proposal:
+ * - requires the proposal to be pending and the need to be open/interviewing
+ * - requires that no other proposal on the need is accepted and no
+ *   engagement exists for the need (one acceptance, one engagement per need)
  * - patches the proposal to "accepted"
  * - patches the need to "placed"
  * - rejects all other pending proposals on this need
  * - notifies the educator
+ *
+ * All reads and writes happen inside one Convex mutation, so the invariant
+ * checks and the state change are transactional.
  */
 export const accept = mutation({
     args: { proposalId: v.id("proposals") },
@@ -281,13 +288,19 @@ export const accept = mutation({
             throw new Error("Forbidden");
         }
 
-        await ctx.db.patch(args.proposalId, { status: "accepted" });
-        await ctx.db.patch(proposal.needId, { status: "placed" });
-
         const siblings = await ctx.db
             .query("proposals")
             .withIndex("by_need", (q) => q.eq("needId", proposal.needId))
             .collect();
+        const existingEngagement = await ctx.db
+            .query("engagements")
+            .withIndex("by_need", (q) => q.eq("needId", proposal.needId))
+            .first();
+        assertProposalAcceptable({ proposal, need, siblings, existingEngagement });
+
+        await ctx.db.patch(args.proposalId, { status: "accepted" });
+        await ctx.db.patch(proposal.needId, { status: "placed" });
+
         for (const sibling of siblings) {
             if (sibling._id !== args.proposalId && sibling.status === "pending") {
                 await ctx.db.patch(sibling._id, { status: "rejected" });
@@ -339,6 +352,7 @@ export const reject = mutation({
         if (!(await canManageNeed(ctx, user, need))) {
             throw new Error("Forbidden");
         }
+        assertProposalRejectable(proposal);
 
         await ctx.db.patch(args.proposalId, { status: "rejected" });
 

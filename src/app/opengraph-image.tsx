@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
 
 // Route segment config — static so Next.js generates the image at build time.
-export const runtime = "edge";
+// Next.js 16.3 deprecates the Edge Runtime for this route type.
+export const runtime = "nodejs";
 
 export const alt = "K12Gig — The K-12 Educator Marketplace";
 export const size = {

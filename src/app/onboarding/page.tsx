@@ -289,7 +289,6 @@ function OnboardingWithClerk() {
                 resumeFileName: intent === "educator" ? resumeFileName ?? undefined : undefined,
                 termsVersion: TERMS_VERSION,
                 privacyVersion: PRIVACY_VERSION,
-                legalAcceptedAt: Date.now(),
             });
 
             // Onboarding is done — drop the remembered role so a later

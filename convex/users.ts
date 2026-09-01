@@ -1,7 +1,7 @@
 import { query, mutation, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { PRIVACY_VERSION, TERMS_VERSION } from "../src/lib/legal";
+import { resolveLegalAcceptance, resolveOnboardingEmail } from "./lib/onboardingPolicy";
 
 const onboardingRoleValidator = v.union(
     v.literal("educator"),
@@ -386,9 +386,10 @@ export const completeOnboarding = mutation({
         profileType: v.optional(v.union(v.literal("individual"), v.literal("firm"))),
         resumeStorageId: v.optional(v.id("_storage")),
         resumeFileName: v.optional(v.string()),
+        /** Must equal the current TERMS_VERSION; the server stamps the acceptance time. */
         termsVersion: v.optional(v.string()),
+        /** Must equal the current PRIVACY_VERSION; the server stamps the acceptance time. */
         privacyVersion: v.optional(v.string()),
-        legalAcceptedAt: v.optional(v.number()),
         /** US state code (e.g. "TX", "CA"). Required for district roles when creating a district row. */
         state: v.optional(v.string()),
         /** Coverage region (e.g. "region_1"). Defaults to "region_1" until full geographic taxonomy lands. */
@@ -407,7 +408,11 @@ export const completeOnboarding = mutation({
             .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
             .first();
 
-        const email = normalizeEmail(identity.email as string | undefined);
+        // Fail closed: no fabricated placeholder addresses. See onboardingPolicy.ts.
+        const email = resolveOnboardingEmail({
+            email: identity.email as string | undefined,
+            emailVerified: identity.emailVerified as boolean | undefined,
+        });
         const name = (identity.name as string | undefined) ?? "";
         const parts = name.trim().split(/\s+/).filter(Boolean);
         // Prefer the name the user typed during onboarding, then the Clerk
@@ -427,13 +432,12 @@ export const completeOnboarding = mutation({
         if (wantsDistrictRow && !districtState) {
             throw new Error("State is required when creating a district");
         }
-        const legalAcceptedAt = args.legalAcceptedAt ?? Date.now();
-        const legalPatch = {
-            termsAcceptedAt: legalAcceptedAt,
-            termsVersion: args.termsVersion ?? TERMS_VERSION,
-            privacyAcceptedAt: legalAcceptedAt,
-            privacyVersion: args.privacyVersion ?? PRIVACY_VERSION,
-        };
+        // Explicit acceptance of the current legal versions is required; the
+        // server owns the timestamp. See onboardingPolicy.ts.
+        const legalPatch = resolveLegalAcceptance(
+            { termsVersion: args.termsVersion, privacyVersion: args.privacyVersion },
+            Date.now()
+        );
 
         async function upsertDistrictForAdmin(adminId: Id<"users">) {
             if (!wantsDistrictRow || !districtState) return;
@@ -520,7 +524,7 @@ export const completeOnboarding = mutation({
         const userId = await ctx.db.insert("users", {
             clerkId: identity.subject,
             role: args.role,
-            email: email || `${identity.subject}@placeholder.local`,
+            email,
             firstName,
             lastName,
             onboarded: true,

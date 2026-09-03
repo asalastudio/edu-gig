@@ -23,8 +23,8 @@ export default function TermsPage() {
                 </p>
                 <div className="prose prose-neutral max-w-none text-[var(--text-secondary)] space-y-4">
                     <p>
-                        These Terms govern access to K12Gig, a marketplace that helps school districts discover, message, request, and
-                        book educators, coaches, specialists, and other education professionals.
+                        These Terms govern access to K12Gig, a connection marketplace that helps school districts post consulting
+                        needs, discover and message education consultants, review proposals, and coordinate engagements.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Acceptance and authority</h2>
                     <p>
@@ -34,15 +34,16 @@ export default function TermsPage() {
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Use of the platform</h2>
                     <p>
-                        Users must provide accurate account, organization, credential, payment, and engagement information. District users
-                        are responsible for confirming purchasing authority and following local procurement rules. Educator users are
-                        responsible for keeping profiles, credentials, rates, availability, and tax or payout information accurate.
+                        Users must provide accurate account, organization, credential, and engagement information. District users
+                        are responsible for confirming purchasing authority and following local procurement rules. Consultant users are
+                        responsible for keeping profiles, credentials, resumes, rates, and availability accurate.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Marketplace roles</h2>
                     <p>
-                        K12Gig provides software and marketplace infrastructure. Districts choose which educators to contact or hire, and
-                        educators decide which requests to accept. Unless a written agreement says otherwise, K12Gig is not the employer of
-                        educators and does not control district hiring decisions, classroom assignments, or day-to-day services.
+                        K12Gig provides software and marketplace infrastructure. Districts choose which consultants to contact or engage,
+                        and consultants decide which needs to propose on. Unless a written agreement says otherwise, K12Gig is not the
+                        employer of consultants, is not a party to any engagement, and does not control district hiring decisions,
+                        scope of work, or day-to-day services.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">District agreements and DPA review</h2>
                     <p>
@@ -50,22 +51,24 @@ export default function TermsPage() {
                         add or replace terms for a specific district. If there is a conflict between these online Terms and a signed
                         district agreement, the signed agreement controls for that district.
                     </p>
-                    <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Bookings, payments, and fees</h2>
+                    <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Engagements, payment, and signatures</h2>
                     <p>
-                        Engagement details, pricing, start dates, purchase-order information, platform fees, taxes, cancellation terms, and
-                        payout timing are shown during booking or in the applicable district agreement. Payments may be processed by Stripe
-                        and payouts may require educator identity, tax, and bank-account verification.
+                        When a district accepts a consultant&apos;s proposal, K12Gig records an engagement so both sides can coordinate
+                        through the Contract Hub. K12Gig does not charge a platform fee, does not process payments, does not issue
+                        invoices, payouts, or tax forms, and does not provide legally binding electronic signatures.
                     </p>
                     <p>
-                        Net-30 invoices are available only for eligible district bookings. Districts are responsible for providing accurate
-                        billing contacts, purchase-order numbers when required, exemption certificates when applicable, and timely payment
-                        under the approved invoice terms.
+                        Pricing, purchase orders, invoicing, payment timing, taxes, and the signed agreement for each engagement are
+                        arranged directly between the district and the consultant, outside K12Gig, under the district&apos;s procurement
+                        rules. Documents shared in the Contract Hub are working copies for coordination only; the executed agreement
+                        held by the district and the consultant controls.
                     </p>
-                    <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Cancellations, refunds, and disputes</h2>
+                    <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Cancellations and disputes</h2>
                     <p>
-                        Districts and educators should document scope, schedule, and deliverables before work begins. Cancellation,
-                        refund, and dispute outcomes depend on the applicable booking terms, work completed, district requirements, and
-                        payment status. K12Gig may review marketplace records and communications to help resolve disputes.
+                        Districts and consultants should document scope, schedule, deliverables, and payment terms in their own agreement
+                        before work begins. Cancellation and dispute outcomes are governed by that agreement and by district requirements,
+                        not by K12Gig. K12Gig may review marketplace records and communications to help the parties resolve a
+                        disagreement, but it does not hold funds, issue refunds, or adjudicate payment disputes.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Credentials and background checks</h2>
                     <p>
@@ -75,9 +78,10 @@ export default function TermsPage() {
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Acceptable use</h2>
                     <p>
-                        Users may not misrepresent credentials, bypass platform payment flows, scrape marketplace data, upload unlawful or
-                        sensitive student data without authorization, harass other users, interfere with security, or use K12Gig for
-                        anything outside lawful K-12 staffing and education services.
+                        Users may not misrepresent credentials or experience, submit proposals they do not intend to honor, scrape
+                        marketplace data, upload unlawful or sensitive student data without authorization, harass other users, send
+                        unsolicited outreach outside the messaging rules, interfere with security, or use K12Gig for anything outside
+                        lawful K-12 consulting and education services.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Limitation of liability</h2>
                     <p>

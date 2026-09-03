@@ -24,10 +24,13 @@ vi.mock("@/components/shared/site-footer", () => ({
 }));
 
 describe("PricingPage", () => {
-    it("describes invoice-first controlled beta payment posture by default", () => {
+    it("describes off-platform payment and Contract Hub instead of checkout fees", () => {
         render(<PricingPage />);
 
-        expect(screen.getByText(/During beta, districts pay by approved purchase order or Net-30 invoice/i)).toBeInTheDocument();
+        expect(screen.getByText(/Payment stays between you/i)).toBeInTheDocument();
+        expect(screen.getByText(/does not charge an 18% fee/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/Contract Hub/i).length).toBeGreaterThan(0);
         expect(screen.queryByText(/card checkout via stripe today/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Educators are paid weekly via ACH/i)).not.toBeInTheDocument();
     });
 });

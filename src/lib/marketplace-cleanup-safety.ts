@@ -11,6 +11,17 @@ export type MarketplaceCleanupDataset = {
         educatorId: CleanupId;
         educatorUserId: CleanupId;
     }>;
+    engagements: Array<{
+        id: CleanupId;
+        needId: CleanupId;
+        proposalId: CleanupId;
+        educatorId: CleanupId;
+        buyerUserId: CleanupId;
+    }>;
+    contracts: Array<{
+        id: CleanupId;
+        engagementId: CleanupId;
+    }>;
     orders: Array<{
         id: CleanupId;
         gigId: CleanupId;
@@ -39,6 +50,8 @@ export type MarketplaceCleanupRemovalManifest = {
     gigs: CleanupId[];
     needs: CleanupId[];
     proposals: CleanupId[];
+    engagements: CleanupId[];
+    contracts: CleanupId[];
     orders: CleanupId[];
     reviews: CleanupId[];
     messages: CleanupId[];
@@ -129,6 +142,27 @@ export function getMarketplaceCleanupSafetyIssues({
         )
     ) {
         issues.push("surviving_proposal_references_removed_entity");
+    }
+    if (
+        dataset.engagements.some(
+            (row) =>
+                !removedIds.engagements.has(row.id) &&
+                (removedIds.needs.has(row.needId) ||
+                    removedIds.proposals.has(row.proposalId) ||
+                    removedIds.educators.has(row.educatorId) ||
+                    removedIds.users.has(row.buyerUserId))
+        )
+    ) {
+        issues.push("surviving_engagement_references_removed_entity");
+    }
+    if (
+        dataset.contracts.some(
+            (row) =>
+                !removedIds.contracts.has(row.id) &&
+                removedIds.engagements.has(row.engagementId)
+        )
+    ) {
+        issues.push("surviving_contract_references_removed_engagement");
     }
     if (
         dataset.orders.some(

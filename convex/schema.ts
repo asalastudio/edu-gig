@@ -56,10 +56,14 @@ export default defineSchema({
         hourlyRate: v.optional(v.number()),
         dailyRate: v.optional(v.number()),
         backgroundCheckId: v.optional(v.string()),   // Checkr report ID
+        profileType: v.optional(v.union(v.literal("individual"), v.literal("firm"))),
+        resumeStorageId: v.optional(v.id("_storage")),
+        resumeFileName: v.optional(v.string()),
         isActive: v.boolean(),
         profileCompletePct: v.number(),
     }).index("by_user_id", ["userId"])
         .index("by_verification", ["verificationStatus"])
+        .index("by_background_check", ["backgroundCheckId"])
         .searchIndex("search_educators", {
             searchField: "headline",
             filterFields: ["areasOfNeed", "gradeLevelBands", "coverageRegions", "verificationStatus"],
@@ -98,6 +102,11 @@ export default defineSchema({
             v.literal("enterprise")
         ),
         stripeCustomerId: v.optional(v.string()),
+        notificationPreferences: v.optional(v.object({
+            emailNewProposals: v.boolean(),
+            emailNewMessages: v.boolean(),
+            emailPlacementUpdates: v.boolean(),
+        })),
         createdAt: v.number(),
     }),
 
@@ -224,7 +233,8 @@ export default defineSchema({
         createdAt: v.number(),
     }).index("by_district", ["districtId"])
         .index("by_educator", ["educatorId"])
-        .index("by_status", ["status"]),
+        .index("by_status", ["status"])
+        .index("by_stripe_payment_intent", ["stripePaymentIntentId"]),
 
     stripeWebhookEvents: defineTable({
         stripeEventId: v.string(),
@@ -245,7 +255,8 @@ export default defineSchema({
         reliability: v.optional(v.number()),
         comment: v.optional(v.string()),
         createdAt: v.number(),
-    }).index("by_reviewee", ["revieweeId"]),
+    }).index("by_reviewee", ["revieweeId"])
+        .index("by_order", ["orderId"]),
 
     // ─── Messages ─────────────────────────────────────────────
     messages: defineTable({
@@ -254,8 +265,13 @@ export default defineSchema({
         recipientId: v.id("users"),
         content: v.string(),
         read: v.boolean(),
+        needId: v.optional(v.id("needs")),
+        engagementId: v.optional(v.id("engagements")),
         createdAt: v.number(),
-    }).index("by_conversation", ["conversationId"]),
+    }).index("by_conversation", ["conversationId"])
+        .index("by_sender", ["senderId"])
+        .index("by_recipient", ["recipientId"])
+        .index("by_recipient_and_read", ["recipientId", "read"]),
 
     // ─── Notifications ────────────────────────────────────────
     notifications: defineTable({
@@ -266,7 +282,8 @@ export default defineSchema({
         read: v.boolean(),
         actionUrl: v.optional(v.string()),
         createdAt: v.number(),
-    }).index("by_user", ["userId"]),
+    }).index("by_user", ["userId"])
+        .index("by_user_and_read", ["userId", "read"]),
 
     // ─── Proposals (Educator responses to District-posted Needs) ─
     proposals: defineTable({
@@ -288,5 +305,68 @@ export default defineSchema({
     }).index("by_need", ["needId"])
         .index("by_educator", ["educatorId"])
         .index("by_need_and_educator", ["needId", "educatorId"]),
+
+    // ─── Engagements (accepted proposal → active work) ────────
+    engagements: defineTable({
+        needId: v.id("needs"),
+        proposalId: v.id("proposals"),
+        educatorId: v.id("educators"),
+        educatorUserId: v.id("users"),
+        districtId: v.optional(v.id("districts")),
+        buyerUserId: v.id("users"),
+        status: v.union(
+            v.literal("active"),
+            v.literal("in_progress"),
+            v.literal("completed"),
+            v.literal("cancelled")
+        ),
+        title: v.string(),
+        orgName: v.string(),
+        areaOfNeed: v.string(),
+        engagementType: v.optional(v.string()),
+        startDate: v.optional(v.string()),
+        endDate: v.optional(v.string()),
+        duration: v.optional(v.string()),
+        agreedRate: v.optional(v.number()),
+        agreedRateUnit: v.optional(v.union(
+            v.literal("hourly"),
+            v.literal("daily"),
+            v.literal("fixed")
+        )),
+        compensationNotes: v.optional(v.string()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    }).index("by_need", ["needId"])
+        .index("by_proposal", ["proposalId"])
+        .index("by_educator", ["educatorId"])
+        .index("by_district", ["districtId"])
+        .index("by_buyer", ["buyerUserId"])
+        .index("by_status", ["status"]),
+
+    // ─── Contracts (document coordination, not legal e-sign) ──
+    contracts: defineTable({
+        engagementId: v.id("engagements"),
+        uploadedByUserId: v.id("users"),
+        title: v.string(),
+        notes: v.optional(v.string()),
+        status: v.union(
+            v.literal("draft"),
+            v.literal("sent"),
+            v.literal("signed_externally"),
+            v.literal("completed")
+        ),
+        storageId: v.optional(v.id("_storage")),
+        fileName: v.optional(v.string()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    }).index("by_engagement", ["engagementId"]),
+
+    contractEvents: defineTable({
+        contractId: v.id("contracts"),
+        actorUserId: v.id("users"),
+        action: v.string(),
+        note: v.optional(v.string()),
+        createdAt: v.number(),
+    }).index("by_contract", ["contractId"]),
 
 });

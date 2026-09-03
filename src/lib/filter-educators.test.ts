@@ -98,13 +98,13 @@ describe("educatorMatchesDirectoryFilters", () => {
         ).toBe(true);
     });
 
-    it("composes saved, verified, rating, local, and ready-to-request controls", () => {
+    it("composes saved, verified, local, and ready-to-request controls", () => {
         const filters: DirectoryFilterState = {
             ...noFilters,
             verifiedOnly: true,
             showSavedOnly: true,
             savedEducatorIds: [educator.id],
-            activeQuickFilter: "quick_top",
+            activeQuickFilter: "quick_avail",
         };
         expect(educatorMatchesDirectoryFilters(educator, filters)).toBe(true);
         expect(

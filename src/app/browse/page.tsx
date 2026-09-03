@@ -14,7 +14,7 @@ import {
     type DirectoryQuickFilter,
 } from "@/lib/filter-educators";
 import { PrimaryButton } from "@/components/shared/button";
-import { ArrowLeft, FadersHorizontal, Lightning, Star, Clock, MapPin, Funnel } from "@phosphor-icons/react";
+import { ArrowLeft, FadersHorizontal, Lightning, Clock, MapPin, Funnel } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -43,7 +43,6 @@ function savedEducatorIdsFromStorage(): string[] {
 
 const QUICK_FILTERS = [
     { id: "quick_avail", label: "Available Now", icon: Clock, color: "text-emerald-700", active: "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 ring-emerald-100" },
-    { id: "quick_top", label: "Top-Rated (4.8+)", icon: Star, color: "text-[var(--accent-secondary)]", active: "bg-amber-50 hover:bg-amber-100 border-amber-200 ring-amber-100" },
     { id: "quick_local", label: "Local to Me", icon: MapPin, color: "text-[var(--accent-tertiary)]", active: "bg-sky-50 hover:bg-sky-100 border-sky-200 ring-sky-100" },
     { id: "quick_instant", label: "Ready to Request", icon: Lightning, color: "text-[var(--accent-primary)]", active: "bg-green-50 hover:bg-green-100 border-green-200 ring-green-100" },
 ] as const;
@@ -139,7 +138,6 @@ export default function BrowsePage() {
         ...selectedRegions.map((id) => ({ id: `region:${id}`, label: getCoverageRegionLabel(id), clear: () => setSelectedRegions((prev) => prev.filter((v) => v !== id)) })),
         ...selectedEngagements.map((id) => ({ id: `engagement:${id}`, label: TAXONOMY.engagementTypes.find((e) => e.id === id)?.label ?? id, clear: () => setSelectedEngagements((prev) => prev.filter((v) => v !== id)) })),
         ...(availableNow ? [{ id: "available", label: "Available now", clear: clearAvailableNow }] : []),
-        ...(activeQuickFilter === "quick_top" ? [{ id: "quick_top", label: "Top-rated", clear: () => setActiveQuickFilter(null) }] : []),
         ...(activeQuickFilter === "quick_local" ? [{ id: "quick_local", label: "Local coverage", clear: () => setActiveQuickFilter(null) }] : []),
         ...(activeQuickFilter === "quick_instant" ? [{ id: "quick_instant", label: "Ready to request", clear: () => setActiveQuickFilter(null) }] : []),
         ...(verifiedOnly ? [{ id: "verified", label: "Verified only", clear: () => setVerifiedOnly(false) }] : []),
@@ -147,9 +145,7 @@ export default function BrowsePage() {
     ];
 
     // Sort logic
-    if (sortOption === "rating") {
-        filteredEducators.sort((a, b) => b.overallRating - a.overallRating);
-    } else if (sortOption === "availability") {
+    if (sortOption === "availability") {
         filteredEducators.sort((a, b) => (b.availabilityStatus === 'open' ? 1 : 0) - (a.availabilityStatus === 'open' ? 1 : 0));
     } else if (sortOption === "rate") {
         filteredEducators.sort((a, b) => (a.startingRate ?? 0) - (b.startingRate ?? 0));
@@ -415,7 +411,7 @@ export default function BrowsePage() {
                                             : "bg-white border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:shadow-sm"
                                     )}
                                 >
-                                    <f.icon weight={f.id === 'quick_top' ? 'fill' : 'regular'} className={cn("w-4 h-4", activeQuickFilter === f.id ? f.color : "text-[var(--text-tertiary)]")} />
+                                    <f.icon weight={activeQuickFilter === f.id ? "fill" : "regular"} className={cn("w-4 h-4", activeQuickFilter === f.id ? f.color : "text-[var(--text-tertiary)]")} />
                                     <span className={activeQuickFilter === f.id ? "text-[var(--text-primary)]" : ""}>{f.label}</span>
                                 </button>
                             ))}
@@ -452,7 +448,6 @@ export default function BrowsePage() {
                                 onChange={(e) => setSortOption(e.target.value)}
                             >
                                 <option value="relevance">Sort by: Relevance</option>
-                                <option value="rating">Sort by: Rating</option>
                                 <option value="availability">Sort by: Availability</option>
                                 <option value="rate">Sort by: Rate</option>
                             </select>

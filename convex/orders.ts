@@ -67,41 +67,9 @@ export const createFromGig = mutation({
         poNumber: v.optional(v.string()),
         paymentMethod: paymentMethodValidator,
     },
-    handler: async (ctx, args) => {
-        const user = await requireDistrictViewer(ctx);
-        const gig = await ctx.db.get(args.gigId);
-        if (!gig || !gig.isActive) throw new Error("Gig not available");
-
-        const districts = await ctx.db.query("districts").collect();
-        const district = districts.find((d) => d.adminIds.includes(user._id));
-        if (!district) throw new Error("No district associated with this user");
-
-        const { totalCharged, platformFee, educatorPayout } = computePricing(gig.price);
-
-        const orderId = await ctx.db.insert("orders", {
-            gigId: args.gigId,
-            educatorId: gig.educatorId,
-            districtId: district._id,
-            buyerUserId: user._id,
-            status: "pending",
-            engagementType: gig.engagementType,
-            startDate: args.startDate,
-            endDate: args.endDate,
-            totalAmount: totalCharged,
-            platformFee,
-            educatorPayout,
-            poNumber: args.poNumber,
-            paymentMethod: args.paymentMethod,
-            createdAt: Date.now(),
-        });
-
-        try {
-            await ctx.scheduler.runAfter(0, internal.emails.sendBookingConfirmation, { orderId });
-        } catch (err) {
-            console.warn("[orders.createFromGig] email schedule skipped:", err);
-        }
-
-        return orderId;
+    returns: v.id("orders"),
+    handler: async () => {
+        throw new Error("K12Gig checkout is retired. Districts accept proposals and arrange payment off-platform.");
     },
 });
 
@@ -374,6 +342,8 @@ export const listCompletedAwaitingReview = query({
  * Internal-only: create an order from a verified Stripe webhook payload.
  * Guarded by a shared secret passed from the Next.js webhook route, so
  * this bypasses Clerk/Convex auth but still validates the caller.
+ * Next.js ConvexHttpClient cannot call internal.*, so this remains a public
+ * mutation with a shared-secret gate rather than an internalMutation.
  */
 export const createFromWebhook = mutation({
     args: {

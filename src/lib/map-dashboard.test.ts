@@ -4,41 +4,26 @@ import {
     formatEducatorKpis,
     formatPipelineStatus,
     formatOrderStatus,
+    formatAgreedRate,
 } from "./map-dashboard";
 
 describe("formatDistrictKpis", () => {
     it("returns empty-state fallbacks when no data", () => {
         const d = formatDistrictKpis(null);
         expect(d.activeOpenings).toBe("0");
-        expect(d.avgTimeToFill).toBe("—");
+        expect(d.engagementCount).toBe("0");
     });
 
     it("formats live data", () => {
         const d = formatDistrictKpis({
             activeOpenings: 7,
             placementsThisMonth: 2,
-            avgTimeToFillDays: 9,
-            totalSpendYtd: 45_600,
             needsCount: 5,
-            ordersCount: 3,
+            engagementCount: 3,
         });
         expect(d.activeOpenings).toBe("7");
         expect(d.placementsThisMonth).toBe("2");
-        expect(d.avgTimeToFill).toBe("9 days");
-        expect(d.totalSpendYtd).toBe("$45.6K");
-    });
-
-    it("emdashes avg time when no placed needs", () => {
-        const d = formatDistrictKpis({
-            activeOpenings: 0,
-            placementsThisMonth: 0,
-            avgTimeToFillDays: null,
-            totalSpendYtd: 0,
-            needsCount: 0,
-            ordersCount: 0,
-        });
-        expect(d.avgTimeToFill).toBe("—");
-        expect(d.totalSpendYtd).toBe("$0");
+        expect(d.engagementCount).toBe("3");
     });
 });
 
@@ -48,16 +33,16 @@ describe("formatEducatorKpis", () => {
         expect(d.greetingName).toBe("there");
     });
 
-    it("pluralises active gigs and completed tasks", () => {
+    it("pluralises active gigs and completed engagements", () => {
         const single = formatEducatorKpis({
-            pipelineValue: 500,
             activeCount: 1,
-            ytdPayout: 500,
             completedCount: 1,
+            pendingProposals: 1,
             firstName: "Miguel",
         });
         expect(single.activeCount).toBe("1 Active Gig");
-        expect(single.completedLabel).toBe("1 completed task");
+        expect(single.completedLabel).toBe("1 completed engagement");
+        expect(single.pendingLabel).toBe("1 pending proposal");
         expect(single.greetingName).toBe("Miguel");
     });
 });
@@ -71,12 +56,18 @@ describe("formatPipelineStatus", () => {
 });
 
 describe("formatOrderStatus", () => {
-    it("labels pending as awaiting signature", () => {
-        expect(formatOrderStatus("pending").text).toBe("Awaiting signature");
+    it("labels accepted engagements", () => {
+        expect(formatOrderStatus("active").text).toBe("Accepted");
     });
     it("labels completed as completed emerald", () => {
         const s = formatOrderStatus("completed");
         expect(s.color).toBe("emerald");
         expect(s.text).toBe("Completed");
+    });
+});
+
+describe("formatAgreedRate", () => {
+    it("formats hourly rates", () => {
+        expect(formatAgreedRate(95, "hourly")).toBe("$95/hr");
     });
 });

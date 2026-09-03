@@ -42,7 +42,7 @@ export const populate = mutation({
             createdAt: now,
         });
 
-        await ctx.db.insert("districts", {
+        const districtId = await ctx.db.insert("districts", {
             name: "Ann Arbor Public Schools (Demo)",
             state: "MI",
             region: "region_5",
@@ -78,6 +78,46 @@ export const populate = mutation({
             hourlyRate: 75,
             isActive: true,
             profileCompletePct: 100,
+        });
+
+        const needId = await ctx.db.insert("needs", {
+            districtId,
+            postedByUserId: districtUserId,
+            orgName: "Ann Arbor Public Schools (Demo)",
+            areaOfNeed: "instruction_curriculum",
+            subCategory: "literacy_ela",
+            gradeLevel: "k5",
+            engagementType: "consulting",
+            status: "placed",
+            description: "Demo accepted engagement for the launch walkthrough.",
+            createdAt: now,
+        });
+        const proposalId = await ctx.db.insert("proposals", {
+            needId,
+            educatorId: educator1Id,
+            educatorUserId: educator1UserId,
+            message: "I can support this literacy block with coaching cycles and a shared progress-monitoring plan.",
+            proposedRate: 75,
+            proposedRateUnit: "hourly",
+            status: "accepted",
+            createdAt: now,
+        });
+        await ctx.db.insert("engagements", {
+            needId,
+            proposalId,
+            educatorId: educator1Id,
+            educatorUserId: educator1UserId,
+            districtId,
+            buyerUserId: districtUserId,
+            status: "active",
+            title: "Instruction Curriculum",
+            orgName: "Ann Arbor Public Schools (Demo)",
+            areaOfNeed: "instruction_curriculum",
+            engagementType: "consulting",
+            agreedRate: 75,
+            agreedRateUnit: "hourly",
+            createdAt: now,
+            updatedAt: now,
         });
 
         await ctx.db.insert("gigs", {
@@ -174,7 +214,7 @@ export const populate = mutation({
 
         return {
             status: "populated" as const,
-            message: "Demo seed complete: 1 district, 3 educators, 2 gigs. Create Clerk users with the documented emails, then sign in.",
+            message: "Demo seed complete: 1 district, 3 consultants, 1 accepted engagement, 2 legacy gigs. Create Clerk users with the documented emails, then sign in.",
             accounts: DEMO_SEED_EMAILS,
         };
     },
@@ -203,6 +243,25 @@ export const clearDemo = mutation({
                 .withIndex("by_user_id", (q) => q.eq("userId", user._id))
                 .first();
             if (educator) {
+                const engagements = await ctx.db
+                    .query("engagements")
+                    .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
+                    .collect();
+                for (const engagement of engagements) {
+                    const contracts = await ctx.db
+                        .query("contracts")
+                        .withIndex("by_engagement", (q) => q.eq("engagementId", engagement._id))
+                        .collect();
+                    for (const contract of contracts) {
+                        const events = await ctx.db
+                            .query("contractEvents")
+                            .withIndex("by_contract", (q) => q.eq("contractId", contract._id))
+                            .collect();
+                        for (const event of events) await ctx.db.delete(event._id);
+                        await ctx.db.delete(contract._id);
+                    }
+                    await ctx.db.delete(engagement._id);
+                }
                 const gigs = await ctx.db
                     .query("gigs")
                     .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
@@ -213,6 +272,23 @@ export const clearDemo = mutation({
                 }
                 await ctx.db.delete(educator._id);
                 removedEducators++;
+            }
+            const postedNeeds = await ctx.db
+                .query("needs")
+                .withIndex("by_posted_by", (q) => q.eq("postedByUserId", user._id))
+                .collect();
+            for (const need of postedNeeds) {
+                const proposals = await ctx.db
+                    .query("proposals")
+                    .withIndex("by_need", (q) => q.eq("needId", need._id))
+                    .collect();
+                for (const proposal of proposals) await ctx.db.delete(proposal._id);
+                const leftover = await ctx.db
+                    .query("engagements")
+                    .withIndex("by_need", (q) => q.eq("needId", need._id))
+                    .collect();
+                for (const engagement of leftover) await ctx.db.delete(engagement._id);
+                await ctx.db.delete(need._id);
             }
             await ctx.db.delete(user._id);
         }

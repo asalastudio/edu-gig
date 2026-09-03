@@ -6,14 +6,15 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
+import { NotificationCenter } from "@/components/shared/notification-center";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { UserButton } from "@clerk/nextjs";
 import {
     Briefcase,
     Buildings,
     ClipboardText,
-    CurrencyDollar,
     EnvelopeSimple,
+    FileText,
     Gear,
     GraduationCap,
     List,
@@ -36,8 +37,8 @@ export function Sidebar() {
     const viewer = useQuery(api.users.viewer, {});
     const [mobileOpenPath, setMobileOpenPath] = useState<string | null>(null);
     const mobileOpen = mobileOpenPath === pathname;
-    const isAdminWorkspace = pathname.includes('/dashboard/admin');
-    const showAdminNav = isAdminWorkspace && viewer?.role === "superadmin";
+    const isAdminRoute = pathname.includes("/dashboard/admin");
+    const showAdminNav = isAdminRoute && viewer?.role === "superadmin";
     const isRoleLoading = viewer === undefined;
     // Derive workspace from the signed-in user's role, not the URL, so shared
     // pages like /browse always reflect the correct role (fixes educator seeing
@@ -49,7 +50,9 @@ export function Sidebar() {
     // Badge the Messages item with unread MESSAGES only — not every notification
     // type (new-need / proposal alerts), which would show a count with no thread.
     const unread = useQuery(api.messages.unreadCount, viewer ? {} : "skip");
+    const notificationCount = useQuery(api.notifications.unreadCount, viewer ? {} : "skip");
     const messagesBadge = typeof unread === "number" && unread > 0 ? unread : undefined;
+    const notificationBadge = typeof notificationCount === "number" && notificationCount > 0 ? notificationCount : undefined;
 
     const openMobileMenu = () => setMobileOpenPath(pathname);
     const closeMobileMenu = () => setMobileOpenPath(null);
@@ -91,19 +94,21 @@ export function Sidebar() {
             ...(isEducator
                 ? [
                     { href: "/dashboard/educator/my-gigs", label: "My Gigs", icon: ClipboardText },
-                    { href: "/dashboard/educator/earnings", label: "Earnings", icon: CurrencyDollar },
+                    { href: "/dashboard/educator/contract-hub", label: "Contract Hub", icon: FileText },
                 ]
-                : []),
+                : [
+                    { href: "/dashboard/district/contract-hub", label: "Contract Hub", icon: FileText },
+                ]),
             { href: "/dashboard/messages", label: "Messages", icon: EnvelopeSimple, count: messagesBadge },
             { href: settingsHref, label: "Settings", icon: Gear },
         ];
 
-    const workspaceLabel = isRoleLoading
-        ? "Workspace"
+    const accountLabel = isRoleLoading
+        ? "Account"
         : showAdminNav
           ? "Admin"
           : isEducator
-            ? "Educator"
+            ? "Consultant"
             : "District";
 
     const sidebarBody = (
@@ -115,16 +120,16 @@ export function Sidebar() {
                 </Link>
                 <span
                     className="inline-flex w-fit items-center rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70"
-                    title="Current workspace"
+                    title="Current account"
                 >
-                    {workspaceLabel}
+                    {accountLabel}
                 </span>
             </div>
 
             {/* Nav Group */}
             <nav className="flex flex-col gap-0.5">
                 <span className="px-3 mb-2 text-[10px] font-semibold text-white/50 uppercase tracking-widest">
-                    Workspace
+                    Account
                 </span>
                 {navItems.map(item => (
                     <SidebarItem key={item.label} item={item} basePath={basePath} settingsHref={settingsHref} onNavigate={closeMobileMenu} />
@@ -133,27 +138,30 @@ export function Sidebar() {
 
             {/* Bottom Profile Block */}
             {viewer && (
-                <div className="mt-auto border-t border-[#2B4338] pt-4 flex items-center gap-3 px-2">
-                    <div className="shrink-0 flex items-center justify-center p-0.5 bg-white/10 rounded-full border border-white/5 shadow-inner">
-                        <UserButton />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-white truncate leading-tight">
-                            {[viewer.firstName, viewer.lastName].filter(Boolean).join(" ").trim() || viewer.email}
-                        </p>
-                        <p className="text-[10px] text-white/50 font-bold uppercase tracking-wider mt-0.5 truncate">
-                            {viewer.role === "superadmin"
-                                ? "Super Admin"
-                                : viewer.role === "educator"
-                                  ? "Educator"
-                                  : viewer.role === "district_admin"
-                                    ? "District Admin"
-                                    : viewer.role === "district_hr"
-                                      ? "District HR"
-                                      : viewer.role === "superintendent"
-                                        ? "Superintendent"
-                                        : "User"}
-                        </p>
+                <div className="mt-auto border-t border-[#2B4338] pt-4 flex flex-col gap-3 px-2">
+                    <NotificationCenter unreadCount={notificationBadge} />
+                    <div className="flex items-center gap-3">
+                        <div className="shrink-0 flex items-center justify-center p-0.5 bg-white/10 rounded-full border border-white/5 shadow-inner">
+                            <UserButton />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-white truncate leading-tight">
+                                {[viewer.firstName, viewer.lastName].filter(Boolean).join(" ").trim() || viewer.email}
+                            </p>
+                            <p className="text-[10px] text-white/50 font-bold uppercase tracking-wider mt-0.5 truncate">
+                                {viewer.role === "superadmin"
+                                    ? "Super Admin"
+                                    : viewer.role === "educator"
+                                      ? "Consultant"
+                                      : viewer.role === "district_admin"
+                                        ? "District Admin"
+                                        : viewer.role === "district_hr"
+                                          ? "District HR"
+                                          : viewer.role === "superintendent"
+                                            ? "Superintendent"
+                                            : "User"}
+                            </p>
+                        </div>
                     </div>
                 </div>
             )}
@@ -174,7 +182,7 @@ export function Sidebar() {
                 </Link>
                 <div className="flex items-center gap-2">
                     <span className="inline-flex items-center rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70">
-                        {workspaceLabel}
+                        {accountLabel}
                     </span>
                     <button
                         type="button"

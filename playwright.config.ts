@@ -1,7 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const e2ePort = process.env.PLAYWRIGHT_PORT ?? "3010";
-const e2eOrigin = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${e2ePort}`;
+// Clerk development instances are origin-bound. Match the documented local origin so
+// the hosted sign-in UI loads during signed-out route coverage.
+const e2eOrigin = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${e2ePort}`;
 
 export default defineConfig({
     testDir: "./e2e",

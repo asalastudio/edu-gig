@@ -21,13 +21,13 @@ export default function HelpPage() {
                     <div className="education-rule mb-4" />
                     <h1 className="font-heading text-4xl font-bold leading-tight md:text-5xl">Support for every hiring step.</h1>
                     <p className="mt-5 text-base leading-7 text-[var(--text-secondary)] md:text-lg">
-                        Get help with district hiring workflows, educator profiles, invoices, credentials, and marketplace messages.
+                        Get help with district hiring workflows, consultant profiles, Contract Hub documents, credentials, and marketplace messages.
                     </p>
                 </section>
 
                 <section className="grid gap-6 md:grid-cols-2">
                     {[
-                        ["Districts", "Post a need, browse educators, request availability, message candidates, and keep booking records organized from the dashboard."],
+                        ["Districts", "Post a need, browse consultants, review proposals, accept work, message candidates, and keep contract files in Contract Hub."],
                         ["Educators", betaCopy.educatorHelp],
                         ["Billing", betaCopy.billingHelp],
                         ["Trust and compliance", "Privacy, terms, DPA requests, credential status, and current verification information are available from profile and legal surfaces."],
@@ -49,7 +49,7 @@ export default function HelpPage() {
                         .
                     </p>
                     <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <Link href="/login"><PrimaryButton>Open your workspace</PrimaryButton></Link>
+                        <Link href="/login"><PrimaryButton>Open your dashboard</PrimaryButton></Link>
                         <Link href="/privacy" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border-strong)] px-4 text-sm font-bold">
                             Privacy details
                         </Link>

@@ -4,7 +4,7 @@
 
 U.S. K-12 districts rely on generic staffing agencies that take 20-40% markups, obscure educator rates, and slow time-to-fill for critical roles (SpEd, math interventionists, long-term subs). Educators lose agency over rate, availability, and district fit.
 
-K12Gig is a two-sided marketplace: districts post needs and book verified educators directly; educators list service gigs and manage their own pipeline.
+K12Gig is a two-sided **connection marketplace**: districts post needs and review consultant proposals; consultants publish profiles, resumes, and rates. Accepted proposals become engagements. Payment and legally binding signatures happen off-platform; Contract Hub stores working documents.
 
 ## Readiness scorecard
 
@@ -26,9 +26,9 @@ K12Gig is a two-sided marketplace: districts post needs and book verified educat
 
 ### Roles
 
-- **Educator** — lists services, accepts orders, gets paid.
-- **District admin / HR / superintendent** — posts needs, books educators, pays invoices or card.
-- **Superadmin** — platform operations (out of scope for v1 UI; Convex-level only).
+- **Consultant (internal id: educator)** — publishes a profile, submits proposals, coordinates accepted work in My Gigs and Contract Hub.
+- **District admin / HR / superintendent** — posts needs, accepts proposals, messages consultants, coordinates documents.
+- **Superadmin** — platform operations.
 
 ### Must-have user flows
 
@@ -41,29 +41,27 @@ K12Gig is a two-sided marketplace: districts post needs and book verified educat
 3. **District browses educators** ([src/app/browse/page.tsx](src/app/browse/page.tsx))
    Gated behind `NEXT_PUBLIC_USE_CONVEX_BROWSE=true` + district role; uses `convex/educators.ts::listForBrowse`.
 
-4. **District books a gig** ([src/app/gigs/[gigId]/page.tsx](src/app/gigs/%5BgigId%5D/page.tsx))
-   - ACH / Net-30: `convex/orders.ts::createFromGig` → order in `pending` state.
-   - Credit card: `POST /api/stripe/checkout` → Stripe Checkout Session → webhook verifies → `convex/orders.ts::createFromWebhook` creates `accepted` order with `stripePaymentIntentId`.
+4. **District accepts a proposal** ([src/app/dashboard/district/needs/[needId]/page.tsx](src/app/dashboard/district/needs/%5BneedId%5D/page.tsx))
+   `convex/proposals.ts::accept` transactionally accepts, rejects siblings, places the need, and creates an `engagements` row.
 
-5. **Educator sees active pipeline** ([src/app/dashboard/educator/page.tsx](src/app/dashboard/educator/page.tsx))
-   `convex/dashboards.ts::educatorKpis` + `educatorPipeline` drive KPIs + list.
+5. **Both sides see the engagement** ([src/app/dashboard/educator/my-gigs/page.tsx](src/app/dashboard/educator/my-gigs/page.tsx), [src/app/dashboard/engagements/[engagementId]/page.tsx](src/app/dashboard/engagements/%5BengagementId%5D/page.tsx))
+   Dashboards derive active work from engagements, not orders.
 
-6. **District sees KPIs + talent pipeline** ([src/app/dashboard/district/page.tsx](src/app/dashboard/district/page.tsx))
-   `convex/dashboards.ts::districtKpis` + `districtPipeline`.
+6. **Contract Hub** ([src/app/dashboard/educator/contract-hub/page.tsx](src/app/dashboard/educator/contract-hub/page.tsx))
+   Upload/download working documents and track draft/sent/signed-externally/completed. No native e-sign and no checkout.
 
 7. **Messaging** ([src/app/dashboard/messages/page.tsx](src/app/dashboard/messages/page.tsx))
-   `convex/messages.ts::send|listMyConversations|listConversation|markConversationRead`; notifications via `convex/notifications.ts`.
+   Districts start conversations. Optional need/engagement context can be attached.
 
 ### Data model — canonical tables
 
-See [convex/schema.ts](convex/schema.ts). Ten tables: `users`, `educators`, `credentials`, `districts`, `gigs`, `needs`, `orders`, `reviews`, `messages`, `notifications`.
+See [convex/schema.ts](convex/schema.ts). Core tables: `users`, `educators`, `credentials`, `districts`, `needs`, `proposals`, `engagements`, `contracts`, `contractEvents`, `gigs` (legacy), `orders` (legacy), `reviews` (private/legacy), `messages`, `notifications`.
 
 ### Platform economics
 
-- Gig price: educator's listed take-home amount.
-- Platform fee: **18%** of gig price, stored in `orders.platformFee`.
-- District charge: gig price + platform fee, stored in `orders.totalAmount`.
-- Educator payout: gig price, stored in `orders.educatorPayout`.
+- Consultant rate: listed starting hourly/daily rate on the profile, plus the proposed rate on a proposal.
+- Payment: **off-platform**. K12Gig does not charge an 18% fee, process cards, send ACH, or issue 1099s at launch.
+- Historical `orders` / Stripe records remain readable for audit; creation routes are behind `NEXT_PUBLIC_ENABLE_LEGACY_CHECKOUT` (also requires card checkout).
 
 ### Non-functional
 
@@ -88,22 +86,23 @@ See [convex/schema.ts](convex/schema.ts). Ten tables: `users`, `educators`, `cre
 
 ## Definition of done (v1 = ≥80 readiness)
 
-- All seven must-have flows work end-to-end with real Clerk+Convex+Stripe credentials.
-- Typecheck, lint, Vitest, and Playwright pass in CI.
-- At least one unit test per `src/lib/map-*` utility.
-- At least one e2e spec per must-have flow (in demo mode; gated tests for live mode behind `E2E_LIVE=1`).
+- A district and consultant can complete post → propose → accept → My Gigs → Contract Hub without checkout, payout, public ratings, or synthetic resume behavior.
+- Typecheck, Convex-aware lint, Vitest, and Playwright pass.
+- At least one unit test per `src/lib/map-*` utility plus engagement/authorization helpers.
+- At least one e2e spec covering public launch copy, checkout retirement, mobile nav, and auth-gated engagement routes.
 - No hardcoded UI data in `/dashboard/*` routes (demo fallbacks confined to mapper functions).
-- Every Convex function enforces role guards (`requireDistrictViewer`, `requireEducatorViewer`, or webhook-secret check).
+- Public Convex functions that access user data enforce auth/role guards.
 
 ## File index
 
 Schemas and key Convex functions:
 - [convex/schema.ts](convex/schema.ts)
 - [convex/users.ts](convex/users.ts), [convex/educators.ts](convex/educators.ts), [convex/needs.ts](convex/needs.ts)
-- [convex/gigs.ts](convex/gigs.ts), [convex/orders.ts](convex/orders.ts), [convex/districts.ts](convex/districts.ts)
+- [convex/proposals.ts](convex/proposals.ts), [convex/engagements.ts](convex/engagements.ts), [convex/contracts.ts](convex/contracts.ts)
+- [convex/gigs.ts](convex/gigs.ts) (legacy), [convex/orders.ts](convex/orders.ts) (legacy), [convex/districts.ts](convex/districts.ts)
 - [convex/messages.ts](convex/messages.ts), [convex/notifications.ts](convex/notifications.ts), [convex/dashboards.ts](convex/dashboards.ts)
 
-Stripe glue:
+Legacy Stripe glue (creation disabled unless `NEXT_PUBLIC_ENABLE_LEGACY_CHECKOUT` and card checkout are both on):
 - [src/app/api/stripe/checkout/route.ts](src/app/api/stripe/checkout/route.ts)
 - [src/app/api/stripe/webhook/route.ts](src/app/api/stripe/webhook/route.ts)
 
@@ -112,5 +111,5 @@ Mappers:
 - [src/lib/map-convex-educator-profile.ts](src/lib/map-convex-educator-profile.ts)
 
 Tests:
-- [e2e/smoke.spec.ts](e2e/smoke.spec.ts), [e2e/post-need.spec.ts](e2e/post-need.spec.ts), [e2e/checkout.spec.ts](e2e/checkout.spec.ts), [e2e/dashboards.spec.ts](e2e/dashboards.spec.ts)
-- [src/lib/map-dashboard.test.ts](src/lib/map-dashboard.test.ts), [src/lib/utils.test.ts](src/lib/utils.test.ts), [src/lib/mock-educators.test.ts](src/lib/mock-educators.test.ts), [src/components/shared/button.test.tsx](src/components/shared/button.test.tsx)
+- [e2e/smoke.spec.ts](e2e/smoke.spec.ts), [e2e/post-need.spec.ts](e2e/post-need.spec.ts), [e2e/checkout.spec.ts](e2e/checkout.spec.ts), [e2e/dashboards.spec.ts](e2e/dashboards.spec.ts), [e2e/engagement-flow.spec.ts](e2e/engagement-flow.spec.ts), [e2e/launch-flow.spec.ts](e2e/launch-flow.spec.ts)
+- [src/lib/map-dashboard.test.ts](src/lib/map-dashboard.test.ts), [src/lib/create-engagement.test.ts](src/lib/create-engagement.test.ts), [src/lib/map-convex-educator-profile.test.ts](src/lib/map-convex-educator-profile.test.ts)

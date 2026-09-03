@@ -1,40 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# K12Gig
+
+Proposal-centered consultant marketplace for K-12 districts. Districts post needs, consultants submit proposals, accepted work becomes an engagement, and Contract Hub coordinates documents. Payment happens off-platform.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+cd edugig
+npm install
+npm run convex:dev
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App default: [http://localhost:3010](http://localhost:3010). Use `npx convex dev` for development; `npx convex deploy` is production only.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Product spine
+
+District posts need → consultant proposes (resume required) → district accepts → engagement on My Gigs → Contract Hub → off-platform signature and payment.
 
 ## Testing
 
-Unit and component tests use **Vitest** and **React Testing Library**. See **[TESTING.md](./TESTING.md)** for commands (`npm run test`, `npm run test:watch`, `npm run test:coverage`). CI runs tests and a production build on every push/PR.
+Unit tests: `npm run test`. Typecheck: `npm run typecheck`. Lint: `npm run lint`. E2E: `npm run test:e2e`. Env audit: `npm run check:env` / `npm run check:env:beta`. See [TESTING.md](./TESTING.md) and [docs/PRD.md](./docs/PRD.md).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Production configuration still needed
 
-## Learn More
+Do not treat local `.env.local` as production proof. Before launch, set these in Vercel and Convex production (values stay in those dashboards — do not paste secrets into git):
 
-To learn more about Next.js, take a look at the following resources:
+- Clerk production JWT issuer (`CLERK_JWT_ISSUER_DOMAIN`, expected `https://clerk.k12gig.com`)
+- Production Convex URL (not the unique-eagle-379 dev deployment)
+- Resend API key and verified `RESEND_FROM_EMAIL` for proposal/engagement alerts
+- `ALLOW_DEMO_SEED` unset/false on production Convex
+- `NEXT_PUBLIC_USE_CONVEX_BROWSE=true`
+- `NEXT_PUBLIC_ENABLE_LEGACY_CHECKOUT` unset/false
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Stripe, Checkr, Upstash, and Sentry remain optional for this off-platform payment launch. See [docs/PRODUCTION_ENV_AUDIT.md](./docs/PRODUCTION_ENV_AUDIT.md) and [docs/BETA_LAUNCH_RUNBOOK.md](./docs/BETA_LAUNCH_RUNBOOK.md).

@@ -97,11 +97,13 @@ function OnboardingWithClerk() {
 
     const viewer = useQuery(api.users.viewer);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
+    const generateResumeUploadUrl = useMutation(api.users.generateOnboardingResumeUploadUrl);
 
     const [step, setStep] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [acceptedLegal, setAcceptedLegal] = useState(false);
+    const [intentResolved, setIntentResolved] = useState(false);
 
     const [districtRole, setDistrictRole] = useState<DistrictOnboardingRole>("superintendent");
     const [organizationName, setOrganizationName] = useState("");
@@ -124,6 +126,10 @@ function OnboardingWithClerk() {
     const [gradeLevelBands, setGradeLevelBands] = useState<string[]>([]);
     const [areasOfNeed, setAreasOfNeed] = useState<string[]>([]);
     const [coverageRegions, setCoverageRegions] = useState<string[]>([]);
+    const [profileType, setProfileType] = useState<"individual" | "firm">("individual");
+    const [resumeStorageId, setResumeStorageId] = useState<string | null>(null);
+    const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+    const [resumeBusy, setResumeBusy] = useState(false);
 
     const hourlyRate = rateHourly && rateAmount ? Number(rateAmount) : undefined;
     const dailyRate = rateDaily && rateAmount ? Number(rateAmount) : undefined;
@@ -167,9 +173,11 @@ function OnboardingWithClerk() {
     useEffect(() => {
         if (urlIntent) {
             rememberAuthIntent(urlIntent);
+            setRecalledIntent(urlIntent);
         } else {
             setRecalledIntent(recallAuthIntent());
         }
+        setIntentResolved(true);
     }, [urlIntent]);
 
     useEffect(() => {
@@ -194,7 +202,7 @@ function OnboardingWithClerk() {
             if (targetStep === 1) {
                 if (organizationName.trim().length < 2) return "Enter the district, school, or organization name.";
                 if (districtState.trim().length < 2) return "Choose the state for this district account.";
-                if (!districtRegion) return "Choose the region this workspace should start with.";
+        if (!districtRegion) return "Choose the region this account should start with.";
             }
             return null;
         }
@@ -276,9 +284,11 @@ function OnboardingWithClerk() {
                 engagementTypes: intent === "educator" ? (engagementTypes.length ? engagementTypes : [...DEFAULT_ENGAGEMENT_TYPES]) : undefined,
                 coverageRegions: intent === "educator" ? coverageRegions : undefined,
                 availabilityStatus: intent === "educator" ? availabilityStatus : undefined,
+                profileType: intent === "educator" ? profileType : undefined,
+                resumeStorageId: intent === "educator" && resumeStorageId ? (resumeStorageId as never) : undefined,
+                resumeFileName: intent === "educator" ? resumeFileName ?? undefined : undefined,
                 termsVersion: TERMS_VERSION,
                 privacyVersion: PRIVACY_VERSION,
-                legalAcceptedAt: Date.now(),
             });
 
             // Onboarding is done — drop the remembered role so a later
@@ -316,6 +326,18 @@ function OnboardingWithClerk() {
         return null;
     }
 
+    if (!intentResolved) {
+        return (
+            <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
+                <SiteHeader />
+                <main className="flex-1 flex items-center justify-center">
+                    <p className="text-[var(--text-secondary)] font-medium">Loading setup...</p>
+                </main>
+                <SiteFooter />
+            </div>
+        );
+    }
+
     if (!intent) {
         return <RoleChoice welcome={welcome} />;
     }
@@ -332,12 +354,12 @@ function OnboardingWithClerk() {
                             <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tight">
                                 {isEducator
                                     ? `${welcome} Build a profile districts can trust.`
-                                    : `${welcome} Prepare a district-ready workspace.`}
+                                    : `${welcome} Prepare your district hiring flow.`}
                             </h1>
                             <p className="mt-3 max-w-2xl text-base md:text-lg font-medium text-[var(--text-secondary)]">
                                 {isEducator
                                     ? "Start with the details a superintendent, HR leader, or principal needs before they reach out."
-                                    : "Set the role, organization, and first move so K12Gig feels like a hiring workspace from the first visit."}
+                                    : "Set your role, organization, and first action so K12Gig starts in the hiring flow from the first visit."}
                             </p>
                         </div>
 
@@ -393,6 +415,8 @@ function OnboardingWithClerk() {
                                     onAreasOfNeedChange={setAreasOfNeed}
                                     coverageRegions={coverageRegions}
                                     onCoverageRegionsChange={setCoverageRegions}
+                                    profileType={profileType}
+                                    onProfileTypeChange={setProfileType}
                                     completion={educatorCompletion}
                                 />
                             )}
@@ -400,6 +424,49 @@ function OnboardingWithClerk() {
                             {error && (
                                 <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                                     {error}
+                                </div>
+                            )}
+
+                            {step === finalStep && intent === "educator" && (
+                                <div className="mt-6 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
+                                    <p className="text-sm font-bold text-[var(--text-primary)]">Resume / CV</p>
+                                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                                        Districts require a resume on proposals. You can upload one now or later in settings.
+                                    </p>
+                                    {resumeFileName ? (
+                                        <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">{resumeFileName}</p>
+                                    ) : null}
+                                    <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-[var(--border-strong)] px-4 py-2 text-sm font-bold">
+                                        {resumeBusy ? "Uploading…" : resumeFileName ? "Replace file" : "Upload resume"}
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept=".pdf,.doc,.docx"
+                                            disabled={resumeBusy}
+                                            onChange={async (event) => {
+                                                const file = event.target.files?.[0];
+                                                event.target.value = "";
+                                                if (!file) return;
+                                                setResumeBusy(true);
+                                                setError(null);
+                                                try {
+                                                    const uploadUrl = await generateResumeUploadUrl({});
+                                                    const result = await fetch(uploadUrl, {
+                                                        method: "POST",
+                                                        headers: { "Content-Type": file.type || "application/octet-stream" },
+                                                        body: file,
+                                                    });
+                                                    const json = (await result.json()) as { storageId: string };
+                                                    setResumeStorageId(json.storageId);
+                                                    setResumeFileName(file.name);
+                                                } catch (err) {
+                                                    setError(err instanceof Error ? err.message : "Could not upload resume.");
+                                                } finally {
+                                                    setResumeBusy(false);
+                                                }
+                                            }}
+                                        />
+                                    </label>
                                 </div>
                             )}
 
@@ -450,12 +517,12 @@ function RoleChoice({ welcome }: { welcome: string }) {
             <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-14">
                 <div className="text-center max-w-2xl mx-auto">
                     <div className="education-rule mx-auto mb-5" />
-                    <p className="eyebrow mb-3">Choose your workspace</p>
+                    <p className="eyebrow mb-3">Choose your account path</p>
                     <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-3">
                         {welcome} Where should we start?
                     </h1>
                     <p className="text-lg font-medium text-[var(--text-secondary)]">
-                        K12Gig separates district hiring tools from educator profile tools so each workspace starts with the right defaults.
+                        K12Gig separates district hiring tools from educator profile tools so each account path starts with the right defaults.
                     </p>
                 </div>
                 <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -469,7 +536,7 @@ function RoleChoice({ welcome }: { welcome: string }) {
                             For superintendents, HR teams, principals, and school leaders posting needs or comparing educators.
                         </p>
                         <span className="mt-6 inline-flex text-sm font-bold text-[var(--accent-primary)] group-hover:underline">
-                            Set up district workspace
+                            Set up district account
                         </span>
                     </Link>
                     <Link
@@ -669,6 +736,8 @@ function EducatorStep(props: {
     onAreasOfNeedChange: (value: string[]) => void;
     coverageRegions: string[];
     onCoverageRegionsChange: (value: string[]) => void;
+    profileType: "individual" | "firm";
+    onProfileTypeChange: (value: "individual" | "firm") => void;
     completion: number;
 }) {
     if (props.step === 0) {
@@ -707,6 +776,21 @@ function EducatorStep(props: {
                         <span className="text-xs font-semibold text-[var(--text-tertiary)]">
                             Shown as your public profile name — e.g. SparkSum Learning.
                         </span>
+                    </Field>
+                    <Field label="Profile type" className="md:col-span-2">
+                        <div className="flex flex-wrap gap-3">
+                            {(["individual", "firm"] as const).map((type) => (
+                                <label key={type} className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-white px-4 py-2 text-sm font-semibold">
+                                    <input
+                                        type="radio"
+                                        name="profileType"
+                                        checked={props.profileType === type}
+                                        onChange={() => props.onProfileTypeChange(type)}
+                                    />
+                                    {type === "individual" ? "Individual consultant" : "Consulting firm"}
+                                </label>
+                            ))}
+                        </div>
                     </Field>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px] gap-4">

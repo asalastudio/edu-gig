@@ -12,23 +12,23 @@ type ExpectedRole = "educator" | "district";
 
 const BLOCKED_COPY: Record<ExpectedRole, { title: string; body: string; href: string; cta: string }> = {
     educator: {
-        title: "This area is for educator accounts",
-        body: "Your account is set up as a district hiring team. Educator tools — gigs, credentials, and earnings — live in the educator workspace.",
+        title: "This area is for consultant accounts",
+        body: "Your account is set up as a district hiring team. Consultant tools — proposals, accepted gigs, and Contract Hub — live in your consultant account.",
         href: "/dashboard/district",
         cta: "Go to district dashboard",
     },
     district: {
         title: "This area is for district accounts",
-        body: "Your account is set up as an educator. District tools — browsing educators, posting needs, and bookings — live in the district workspace.",
+        body: "Your account is set up as a consultant. District tools — browsing consultants, posting needs, and reviewing proposals — live in the district account.",
         href: "/dashboard/educator",
-        cta: "Go to educator dashboard",
+        cta: "Go to consultant dashboard",
     },
 };
 
 /**
  * Hard separation between educator and district dashboard surfaces.
  * Signed-out and demo-mode visitors pass through (middleware + per-page
- * guards handle those); superadmin can view both workspaces.
+ * guards handle those); superadmin can view both account sections.
  */
 export function RoleGuard({ expected, children }: { expected: ExpectedRole; children: React.ReactNode }) {
     const viewer = useQuery(api.users.viewer, hasClerk ? {} : "skip");

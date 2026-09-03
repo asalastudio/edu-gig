@@ -50,7 +50,7 @@ describe("mapConvexEducatorToProfileView", () => {
         expect(view.startingRate).toBe(95);
         expect(view.rateUnit).toBe("hour");
         expect(view.rateLabel).toBe("$95/hr");
-        expect(view.badges).toContain("Premier educator");
+        expect(view.badges).toContain("Profile in progress");
     });
 
     it("falls back cleanly for incomplete pending educators", () => {
@@ -178,7 +178,7 @@ describe("mapConvexEducatorToProfileView", () => {
         const view = mapConvexEducatorToProfileView(educator, user, rows);
 
         expect(view.badges).not.toContain("Credentials reviewed");
-        expect(view.badges).toContain("Premier educator");
+        expect(view.badges).toContain("Profile in progress");
         expect(view.certCount).toBe(1);
     });
 
@@ -215,5 +215,24 @@ describe("mapConvexEducatorToProfileView", () => {
         const bare = mapConvexEducatorToProfileView(educator, user);
         expect(bare.presenterBio).toBeUndefined();
         expect(bare.teamMembers).toBeUndefined();
+        expect(bare.avgRating).toBe(0);
+        expect(bare.reviewCount).toBe(0);
+    });
+
+    it("shows a background-check badge only when a check id and verified status both exist", () => {
+        const verified = {
+            ...educator,
+            verificationStatus: "verified" as const,
+            backgroundCheckId: "chk_123",
+        };
+        expect(mapConvexEducatorToProfileView(verified, user).badges).toContain("Background check complete");
+
+        const pendingWithId = {
+            ...educator,
+            verificationStatus: "pending" as const,
+            backgroundCheckId: "chk_123",
+        };
+        expect(mapConvexEducatorToProfileView(pendingWithId, user).badges).not.toContain("Background check complete");
+        expect(mapConvexEducatorToProfileView(educator, user).badges).not.toContain("Background check complete");
     });
 });

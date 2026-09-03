@@ -9,7 +9,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { PrimaryButton } from "@/components/shared/button";
 import { VerificationBadge } from "@/components/shared/verification-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, Star, ShieldCheck, Certificate, CalendarCheck, CurrencyDollar, ArrowLeft } from "@phosphor-icons/react";
+import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, ShieldCheck, Certificate, CurrencyDollar, ArrowLeft } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -62,12 +62,12 @@ export default function EducatorProfilePage() {
         api.gigs.listActiveByEducatorForDistrict,
         useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
     );
-    const reviews = useQuery(
-        api.reviews.listForEducator,
-        useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
-    );
     const credentialRows = useQuery(
         api.credentials.listForEducatorProfile,
+        useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
+    );
+    const resumeFile = useQuery(
+        api.educators.getResumeUrl,
         useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
     );
 
@@ -202,8 +202,8 @@ export default function EducatorProfilePage() {
         }
     };
 
-    const handleRequestEducator = (slot?: string) => {
-        const next = `/post?educator=${encodeURIComponent(educatorId)}&name=${encodeURIComponent(profile?.name ?? "Educator")}${slot ? `&slot=${encodeURIComponent(slot)}` : ""}`;
+    const handleRequestEducator = () => {
+        const next = `/post?educator=${encodeURIComponent(educatorId)}&name=${encodeURIComponent(profile?.name ?? "Educator")}`;
         if (!viewer) {
             router.push(`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent(next)}`);
             return;
@@ -248,21 +248,6 @@ export default function EducatorProfilePage() {
         ? profile.rateLabel
         : "Rate available by request";
     const savedLabel = saved ? "Saved" : "Save to List";
-    const reviewRows = reviews ?? [];
-    const reviewLoading = useConvexProfile && reviews === undefined;
-    const reviewCount = reviewRows.length;
-    const avgRating =
-        reviewCount > 0 ? reviewRows.reduce((sum, r) => sum + r.overallRating, 0) / reviewCount : 0;
-    const formatReviewDate = (ts: number) =>
-        new Date(ts).toLocaleDateString("en-US", { year: "numeric", month: "long" });
-    const availableSlots = ["M", "T", "W", "Th", "F"].flatMap((day) => {
-        const slots = profile.availableDays[day as keyof typeof profile.availableDays];
-        return [
-            ...(slots.am ? [`${day} morning`] : []),
-            ...(slots.pm ? [`${day} afternoon`] : []),
-        ];
-    });
-
     const profileMain = (
             <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
                 {isOwnProfile && (
@@ -348,7 +333,7 @@ export default function EducatorProfilePage() {
                                         <span className="font-heading text-2xl font-bold">{pricingLabel}</span>
                                     </div>
                                     <p className="text-sm font-medium text-[var(--text-secondary)] mt-1">
-                                        Starting rate. Final scope, platform fees, taxes, and purchase-order details are confirmed before booking.
+                                        Starting rate. Final scope and payment are confirmed directly with the consultant.
                                     </p>
                                 </div>
                                 <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-tertiary)]">
@@ -363,12 +348,12 @@ export default function EducatorProfilePage() {
                                     </Link>
                                 </div>
                             ) : (
-                                <div className="hidden md:flex flex-row gap-3 w-full sm:w-auto mt-2">
-                                    <button onClick={() => handleRequestEducator()} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-lg hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
-                                        <CalendarCheck weight="fill" className="w-5 h-5" /> Request Availability
-                                    </button>
+                        <div className="hidden md:flex flex-row gap-3 w-full sm:w-auto mt-2">
+                            <button onClick={() => handleRequestEducator()} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-lg hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
+                                    <Briefcase weight="fill" className="w-5 h-5" /> Post a need
+                            </button>
                                     <button onClick={handleMessageEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
-                                        <ChatCircle weight="fill" className="w-5 h-5" /> Message Educator
+                                        <ChatCircle weight="fill" className="w-5 h-5" /> Message Consultant
                                     </button>
                                     <button onClick={handleSaveEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
                                         <BookmarkSimple weight={saved ? "fill" : "bold"} className="w-5 h-5" /> {savedLabel}
@@ -403,10 +388,9 @@ export default function EducatorProfilePage() {
                         <div className="px-6 md:px-12 border-b border-[var(--border-subtle)] overflow-x-auto no-scrollbar bg-white">
                             <TabsList className="h-16 bg-transparent p-0 flex gap-8" variant="line">
                                 <TabsTrigger value="about" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">About</TabsTrigger>
-                                <TabsTrigger value="services" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Services</TabsTrigger>
+                                <TabsTrigger value="services" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Areas of Support</TabsTrigger>
                                 <TabsTrigger value="credentials" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Credentials</TabsTrigger>
-                                <TabsTrigger value="experience" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Experience</TabsTrigger>
-                                <TabsTrigger value="reviews" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Reviews</TabsTrigger>
+                                <TabsTrigger value="experience" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Resume / CV</TabsTrigger>
                                 <TabsTrigger value="availability" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Availability</TabsTrigger>
                             </TabsList>
                         </div>
@@ -449,20 +433,20 @@ export default function EducatorProfilePage() {
                             </TabsContent>
 
                             <TabsContent value="services" className="mt-0 outline-none animate-in fade-in duration-300">
-                                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Services &amp; booking</h2>
+                                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Areas of Support</h2>
                                 <p className="text-sm text-[var(--text-secondary)] mb-8">
-                                    Book a listed service directly, or send a custom request if nothing here fits.
+                                    Post a need and review available support options to start hiring.
                                 </p>
                                 {educatorGigs === undefined ? (
                                     <p className="text-[var(--text-secondary)]">Loading services…</p>
                                 ) : educatorGigs.length === 0 ? (
                                     <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-8 text-center">
-                                        <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-2">No bookable services yet</h3>
+                                        <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-2">No support details yet</h3>
                                         <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
-                                            This educator hasn&apos;t published a fixed service listing. You can still send a custom availability request.
+                                            This educator hasn&apos;t published fixed service details yet. You can still post a need to request support.
                                         </p>
                                         <PrimaryButton onClick={() => handleRequestEducator()}>
-                                            Request availability
+                                            Post a need
                                         </PrimaryButton>
                                     </div>
                                 ) : (
@@ -479,13 +463,21 @@ export default function EducatorProfilePage() {
                                                         {gig.estimatedDuration ? ` · ${gig.estimatedDuration}` : ""}
                                                     </p>
                                                 </div>
-                                                <Link href={`/gigs/${gig.id}`} className="mt-auto">
-                                                    <PrimaryButton className="w-full">Book this service</PrimaryButton>
-                                                </Link>
+                                                <PrimaryButton onClick={() => handleRequestEducator()} className="mt-auto w-full">
+                                                    Post a need
+                                                </PrimaryButton>
                                             </div>
                                         ))}
                                     </div>
                                 )}
+                                <div className="mt-8">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-3">
+                                        Need a specific gig?
+                                    </p>
+                                    <PrimaryButton onClick={() => handleRequestEducator()} className="w-full md:w-auto">
+                                        Post a need
+                                    </PrimaryButton>
+                                </div>
                             </TabsContent>
 
                             <TabsContent value="credentials" className="mt-0 outline-none animate-in fade-in duration-300 flex flex-col gap-8">
@@ -583,71 +575,31 @@ export default function EducatorProfilePage() {
                             </TabsContent>
 
                             <TabsContent value="experience" className="mt-0 outline-none animate-in fade-in duration-300">
-                                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-8">Work Experience</h2>
-                                <div className="border-l-4 border-[var(--border-strong)] ml-4 pl-8 py-2 flex flex-col gap-10">
-                                    {profile.experience.map((exp, i) => (
-                                        <div key={i} className="relative">
-                                            <div className="absolute -left-[46px] top-1 w-6 h-6 rounded-full bg-[var(--bg-subtle)] border-4 border-white shadow-sm flex items-center justify-center">
-                                                <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
-                                            </div>
-                                            <h3 className="text-xl font-bold text-[var(--text-primary)]">{exp.role}</h3>
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <Briefcase weight="fill" className="w-5 h-5 text-[var(--text-tertiary)]" />
-                                                <span className="text-[var(--text-secondary)] font-bold text-base">{exp.district}</span>
-                                                <span className="text-[var(--text-tertiary)] mx-1">&bull;</span>
-                                                <span className="text-[var(--text-secondary)] font-medium text-base">{exp.years}</span>
-                                            </div>
+                                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Resume / CV</h2>
+                                <p className="text-sm text-[var(--text-secondary)] mb-6">
+                                    Download the consultant&apos;s uploaded resume. Experience details live in the document itself.
+                                </p>
+                                {resumeFile ? (
+                                    <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-subtle)] p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-[var(--text-primary)] truncate">{resumeFile.fileName}</p>
+                                            <p className="text-sm text-[var(--text-secondary)] mt-1">PDF or Word document provided by the consultant.</p>
                                         </div>
-                                    ))}
-                                </div>
-                            </TabsContent>
-
-                            <TabsContent value="reviews" className="mt-0 outline-none animate-in fade-in duration-300">
-                                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Ratings & Reviews</h2>
-                                {reviewLoading ? (
-                                    <p className="text-[var(--text-secondary)]">Loading reviews…</p>
-                                ) : reviewCount > 0 ? (
-                                    <div className="flex flex-col gap-10">
-                                        <div className="flex flex-col md:flex-row gap-8 items-start md:items-center bg-[var(--bg-subtle)] p-8 rounded-lg border border-[var(--border-subtle)]">
-                                            <div className="flex flex-col gap-1 items-center justify-center p-8 bg-white rounded-lg border border-[var(--border-default)] min-w-[200px] shadow-[var(--shadow-subtle)]">
-                                                <span className="text-5xl font-heading font-bold text-[var(--text-primary)]">{avgRating.toFixed(1)}</span>
-                                                <div className="flex text-[var(--accent-secondary)] mt-2">
-                                                    {[1,2,3,4,5].map(s => <Star weight={s <= Math.round(avgRating) ? "fill" : "regular"} key={s} className="w-6 h-6 fill-current" />)}
-                                                </div>
-                                                <span className="text-base font-bold text-[var(--text-secondary)] mt-2">{reviewCount} Review{reviewCount === 1 ? "" : "s"}</span>
-                                            </div>
-                                            <div className="flex-1 text-sm text-[var(--text-secondary)] leading-relaxed">
-                                                Verified district reviews from completed engagements with this educator.
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-4">
-                                            {reviewRows.map((review) => (
-                                                <article key={review.id} className="rounded-lg border border-[var(--border-default)] bg-white p-6 shadow-[var(--shadow-subtle)]">
-                                                    <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-                                                        <div className="flex flex-col">
-                                                            <span className="font-bold text-[var(--text-primary)]">{review.reviewerName}</span>
-                                                            <span className="text-xs font-medium uppercase tracking-widest text-[var(--text-tertiary)]">{formatReviewDate(review.createdAt)}</span>
-                                                        </div>
-                                                        <div className="flex text-[var(--accent-secondary)]" aria-label={`${review.overallRating} out of 5`}>
-                                                            {[1,2,3,4,5].map(s => <Star weight={s <= Math.round(review.overallRating) ? "fill" : "regular"} key={s} className="w-4 h-4 fill-current" />)}
-                                                        </div>
-                                                    </div>
-                                                    {review.comment ? (
-                                                        <p className="text-[var(--text-secondary)] leading-relaxed">{review.comment}</p>
-                                                    ) : (
-                                                        <p className="text-sm italic text-[var(--text-tertiary)]">No written feedback was left with this rating.</p>
-                                                    )}
-                                                </article>
-                                            ))}
-                                        </div>
+                                        <a
+                                            href={resumeFile.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center justify-center rounded-lg bg-[var(--accent-primary)] px-5 py-2.5 text-sm font-bold text-white hover:bg-[var(--accent-primary-h)]"
+                                        >
+                                            Download resume
+                                        </a>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center p-12 bg-[var(--bg-subtle)] rounded-lg border border-[var(--border-subtle)] text-center">
-                                        <div className="w-16 h-16 rounded-full bg-white border border-[var(--border-subtle)] flex items-center justify-center mb-4">
-                                            <Star weight="regular" className="w-8 h-8 text-[var(--text-tertiary)]" />
-                                        </div>
-                                        <h3 className="text-lg font-heading font-bold text-[var(--text-primary)] mb-2">No reviews yet</h3>
-                                        <p className="text-[var(--text-secondary)] max-w-md">Districts who complete an engagement with this educator can leave a review. Be the first to hire and help build their reputation on K12Gig.</p>
+                                    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-8 text-center">
+                                        <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-2">No resume uploaded yet</h3>
+                                        <p className="text-sm text-[var(--text-secondary)] max-w-md mx-auto">
+                                            This consultant has not attached a Resume/CV. Message them or request it as part of a proposal.
+                                        </p>
                                     </div>
                                 )}
                             </TabsContent>
@@ -655,9 +607,9 @@ export default function EducatorProfilePage() {
                             <TabsContent value="availability" className="mt-0 outline-none animate-in fade-in duration-300">
                                 <div className="flex justify-between items-start mb-6 flex-wrap gap-3">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Typical Weekly Availability</h2>
+                                        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Availability</h2>
                                         <p className="text-sm text-[var(--text-secondary)] font-medium mt-1">
-                                            Displayed in Central Time. Pick a window to start a request; exact dates are confirmed before checkout.
+                                            Availability is a status indicator only. Dates and scope are confirmed after you post a need.
                                         </p>
                                     </div>
                                     <span className={cn("inline-flex items-center gap-2 px-4 py-2 border rounded-lg font-bold text-sm", availabilityClass)}>
@@ -665,58 +617,14 @@ export default function EducatorProfilePage() {
                                         {availabilityLabel}
                                     </span>
                                 </div>
-                                <div className="overflow-x-auto bg-white border border-[var(--border-subtle)] rounded-lg shadow-sm">
-                                    <div className="grid grid-cols-6 gap-0 min-w-[600px] divide-x divide-y divide-[var(--border-subtle)]">
-                                        <div className="p-4 bg-[var(--bg-subtle)]"></div>
-                                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => (
-                                            <div key={d} className="p-4 bg-[var(--bg-subtle)] text-center text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider">{d}</div>
-                                        ))}
-                                        
-                                        <div className="p-6 bg-[var(--bg-subtle)] text-center text-sm font-bold text-[var(--text-secondary)] flex items-center justify-center">Morning<br/>(AM)</div>
-                                        {['M','T','W','Th','F'].map((d) => (
-                                            <button key={`am-${d}`} type="button" onClick={() => profile.availableDays[d as keyof typeof profile.availableDays].am && handleRequestEducator(`${d} morning`)} className="p-6 flex items-center justify-center transition-colors disabled:cursor-default hover:bg-[var(--bg-hover)]">
-                                                {profile.availableDays[d as keyof typeof profile.availableDays].am ? (
-                                                    <div className="flex flex-col items-center gap-1 text-[var(--accent-primary)]">
-                                                        <CheckCircle weight="fill" className="w-8 h-8" />
-                                                        <span className="text-xs font-bold uppercase">Request</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center gap-1 text-[var(--text-tertiary)] opacity-50">
-                                                        <div className="w-8 h-1 rounded-full bg-current mb-1 mt-3" />
-                                                        <span className="text-xs font-bold uppercase">Busy</span>
-                                                    </div>
-                                                )}
-                                            </button>
-                                        ))}
-
-                                        <div className="p-6 bg-[var(--bg-subtle)] text-center text-sm font-bold text-[var(--text-secondary)] flex items-center justify-center">Afternoon<br/>(PM)</div>
-                                        {['M','T','W','Th','F'].map((d) => (
-                                            <button key={`pm-${d}`} type="button" onClick={() => profile.availableDays[d as keyof typeof profile.availableDays].pm && handleRequestEducator(`${d} afternoon`)} className="p-6 flex items-center justify-center transition-colors disabled:cursor-default hover:bg-[var(--bg-hover)]">
-                                                {profile.availableDays[d as keyof typeof profile.availableDays].pm ? (
-                                                    <div className="flex flex-col items-center gap-1 text-[var(--accent-primary)]">
-                                                        <CheckCircle weight="fill" className="w-8 h-8" />
-                                                        <span className="text-xs font-bold uppercase">Request</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center gap-1 text-[var(--text-tertiary)] opacity-50">
-                                                        <div className="w-8 h-1 rounded-full bg-current mb-1 mt-3" />
-                                                        <span className="text-xs font-bold uppercase">Busy</span>
-                                                    </div>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
-                                    <p className="text-sm font-medium text-[var(--text-secondary)]">
-                                        {availableSlots.length > 0
-                                            ? `${availableSlots.length} request window${availableSlots.length === 1 ? "" : "s"} shown.`
-                                            : "No request windows are currently shown."}
+                                <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
+                                    <p className="text-sm text-[var(--text-secondary)]">
+                                        Educators update this status manually. Use post-based hiring to confirm exact dates and expectations.
                                     </p>
-                                    <PrimaryButton onClick={() => handleRequestEducator()} className="w-full sm:w-auto">
-                                        Request these times
-                                    </PrimaryButton>
                                 </div>
+                                <PrimaryButton onClick={() => handleRequestEducator()} className="w-full mt-4 sm:w-auto">
+                                    Post a need
+                                </PrimaryButton>
                             </TabsContent>
                         </div>
 
@@ -753,7 +661,7 @@ export default function EducatorProfilePage() {
                         <ChatCircle weight="bold" className="w-5 h-5" />
                     </button>
                     <PrimaryButton onClick={() => handleRequestEducator()} className="px-4 py-3 text-sm">
-                        Request
+                        Post a need
                     </PrimaryButton>
                 </div>
             </div>

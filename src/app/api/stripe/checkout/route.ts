@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { isCardCheckoutEnabled } from "@/lib/launch-flags";
+import { isCardCheckoutEnabled, isLegacyCheckoutEnabled } from "@/lib/launch-flags";
 import { stripeCheckoutLimiter } from "@/lib/rate-limit";
 import { PLATFORM_FEE_PCT, computePricing } from "@/convex/pricing";
 
@@ -12,10 +12,18 @@ const hasStripe = !!process.env.STRIPE_SECRET_KEY;
 const hasClerk = !!process.env.CLERK_SECRET_KEY && !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 const hasConvex = !!process.env.NEXT_PUBLIC_CONVEX_URL;
 const cardCheckoutEnabled = isCardCheckoutEnabled();
+const legacyCheckoutEnabled = isLegacyCheckoutEnabled();
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export async function POST(req: Request) {
+    if (!legacyCheckoutEnabled) {
+        return NextResponse.json(
+            { error: "K12Gig checkout is retired. Accept a proposal and arrange payment off-platform." },
+            { status: 503 }
+        );
+    }
+
     if (!cardCheckoutEnabled) {
         return NextResponse.json(
             { error: "Card checkout is disabled. Use invoice / PO booking." },

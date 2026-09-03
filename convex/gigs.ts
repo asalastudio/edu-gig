@@ -30,7 +30,7 @@ const pricingTypeValidator = v.union(
     v.literal("fixed")
 );
 
-/** Educator creates a new service listing. */
+/** Educator creates a new service listing. Retired: districts post needs instead. */
 export const create = mutation({
     args: {
         title: v.string(),
@@ -45,55 +45,82 @@ export const create = mutation({
         price: v.number(),
         estimatedDuration: v.optional(v.string()),
     },
-    handler: async (ctx, args) => {
-        const user = await requireEducatorViewer(ctx);
-        const educator = await getEducatorForUser(ctx, user._id);
-        if (!educator) throw new Error("No educator profile");
-
-        return await ctx.db.insert("gigs", {
-            educatorId: educator._id,
-            title: args.title,
-            description: args.description,
-            areaOfNeed: args.areaOfNeed,
-            subCategory: args.subCategory,
-            engagementType: args.engagementType,
-            gradeLevels: args.gradeLevels,
-            coverageRegions: args.coverageRegions,
-            deliverables: args.deliverables,
-            pricingType: args.pricingType,
-            price: args.price,
-            estimatedDuration: args.estimatedDuration,
-            isActive: true,
-            createdAt: Date.now(),
-        });
+    returns: v.id("gigs"),
+    handler: async () => {
+        throw new Error("Consultant-created gig listings are retired. Districts post needs and consultants submit proposals.");
     },
 });
 
 /** Educator: their own listings. */
 export const listMine = query({
     args: {},
+    returns: v.array(v.object({
+        _id: v.id("gigs"),
+        title: v.string(),
+        price: v.number(),
+        pricingType: pricingTypeValidator,
+        isActive: v.boolean(),
+    })),
     handler: async (ctx) => {
         const user = await requireEducatorViewer(ctx);
         const educator = await getEducatorForUser(ctx, user._id);
         if (!educator) return [];
-        return await ctx.db
+        const rows = await ctx.db
             .query("gigs")
             .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
             .order("desc")
-            .collect();
+            .take(100);
+        return rows.map((row) => ({
+            _id: row._id,
+            title: row.title,
+            price: row.price,
+            pricingType: row.pricingType,
+            isActive: row.isActive,
+        }));
     },
 });
 
-/** Public read: fetch a gig by id. Access control enforced at the Next.js API layer. */
+/** Authenticated read: district viewers or the owning consultant. */
 export const getById = query({
     args: { gigId: v.id("gigs") },
+    returns: v.union(
+        v.object({
+            gig: v.object({
+                _id: v.id("gigs"),
+                title: v.string(),
+                price: v.number(),
+                pricingType: pricingTypeValidator,
+                educatorId: v.id("educators"),
+            }),
+            educatorName: v.string(),
+        }),
+        v.null()
+    ),
     handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
+        const viewer = await getUserByClerkId(ctx, identity.subject);
+        if (!viewer) return null;
+
         const gig = await ctx.db.get(args.gigId);
         if (!gig || !gig.isActive) return null;
         const educator = await ctx.db.get(gig.educatorId);
         if (!educator) return null;
         const user = await ctx.db.get(educator.userId);
-        return { gig, educator, user };
+        if (!user) return null;
+        const isOwner = educator.userId === viewer._id;
+        const isDistrict = ["district_admin", "district_hr", "superintendent", "superadmin"].includes(viewer.role);
+        if (!isOwner && !isDistrict) return null;
+        return {
+            gig: {
+                _id: gig._id,
+                title: gig.title,
+                price: gig.price,
+                pricingType: gig.pricingType,
+                educatorId: gig.educatorId,
+            },
+            educatorName: `${user.firstName} ${user.lastName}`.trim() || user.email,
+        };
     },
 });
 

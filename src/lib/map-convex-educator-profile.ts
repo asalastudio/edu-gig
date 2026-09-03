@@ -85,12 +85,14 @@ export function mapConvexEducatorToProfileView(
         areas: areaLabels.length ? areaLabels : ["K-12 support"],
         badges: [
             ...(hasReviewedCredential ? ["Credentials reviewed"] : []),
-            ...(tier === "premier"
-                ? ["Premier educator"]
-                : tier === "verified"
-                  ? ["Verified educator"]
-                  : ["Profile in progress"]),
-        ],
+            ...(educator.backgroundCheckId && (educator.verificationStatus === "verified" || educator.verificationStatus === "premier")
+                ? ["Background check complete"]
+                : []),
+        ].concat(
+            hasReviewedCredential || (educator.backgroundCheckId && (educator.verificationStatus === "verified" || educator.verificationStatus === "premier"))
+                ? []
+                : ["Profile in progress"]
+        ),
         licenses,
         presenterBio: educator.presenterBio?.trim() || undefined,
         teamMembers: educator.teamMembers?.length ? educator.teamMembers : undefined,

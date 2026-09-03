@@ -6,22 +6,22 @@ Short reference for deploying, rotating secrets, handling incidents, and togglin
 
 See `.env.local.example` for the full list. One-liner for each:
 
-- `NEXT_PUBLIC_APP_URL` — canonical origin used for sitemap, Stripe redirect URLs, and OG images.
+- `NEXT_PUBLIC_APP_URL` — canonical origin used for sitemap, email links, and OG images.
 - `NEXT_PUBLIC_CONVEX_URL` — Convex deployment URL. Unlocks all live data; without it pages fall back to demo mode.
 - `NEXT_PUBLIC_CONVEX_SITE_URL` — Convex HTTP actions / site URL for webhook-facing routes when needed.
-- `CONVEX_DEPLOY_KEY` — deploy-time credential for `npx convex deploy`.
-- `CONVEX_WEBHOOK_SHARED_SECRET` — secret that the Stripe webhook route presents to `api.orders.createFromWebhook`.
+- `CONVEX_DEPLOY_KEY` — deploy-time credential for `npx convex deploy` (production only).
+- `CONVEX_WEBHOOK_SHARED_SECRET` — secret that the Stripe webhook route presents to `api.orders.createFromWebhook` (legacy orders).
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` — Clerk client-side key. Unlocks sign-in UI.
 - `CLERK_SECRET_KEY` — Clerk server key. Required for authenticated API routes and middleware.
+- `CLERK_JWT_ISSUER_DOMAIN` — production Clerk issuer Convex uses to verify JWTs (must match the Clerk production instance).
 - `NEXT_PUBLIC_CLERK_SIGN_IN_URL`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL`, `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL`, `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` — Clerk route and redirect settings.
-- `STRIPE_SECRET_KEY` — Stripe server key. Unlocks `/api/stripe/checkout`.
-- `STRIPE_WEBHOOK_SECRET` — used to verify Stripe's signature on `/api/stripe/webhook`.
-- `STRIPE_CHECKOUT_RATE_LIMIT_MAX`, `STRIPE_CHECKOUT_RATE_LIMIT_WINDOW_MS` — optional checkout rate-limit tuning; defaults to 10 requests / 60 seconds.
+- `NEXT_PUBLIC_USE_CONVEX_BROWSE` — must be `true` for the live consultant directory.
+- `NEXT_PUBLIC_ENABLE_LEGACY_CHECKOUT` — keep `false` for launch. Checkout creation stays retired unless this and card checkout are both on.
+- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` — legacy only; not required for the off-platform payment launch.
 - `NEXT_PUBLIC_SENTRY_DSN` — turns on Sentry error reporting.
-- `NEXT_PUBLIC_USE_CONVEX_BROWSE` — legacy flag, gates the Convex-backed `/browse` page. See also the `convex_live_browse` feature flag in [flags.ts](../src/lib/flags.ts).
-- `RESEND_API_KEY`, `RESEND_FROM_EMAIL` — transactional email credentials and sender identity.
-- `CHECKR_API_KEY`, `CHECKR_WEBHOOK_SECRET`, `CHECKR_PACKAGE` — background-check invite and webhook configuration.
-- `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` — production-grade shared rate limiting for checkout (see [rate-limit.ts](../src/lib/rate-limit.ts)).
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL` — transactional email credentials and sender identity. Required for proposal/engagement alerts.
+- `CHECKR_API_KEY`, `CHECKR_WEBHOOK_SECRET`, `CHECKR_PACKAGE` — background-check invite and webhook configuration (deferred unless Checkr is enabled).
+- `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` — production-grade shared rate limiting.
 - `ALLOW_DEMO_SEED` — must remain unset or `false` in production; set to `true` only when intentionally running `convex/seed.ts` against a dev deployment.
 - `DEMO_SEED_SECRET` — dev-only shared secret required by `convex/seed.ts` when `ALLOW_DEMO_SEED=true`; keep unset in production.
 
@@ -38,7 +38,7 @@ See `.env.local.example` for the full list. One-liner for each:
    npx convex deploy   # prod is the default; CLI no longer accepts --prod
    ```
 3. Merge to `main`. Vercel deploys the Next.js app automatically.
-4. Smoke-test by hitting `/`, `/browse`, and the dashboard routes as each role.
+4. Smoke-test by hitting `/`, `/pricing`, `/browse`, `/dashboard/educator/my-gigs`, `/dashboard/educator/contract-hub`, and the district dashboard as each role. Confirm checkout pages stay retired.
 
 ## Rotating secrets
 

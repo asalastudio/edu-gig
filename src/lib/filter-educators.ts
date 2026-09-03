@@ -3,7 +3,6 @@ import { getAreaOfNeedMatchIds } from "./taxonomy";
 
 export type DirectoryQuickFilter =
     | "quick_avail"
-    | "quick_top"
     | "quick_local"
     | "quick_instant"
     | null;
@@ -64,9 +63,6 @@ export function educatorMatchesDirectoryFilters(
     if (filters.verifiedOnly && educator.verificationTier === "basic") return false;
     if (filters.availableNow && educator.availabilityStatus !== "open") return false;
 
-    if (filters.activeQuickFilter === "quick_top" && educator.overallRating < 4.8) {
-        return false;
-    }
     if (filters.activeQuickFilter === "quick_local") {
         if (!filters.districtRegion) return false;
         if (

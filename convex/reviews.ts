@@ -226,12 +226,20 @@ export const getForOrder = query({
     },
 });
 
-/** Aggregate overall rating + count for an educator's received buyer reviews. */
+/** Aggregate overall rating + count. Authenticated district or owning consultant only. Not shown publicly at launch. */
 export const getSummaryForEducator = query({
     args: { educatorId: v.id("educators") },
+    returns: v.object({ averageRating: v.number(), count: v.number() }),
     handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return { averageRating: 0, count: 0 };
+        const viewer = await getUserByClerkId(ctx, identity.subject);
+        if (!viewer) return { averageRating: 0, count: 0 };
         const educator = await ctx.db.get(args.educatorId);
         if (!educator) return { averageRating: 0, count: 0 };
+        const isOwner = educator.userId === viewer._id;
+        const isDistrict = ["district_admin", "district_hr", "superintendent", "superadmin"].includes(viewer.role);
+        if (!isOwner && !isDistrict) return { averageRating: 0, count: 0 };
 
         const reviews = await ctx.db
             .query("reviews")

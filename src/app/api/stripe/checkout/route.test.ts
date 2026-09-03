@@ -51,7 +51,7 @@ describe("POST /api/stripe/checkout", () => {
         );
 
         await expect(response.json()).resolves.toEqual({
-            error: "Card checkout is disabled. Use invoice / PO booking.",
+            error: "K12Gig checkout is retired. Accept a proposal and arrange payment off-platform.",
         });
         expect(response.status).toBe(503);
     });

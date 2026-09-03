@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { toast, Toaster } from "sonner";
 import { api } from "@/convex/_generated/api";
@@ -34,6 +34,7 @@ function engagementLabel(id: string | undefined | null): string | null {
 
 export default function DistrictNeedDetailPage() {
     const params = useParams<{ needId: string }>();
+    const router = useRouter();
     const rawId = typeof params.needId === "string" ? params.needId : "";
     const isValidIdShape = looksLikeConvexId(rawId);
 
@@ -59,8 +60,11 @@ export default function DistrictNeedDetailPage() {
         setActionError(null);
         setActing(proposalId as unknown as string);
         try {
-            await acceptProposal({ proposalId });
+            const result = await acceptProposal({ proposalId });
             toast.success("Proposal accepted");
+            if (result?.engagementId) {
+                router.push(`/dashboard/engagements/${result.engagementId}`);
+            }
         } catch (err) {
             setActionError(err instanceof Error ? err.message : "Could not accept proposal.");
         } finally {
@@ -96,7 +100,7 @@ export default function DistrictNeedDetailPage() {
         return (
             <ShellEmpty
                 title="District access only"
-                body="This workspace is for district hiring teams."
+                body="This account section is for district hiring teams."
             />
         );
     }
@@ -134,7 +138,7 @@ export default function DistrictNeedDetailPage() {
         return (
             <ShellEmpty
                 title="This need belongs to another district"
-                body="You can only manage proposals for needs your workspace posted."
+                body="You can only manage proposals for needs your district account posted."
                 showDashboardLink
             />
         );

@@ -5,11 +5,15 @@ import { Sidebar } from "./sidebar";
 
 const mocks = vi.hoisted(() => ({ useQuery: vi.fn() }));
 
-vi.mock("convex/react", () => ({ useQuery: mocks.useQuery }));
+vi.mock("convex/react", () => ({
+    useQuery: mocks.useQuery,
+    useMutation: () => vi.fn(),
+}));
 vi.mock("@/convex/_generated/api", () => ({
     api: {
         users: { viewer: "viewer-query" },
         messages: { unreadCount: "unread-query" },
+        notifications: { unreadCount: "notification-unread-query" },
     },
 }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/dashboard/board" }));
@@ -43,14 +47,14 @@ describe("Sidebar", () => {
 
         expect(screen.getByRole("link", { name: /Gig Board/i })).toBeInTheDocument();
         expect(screen.getByRole("link", { name: /My Gigs/i })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /Earnings/i })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Contract Hub/i })).toBeInTheDocument();
         expect(screen.queryByRole("link", { name: /Directory/i })).not.toBeInTheDocument();
     });
 
-    it("renders a neutral workspace while role data is loading", () => {
+    it("renders a neutral account label while role data is loading", () => {
         renderForViewer(undefined);
 
-        expect(screen.getAllByText("Workspace").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Account").length).toBeGreaterThan(0);
         expect(screen.queryByRole("link", { name: /Directory|Posted Needs|Gig Board/i })).not.toBeInTheDocument();
     });
 });

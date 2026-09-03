@@ -114,8 +114,8 @@ export default function Home() {
               {[
                 {
                   icon: ShieldCheck,
-                  title: "Vetted for quality",
-                  desc: "Credential and reference checks so districts can hire with confidence.",
+                  title: "Credentials you can inspect",
+                  desc: "Consultants upload resumes and credentials. Badges appear only when a record is actually reviewed.",
                 },
                 {
                   icon: Users,
@@ -158,8 +158,8 @@ export default function Home() {
 
               <ul className="flex flex-col gap-5 mt-4">
                 {[
-                  { title: "Credential review", desc: "Educators can upload licenses, certifications, degrees, and endorsements. K12Gig marks review status clearly; background checks via Checkr roll out summer 2026." },
-                  { title: "Clear pricing", desc: "Consultant rates are shown on profiles. Districts see the platform fee and final booking total before payment or invoice approval." },
+                  { title: "Credential review", desc: "Consultants can upload licenses, certifications, degrees, and endorsements. K12Gig shows review status from those files. Background-check badges appear only when a check is actually recorded." },
+                  { title: "Clear rates", desc: "Consultant starting rates are shown on profiles. After a proposal is accepted, payment is arranged directly between the district and consultant." },
                   { title: "Direct sourcing", desc: "Filter by support type, grade level, and coverage region, then message consultants without going through a staffing agency." }
                 ].map((item, i) => (
                   <li key={i} className="flex gap-4 items-start">
@@ -238,7 +238,7 @@ export default function Home() {
                   <TrendUp weight="duotone" className="h-7 w-7 text-[var(--accent-secondary)]" />
                 </div>
                 <h3 className="font-heading text-2xl font-semibold text-[var(--text-primary)]">Set Your Rate</h3>
-                <p className="text-sm text-[var(--text-secondary)] text-center leading-relaxed">You list the rate you want to receive. Districts pay that rate plus the disclosed K12Gig platform fee at checkout or invoice approval.</p>
+                <p className="text-sm text-[var(--text-secondary)] text-center leading-relaxed">You list the rate you want to receive. Districts see that rate on your profile, then arrange payment with you after they accept a proposal.</p>
               </div>
               <div className="flex flex-col items-center gap-3 p-8 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-[var(--accent-primary)]/30 transition-all">
                 <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--accent-secondary)]/30 bg-[var(--accent-secondary)]/10">
@@ -252,7 +252,7 @@ export default function Home() {
                   <ShieldCheck weight="duotone" className="h-7 w-7 text-[var(--accent-secondary)]" />
                 </div>
                 <h3 className="font-heading text-2xl font-semibold text-[var(--text-primary)]">Build Trust</h3>
-                <p className="text-sm text-[var(--text-secondary)] text-center leading-relaxed">Add credentials, references, and reviews so districts can evaluate fit with more confidence.</p>
+                <p className="text-sm text-[var(--text-secondary)] text-center leading-relaxed">Add credentials and a resume so districts can evaluate fit. Public star ratings are not part of launch.</p>
               </div>
             </div>
 

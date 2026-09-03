@@ -4,7 +4,7 @@ test.describe("Post a Need", () => {
     test("incomplete preview progress is preserved for sign-up instead of appearing published", async ({ page }) => {
         await page.goto("/post");
 
-        await expect(page.getByRole("heading", { name: /Sign in to post a real need/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: /Sign in to post a need/i })).toBeVisible();
         await page.getByRole("button", { name: /Preview the form/i }).click();
 
         // Step 1 — Role

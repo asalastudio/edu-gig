@@ -1,119 +1,155 @@
 import { query } from "./_generated/server";
-import type { QueryCtx } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
+import { v } from "convex/values";
+import { getCurrentUserOrNull, isDistrictRole, getEducatorForUser, findDistrictForUser } from "./lib/auth";
+import { engagementStatusValidator } from "./lib/validators";
+import { startOfMonth } from "./lib/time";
 
-const DISTRICT_ROLES = ["district_admin", "district_hr", "superintendent", "superadmin"] as const;
+const districtKpiValidator = v.object({
+    activeOpenings: v.number(),
+    placementsThisMonth: v.number(),
+    needsCount: v.number(),
+    engagementCount: v.number(),
+});
 
-async function getUserByClerkId(ctx: QueryCtx, clerkId: string) {
-    return await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
-        .first();
-}
+const recentPlacementValidator = v.object({
+    id: v.id("engagements"),
+    title: v.string(),
+    consultantName: v.string(),
+    orgName: v.string(),
+    status: engagementStatusValidator,
+    createdAt: v.number(),
+});
 
-function startOfMonth(now = Date.now()) {
-    const d = new Date(now);
-    return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-}
+const pipelineRowValidator = v.object({
+    id: v.id("needs"),
+    role: v.string(),
+    spec: v.string(),
+    status: v.string(),
+    daysOpen: v.number(),
+    candidates: v.number(),
+});
 
-function startOfYear(now = Date.now()) {
-    return new Date(new Date(now).getFullYear(), 0, 1).getTime();
-}
+const educatorKpiValidator = v.object({
+    activeCount: v.number(),
+    completedCount: v.number(),
+    pendingProposals: v.number(),
+    firstName: v.string(),
+});
 
-async function findDistrictForUser(ctx: QueryCtx, userId: Doc<"users">["_id"]) {
-    const districts = await ctx.db.query("districts").collect();
-    return districts.find((district) => district.adminIds.includes(userId)) ?? null;
-}
-
-async function listDistrictNeeds(ctx: QueryCtx, user: Doc<"users">) {
-    const district = await findDistrictForUser(ctx, user._id);
-    const byDistrict = district
-        ? await ctx.db
-              .query("needs")
-              .withIndex("by_district", (q) => q.eq("districtId", district._id))
-              .order("desc")
-              .collect()
-        : [];
-    const byUser = await ctx.db
-        .query("needs")
-        .withIndex("by_posted_by", (q) => q.eq("postedByUserId", user._id))
-        .order("desc")
-        .collect();
-    return {
-        district,
-        needs: Array.from(new Map([...byDistrict, ...byUser].map((need) => [need._id, need])).values()).sort(
-            (a, b) => b.createdAt - a.createdAt
-        ),
-    };
-}
+const educatorPipelineRowValidator = v.object({
+    id: v.id("engagements"),
+    title: v.string(),
+    district: v.string(),
+    status: v.string(),
+    amount: v.optional(v.number()),
+    startDate: v.optional(v.string()),
+});
 
 export const districtKpis = query({
-    args: {},
-    handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
-        const user = await getUserByClerkId(ctx, identity.subject);
-        if (!user || !DISTRICT_ROLES.includes(user.role as (typeof DISTRICT_ROLES)[number])) {
-            return null;
-        }
+    args: { now: v.number() },
+    returns: v.union(districtKpiValidator, v.null()),
+    handler: async (ctx, args) => {
+        const user = await getCurrentUserOrNull(ctx);
+        if (!user || !isDistrictRole(user.role)) return null;
 
-        const { district, needs } = await listDistrictNeeds(ctx, user);
-
-        const orders = district
+        const district = await findDistrictForUser(ctx, user._id);
+        const byDistrict = district
             ? await ctx.db
-                  .query("orders")
+                  .query("needs")
                   .withIndex("by_district", (q) => q.eq("districtId", district._id))
                   .collect()
             : [];
+        const byUser = await ctx.db
+            .query("needs")
+            .withIndex("by_posted_by", (q) => q.eq("postedByUserId", user._id))
+            .collect();
+        const needs = Array.from(new Map([...byDistrict, ...byUser].map((need) => [need._id, need])).values());
 
-        const monthStart = startOfMonth();
-        const yearStart = startOfYear();
+        const engagements = district
+            ? await ctx.db
+                  .query("engagements")
+                  .withIndex("by_district", (q) => q.eq("districtId", district._id))
+                  .collect()
+            : await ctx.db
+                  .query("engagements")
+                  .withIndex("by_buyer", (q) => q.eq("buyerUserId", user._id))
+                  .collect();
 
+        const monthStart = startOfMonth(args.now);
         const activeOpenings = needs.filter((n) => n.status === "open" || n.status === "interviewing").length;
-
-        const placementsThisMonth = orders.filter(
-            (o) =>
-                (o.status === "accepted" || o.status === "in_progress" || o.status === "completed") &&
-                o.createdAt >= monthStart
+        const placementsThisMonth = engagements.filter(
+            (engagement) =>
+                engagement.status !== "cancelled" && engagement.createdAt >= monthStart
         ).length;
-
-        const placedNeeds = needs.filter((n) => n.status === "placed");
-        const avgTimeToFillDays =
-            placedNeeds.length === 0
-                ? null
-                : Math.round(
-                      placedNeeds.reduce((sum, n) => sum + (Date.now() - n.createdAt), 0) /
-                          placedNeeds.length /
-                          (1000 * 60 * 60 * 24)
-                  );
-
-        const totalSpendYtd = orders
-            .filter((o) => o.createdAt >= yearStart)
-            .reduce((sum, o) => sum + o.totalAmount, 0);
 
         return {
             activeOpenings,
             placementsThisMonth,
-            avgTimeToFillDays,
-            totalSpendYtd,
             needsCount: needs.length,
-            ordersCount: orders.length,
+            engagementCount: engagements.length,
         };
     },
 });
 
-/** Rows for the district "Talent Pipeline" table. */
-export const districtPipeline = query({
+export const districtRecentPlacements = query({
     args: {},
+    returns: v.array(recentPlacementValidator),
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return [];
-        const user = await getUserByClerkId(ctx, identity.subject);
-        if (!user || !DISTRICT_ROLES.includes(user.role as (typeof DISTRICT_ROLES)[number])) {
-            return [];
+        const user = await getCurrentUserOrNull(ctx);
+        if (!user || !isDistrictRole(user.role)) return [];
+        const district = await findDistrictForUser(ctx, user._id);
+        const rows = district
+            ? await ctx.db
+                  .query("engagements")
+                  .withIndex("by_district", (q) => q.eq("districtId", district._id))
+                  .order("desc")
+                  .take(5)
+            : await ctx.db
+                  .query("engagements")
+                  .withIndex("by_buyer", (q) => q.eq("buyerUserId", user._id))
+                  .order("desc")
+                  .take(5);
+        const out = [];
+        for (const engagement of rows) {
+            const educatorUser = await ctx.db.get(engagement.educatorUserId);
+            out.push({
+                id: engagement._id,
+                title: engagement.title,
+                consultantName: educatorUser
+                    ? [educatorUser.firstName, educatorUser.lastName].filter(Boolean).join(" ").trim() || educatorUser.email
+                    : "Consultant",
+                orgName: engagement.orgName,
+                status: engagement.status,
+                createdAt: engagement.createdAt,
+            });
         }
+        return out;
+    },
+});
 
-        const { needs } = await listDistrictNeeds(ctx, user);
+export const districtPipeline = query({
+    args: { now: v.number() },
+    returns: v.array(pipelineRowValidator),
+    handler: async (ctx, args) => {
+        const user = await getCurrentUserOrNull(ctx);
+        if (!user || !isDistrictRole(user.role)) return [];
+
+        const district = await findDistrictForUser(ctx, user._id);
+        const byDistrict = district
+            ? await ctx.db
+                  .query("needs")
+                  .withIndex("by_district", (q) => q.eq("districtId", district._id))
+                  .order("desc")
+                  .collect()
+            : [];
+        const byUser = await ctx.db
+            .query("needs")
+            .withIndex("by_posted_by", (q) => q.eq("postedByUserId", user._id))
+            .order("desc")
+            .collect();
+        const needs = Array.from(new Map([...byDistrict, ...byUser].map((need) => [need._id, need])).values()).sort(
+            (a, b) => b.createdAt - a.createdAt
+        );
 
         const rows = [];
         for (const n of needs) {
@@ -126,7 +162,7 @@ export const districtPipeline = query({
                 role: n.areaOfNeed,
                 spec: n.subCategory ?? n.description?.slice(0, 60) ?? "",
                 status: n.status,
-                daysOpen: Math.max(0, Math.floor((Date.now() - n.createdAt) / (1000 * 60 * 60 * 24))),
+                daysOpen: Math.max(0, Math.floor((args.now - n.createdAt) / (1000 * 60 * 60 * 24))),
                 candidates: proposals.filter((proposal) => proposal.status !== "withdrawn").length,
             });
         }
@@ -136,87 +172,55 @@ export const districtPipeline = query({
 
 export const educatorKpis = query({
     args: {},
+    returns: v.union(educatorKpiValidator, v.null()),
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
-        const user = await getUserByClerkId(ctx, identity.subject);
+        const user = await getCurrentUserOrNull(ctx);
         if (!user || user.role !== "educator") return null;
-
-        const educator = await ctx.db
-            .query("educators")
-            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-            .first();
+        const educator = await getEducatorForUser(ctx, user._id);
         if (!educator) return null;
 
-        const orders = await ctx.db
-            .query("orders")
+        const engagements = await ctx.db
+            .query("engagements")
+            .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
+            .collect();
+        const proposals = await ctx.db
+            .query("proposals")
             .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
             .collect();
 
-        const yearStart = startOfYear();
-
-        const pipeline = orders.filter(
-            (o) => o.status === "pending" || o.status === "accepted" || o.status === "in_progress"
-        );
-        const pipelineValue = pipeline.reduce((sum, o) => sum + o.educatorPayout, 0);
-        const activeCount = pipeline.length;
-
-        const ytdPayout = orders
-            .filter((o) => o.status === "completed" && o.createdAt >= yearStart)
-            .reduce((sum, o) => sum + o.educatorPayout, 0);
-        const completedCount = orders.filter((o) => o.status === "completed").length;
-
         return {
-            pipelineValue,
-            activeCount,
-            ytdPayout,
-            completedCount,
+            activeCount: engagements.filter(
+                (engagement) => engagement.status === "active" || engagement.status === "in_progress"
+            ).length,
+            completedCount: engagements.filter((engagement) => engagement.status === "completed").length,
+            pendingProposals: proposals.filter((proposal) => proposal.status === "pending").length,
             firstName: user.firstName,
         };
     },
 });
 
-/** Rows for the educator "Active Pipeline" list. */
 export const educatorPipeline = query({
     args: {},
+    returns: v.array(educatorPipelineRowValidator),
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return [];
-        const user = await getUserByClerkId(ctx, identity.subject);
+        const user = await getCurrentUserOrNull(ctx);
         if (!user || user.role !== "educator") return [];
-
-        const educator = await ctx.db
-            .query("educators")
-            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-            .first();
+        const educator = await getEducatorForUser(ctx, user._id);
         if (!educator) return [];
 
-        const orders = await ctx.db
-            .query("orders")
+        const engagements = await ctx.db
+            .query("engagements")
             .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
             .order("desc")
-            .collect();
+            .take(8);
 
-        const rows: Array<{
-            id: string;
-            title: string;
-            district: string;
-            status: string;
-            amount: number;
-            startDate?: string;
-        }> = [];
-        for (const order of orders.slice(0, 5)) {
-            const gig = await ctx.db.get(order.gigId);
-            const district = await ctx.db.get(order.districtId);
-            rows.push({
-                id: order._id,
-                title: gig?.title ?? "Engagement",
-                district: district?.name ?? "District",
-                status: order.status,
-                amount: order.educatorPayout,
-                startDate: order.startDate,
-            });
-        }
-        return rows;
+        return engagements.map((engagement) => ({
+            id: engagement._id,
+            title: engagement.title,
+            district: engagement.orgName,
+            status: engagement.status,
+            amount: engagement.agreedRate,
+            startDate: engagement.startDate,
+        }));
     },
 });

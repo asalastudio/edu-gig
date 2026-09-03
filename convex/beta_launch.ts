@@ -48,6 +48,8 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
         gigs,
         needs,
         proposals,
+        engagements,
+        contracts,
         orders,
         reviews,
         messages,
@@ -64,6 +66,8 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
         ctx.db.query("gigs").collect(),
         ctx.db.query("needs").collect(),
         ctx.db.query("proposals").collect(),
+        ctx.db.query("engagements").collect(),
+        ctx.db.query("contracts").collect(),
         ctx.db.query("orders").collect(),
         ctx.db.query("reviews").collect(),
         ctx.db.query("messages").collect(),
@@ -142,6 +146,18 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
     const flaggedProposalIds = new Set<Id<"proposals">>(
         flaggedProposals.map((proposal) => proposal._id)
     );
+    const flaggedEngagements = engagements.filter(
+        (engagement) =>
+            flaggedNeedIds.has(engagement.needId) ||
+            flaggedProposalIds.has(engagement.proposalId) ||
+            flaggedEducatorIds.has(engagement.educatorId) ||
+            flaggedUserIds.has(engagement.buyerUserId) ||
+            flaggedUserIds.has(engagement.educatorUserId)
+    );
+    const flaggedEngagementIds = new Set(flaggedEngagements.map((row) => row._id));
+    const flaggedContracts = contracts.filter((contract) =>
+        flaggedEngagementIds.has(contract.engagementId)
+    );
     const flaggedOrders = orders.filter(
         (order) =>
             flaggedGigIds.has(order.gigId) ||
@@ -182,6 +198,8 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
         ...[...flaggedGigIds].map(String),
         ...flaggedCredentials.map((credential) => String(credential._id)),
         ...[...flaggedProposalIds].map(String),
+        ...flaggedEngagements.map((row) => String(row._id)),
+        ...flaggedContracts.map((row) => String(row._id)),
         ...[...flaggedOrderIds].map(String),
         ...[...flaggedReviewIds].map(String),
         ...[...flaggedProcurementIds].map(String),
@@ -261,6 +279,12 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
     for (const proposal of flaggedProposals) {
         if (proposal.attachmentStorageId) storageIds.add(proposal.attachmentStorageId);
     }
+    for (const educator of flaggedEducators) {
+        if (educator.resumeStorageId) storageIds.add(educator.resumeStorageId);
+    }
+    for (const contract of flaggedContracts) {
+        if (contract.storageId) storageIds.add(contract.storageId);
+    }
 
     const rows = {
         users: users.filter((user) => flaggedUserIds.has(user._id)),
@@ -270,6 +294,8 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
         gigs: flaggedGigs,
         needs: needs.filter((need) => flaggedNeedIds.has(need._id)),
         proposals: flaggedProposals,
+        engagements: flaggedEngagements,
+        contracts: flaggedContracts,
         orders: flaggedOrders,
         reviews: flaggedReviews,
         messages: flaggedMessages,
@@ -315,6 +341,17 @@ async function collectMarketplaceSweep(ctx: SweepCtx, excludedPrimaryIds: string
                 needId: String(row.needId),
                 educatorId: String(row.educatorId),
                 educatorUserId: String(row.educatorUserId),
+            })),
+            engagements: engagements.map((row) => ({
+                id: String(row._id),
+                needId: String(row.needId),
+                proposalId: String(row.proposalId),
+                educatorId: String(row.educatorId),
+                buyerUserId: String(row.buyerUserId),
+            })),
+            contracts: contracts.map((row) => ({
+                id: String(row._id),
+                engagementId: String(row.engagementId),
             })),
             orders: orders.map((row) => ({
                 id: String(row._id),
@@ -448,6 +485,15 @@ export const cleanupPreLaunch = mutation({
         for (const storageId of sweep.storageIds) await ctx.storage.delete(storageId);
         for (const row of sweep.rows.reviews) await ctx.db.delete(row._id);
         for (const row of sweep.rows.stripeWebhookEvents) await ctx.db.delete(row._id);
+        for (const row of sweep.rows.contracts) {
+            const events = await ctx.db
+                .query("contractEvents")
+                .withIndex("by_contract", (q) => q.eq("contractId", row._id))
+                .collect();
+            for (const event of events) await ctx.db.delete(event._id);
+            await ctx.db.delete(row._id);
+        }
+        for (const row of sweep.rows.engagements) await ctx.db.delete(row._id);
         for (const row of sweep.rows.proposals) await ctx.db.delete(row._id);
         for (const row of sweep.rows.orders) await ctx.db.delete(row._id);
         for (const row of sweep.rows.messages) await ctx.db.delete(row._id);

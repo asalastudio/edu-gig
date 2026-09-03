@@ -1,11 +1,21 @@
 # K12Gig Controlled Beta Launch Runbook (`k12gig.com`)
 
 **Audience:** Jordan (engineering)  
-**Target date:** June 15, 2026  
+**Target date:** September 3, 2026
 **Launch mode:** Controlled beta · proposal-centered connection marketplace · payment off-platform · Contract Hub for documents  
-**Blocked on:** Chris DNS access for `k12gig.com`
+**Blocked on:** Chris release review, release-branch integration, and explicit approval for production data cleanup/seed
 
-This is the **execute-when-ready** checklist. When Chris gives DNS control, work top to bottom — most steps are copy-paste.
+This is the **execute-when-ready** checklist. DNS, the production domain, production Clerk, production Convex auth, and Resend are already in place. Start today at Phase 5 after completing the review gates in `CHRIS_LAUNCH_MEETING_2026-09-03.md`.
+
+## Verified September 3, 2026
+
+- [x] `https://k12gig.com` resolves with valid SSL.
+- [x] Production uses live Clerk; no development-mode banner is visible.
+- [x] Production Convex uses `https://clerk.k12gig.com` as its Clerk JWT issuer.
+- [x] Resend variables are present in Vercel and Convex production environments.
+- [x] The September candidate has a Ready Vercel build at commit `7fcaff5`.
+- [ ] The September candidate is merged and deployed to production.
+- [ ] Real-email district and consultant smoke tests pass on the deployed candidate.
 
 ---
 
@@ -22,7 +32,9 @@ This is the **execute-when-ready** checklist. When Chris gives DNS control, work
 
 ---
 
-## Phase 1 — DNS (Chris → you)
+## Phase 1 — DNS (complete; reference only)
+
+`k12gig.com` is live through Cloudflare-managed DNS. Moving nameservers to Vercel is no longer a launch requirement.
 
 **Chris provides one of:**
 
@@ -35,7 +47,7 @@ This is the **execute-when-ready** checklist. When Chris gives DNS control, work
 
 ---
 
-## Phase 2 — Vercel domain + app URL
+## Phase 2 — Vercel domain + app URL (complete; verify after deploy)
 
 ```bash
 cd edugig
@@ -64,7 +76,7 @@ printf '%s' 'https://k12gig.com' | vercel env add NEXT_PUBLIC_APP_URL production
 
 ---
 
-## Phase 3 — Clerk production instance
+## Phase 3 — Clerk production instance (complete; verify after deploy)
 
 1. [Clerk Dashboard](https://dashboard.clerk.com) → your K12Gig app → **Deploy to Production**
 2. Production domain → **`k12gig.com`**
@@ -91,7 +103,7 @@ printf '%s' 'https://k12gig.com' | vercel env add NEXT_PUBLIC_APP_URL production
 
 ---
 
-## Phase 4 — Production env (Vercel + Convex)
+## Phase 4 — Production env (configured; reverify release flags)
 
 Pull current prod env locally (secrets redacted for some keys):
 
@@ -122,10 +134,10 @@ printf '%s' 'false' | vercel env add NEXT_PUBLIC_ENABLE_CARD_CHECKOUT production
 printf '%s' 'false' | vercel env add NEXT_PUBLIC_ENABLE_CHECKR production
 ```
 
-**Optional before invite wave:**
+**Already provisioned; verify delivery after deploy:**
 
 ```bash
-# Resend (booking confirmation emails)
+# Resend (proposal and engagement notification emails)
 printf '%s' 're_XXXXX' | vercel env add RESEND_API_KEY production
 printf '%s' 'K12Gig <support@k12gig.com>' | vercel env add RESEND_FROM_EMAIL production
 ```
@@ -182,8 +194,11 @@ Production build runs `convex deploy` automatically via `scripts/vercel-build.mj
 export CONVEX_DEPLOY_KEY="prod:…"
 export BETA_LAUNCH_SECRET="…"   # same value set on Convex
 
-node scripts/beta-launch.mjs cleanup   # remove legacy test rows
-node scripts/beta-launch.mjs seed      # 3 founding educators + 4 bookable gigs
+node scripts/beta-launch.mjs audit
+# Review every candidate row, then copy candidateDigest from the audit output:
+export BETA_CLEANUP_CANDIDATE_DIGEST="reviewed-digest"
+node scripts/beta-launch.mjs cleanup --confirm
+node scripts/beta-launch.mjs seed      # 3 founding educator profiles + legacy sample gig rows
 ```
 
 **Founding profiles created:**
@@ -210,9 +225,9 @@ Sign in as **district** (real prod account):
 
 1. Home → Get started → I hire educators
 2. Browse directory — see 3 founding educators
-3. Open Sarah → Services — see 2 gigs
-4. Book with PO/invoice → order created
-5. Post a Need → submits
+3. Open Sarah → inspect profile, credentials, coverage, and listed rate
+4. Post a Need → consultant submits a proposal
+5. Accept proposal → engagement + Contract Hub created
 
 Sign in as **educator** (invite a real beta educator):
 
@@ -241,7 +256,7 @@ Chris / ops can use `docs/CHRIS_DEMO_WALKTHROUGH.md` as a **flow guide** (ignore
 | Clerk dev banner on k12gig.com | Redeploy with `pk_live_` keys; confirm domain in Clerk prod instance |
 | Sign-in works but Convex says Unauthorized | `CLERK_JWT_ISSUER_DOMAIN` mismatch — Vercel + Convex must both point at `https://clerk.k12gig.com` |
 | Empty browse directory | Run `beta-launch.mjs seed`; sign in as **district** (browse is district-gated) |
-| No bookable services | Gigs table empty — run seed step |
+| No founding profiles | Review the production data audit, then run the approved seed step |
 | `Demo seed is disabled` | Wrong mutation — use `beta_launch`, not `seed:populate` |
 | Next deploy breaks auth | Ensure Clerk keys exist in Vercel production before redeploy |
 

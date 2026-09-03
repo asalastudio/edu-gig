@@ -1,4 +1,6 @@
 > **Audit refresh — August 2026 launch model.** Payments, 1099s, ACH, and native e-sign are **out of launch scope**. The product is a connection marketplace: post → propose → accept → engagement → Contract Hub. Historical Stripe/order rows stay readable. Rows below retain July evidence; treat payment-processor items as superseded by this model.
+>
+> **Operations refresh — September 3, 2026.** Live Vercel and Convex checks closed the production Clerk-issuer and required-environment unknowns in #15–16 for the controlled-beta model. Sentry and Upstash remain post-launch-risk items. The old Linear project linked below is not present in the current Asala workspace; choose a current tracking home before adding follow-up work.
 
 # K12Gig Launch v1 — Issue Backlog
 
@@ -50,8 +52,8 @@ Source: the launch-readiness SOW audit completed 2026-04-30. This doc is the see
 |---|---|---|---|---|---|
 | 13 | Wire Upstash Redis for rate limiter | `src/lib/rate-limit.ts:50`, `docs/OPERATIONS.md:83` | area/security, type/feature, severity/blocker | 0.5–1d | ✅ **Done (code)** — `createUpstashRateLimiter` used when `UPSTASH_REDIS_REST_URL`+`_TOKEN` present, memory fallback otherwise. Provisioning the prod Upstash creds is the remaining ops step (see #49). |
 | 14 | Add CSP / security headers | `next.config.ts` | area/security, type/feature, severity/blocker | 0.5d | ✅ **Done** — full CSP + Referrer-Policy, X-Content-Type-Options, X-Frame-Options (prod), Permissions-Policy in `next.config.ts`. |
-| 15 | Verify Clerk JWT issuer domain in Convex prod | `convex/auth.config.ts` (env audit) | area/security, type/cleanup, severity/blocker | 0.25d | 🟡 **Partial** — `auth.config.ts` reads `CLERK_JWT_ISSUER_DOMAIN` and degrades gracefully when unset. Actually confirming the prod value is set correctly is an env-audit task (ops). |
-| 16 | Production env audit (all required vars set) | Vercel + Convex dashboards | area/ops, type/cleanup, severity/blocker | 1d | ⬜ **Open (ops)** — dashboard/config task; not verifiable from code. `scripts/beta-launch.mjs` + `marketplace-data-hygiene.ts` audit data, not env vars. |
+| 15 | Verify Clerk JWT issuer domain in Convex prod | `convex/auth.config.ts` (env audit) | area/security, type/cleanup, severity/blocker | 0.25d | ✅ **Done Sep 3** — live Convex production environment reports `CLERK_JWT_ISSUER_DOMAIN=https://clerk.k12gig.com`; production sign-in has no Clerk development banner. |
+| 16 | Production env audit (all required vars set) | Vercel + Convex dashboards | area/ops, type/cleanup, severity/blocker | 1d | ✅ **Done for controlled beta Sep 3** — domain, production Clerk/Convex, deploy key, webhook secret, live browse, app URL, and Resend variables are present. Feature-flag values must be rechecked after candidate deployment. Sentry/Upstash remain documented risks, not controlled-beta blockers. |
 
 ## P1 — Polish (must fix for credibility)
 

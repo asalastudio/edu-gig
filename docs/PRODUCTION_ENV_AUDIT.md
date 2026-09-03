@@ -1,106 +1,110 @@
-# Production Environment Audit
+# Production environment audit
 
-Date: 2026-05-02, refreshed August 2026 for the off-platform payment launch.
+Date: September 3, 2026
 
-This audit supports production/env/vendor readiness. Launch no longer requires live Stripe checkout. It does require production Clerk JWT verification, a production Convex URL, live browse enabled, demo seeding disabled, and (for email alerts) a verified Resend sender.
+This audit reflects live read-only checks against the linked Vercel project, its deployments, the production domain, and the production Convex environment. Secret values are intentionally omitted.
 
-## Launch configuration that must be proven (do not guess)
+## Release state
 
-Run `npm run check:env:beta` against production env, then confirm in Vercel and Convex dashboards:
+| Item | Verified state |
+|---|---|
+| Production domain | `https://k12gig.com` is live with valid SSL |
+| Production deployment | Ready on commit `ea2c881d60c6c6b6e80de182439d89be11e21cb8` from `main` (July 9) |
+| September candidate | Ready Vercel build on `7fcaff50e830cd204839984fdbef587ef87abca2` from `recovery/august-candidate-2026-09-01` |
+| Candidate runtime review | Use localhost; the branch preview is Vercel-login protected and has no functional Preview Convex deployment configuration |
+| Production Clerk | Live runtime shows no development-mode banner |
+| Production Convex auth issuer | `https://clerk.k12gig.com` |
+| Email configuration | Resend key and sender variables are present in Vercel and Convex production environments |
 
-| Item | Launch expectation |
-|------|--------------------|
-| Clerk JWT issuer | Production issuer (not `*.clerk.accounts.dev`) in Convex `CLERK_JWT_ISSUER_DOMAIN` |
-| Convex URL | Production deployment, not the known unique-eagle-379 dev deployment |
-| Resend | `RESEND_API_KEY` + verified `RESEND_FROM_EMAIL` for proposal/engagement mail |
-| Demo seed | `ALLOW_DEMO_SEED` unset/false on production Convex |
-| Live browse | `NEXT_PUBLIC_USE_CONVEX_BROWSE=true` |
-| Legacy checkout | `NEXT_PUBLIC_ENABLE_LEGACY_CHECKOUT` unset/false |
+Production is healthy but does not yet contain the two September release commits. The current production homepage still exposes July-era claims about vetting and platform payment that the candidate corrects.
 
-Stripe, Checkr, and Upstash remain optional for this launch model. Report remaining vendor setup as needed; do not treat local `.env.local` as production proof.
+## Required launch model
 
-## Related runbooks
+The controlled beta is a proposal-centered connection marketplace:
 
-- **`BETA_LAUNCH_RUNBOOK.md`** — step-by-step for `k12gig.com` controlled beta (DNS → Clerk → deploy → data)
-- **`LAUNCH_EXECUTION_RUNBOOK.md`** — client ops / HubSpot / ClickUp
+`post need → submit proposal → accept proposal → engagement → Contract Hub`
 
-## Vercel production env
+- Payment is arranged directly between the district and consultant.
+- K12Gig does not process cards, ACH, 1099s, or payouts for this launch.
+- Contract Hub coordinates documents; it does not claim to provide legally binding electronic signatures.
+- Checkr and card checkout stay disabled unless Chris explicitly approves a later lane.
 
-Checked with:
+## Vercel production environment
 
-```bash
-vercel env ls production
-```
+Verified present by environment name:
 
-Present in production:
-
-- `CLERK_JWT_ISSUER_DOMAIN`
-- `CLERK_SECRET_KEY`
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-- `CONVEX_DEPLOY_KEY`
-- `CONVEX_WEBHOOK_SHARED_SECRET`
-- `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL`
-- `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL`
-- `NEXT_PUBLIC_CLERK_SIGN_UP_URL`
-- `NEXT_PUBLIC_CLERK_SIGN_IN_URL`
-- `NEXT_PUBLIC_USE_CONVEX_BROWSE`
 - `NEXT_PUBLIC_APP_URL`
 - `NEXT_PUBLIC_CONVEX_URL`
-
-Missing or not visible in production:
-
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
+- `NEXT_PUBLIC_CONVEX_SITE_URL`
+- `NEXT_PUBLIC_USE_CONVEX_BROWSE`
+- `CONVEX_DEPLOY_KEY`
+- `CONVEX_WEBHOOK_SHARED_SECRET`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `CLERK_JWT_ISSUER_DOMAIN`
+- Clerk sign-in, sign-up, and redirect path variables
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
-- `CHECKR_API_KEY`
-- `CHECKR_WEBHOOK_SECRET`
-- `CHECKR_PACKAGE`
+- `NEXT_PUBLIC_ENABLE_CARD_CHECKOUT`
+- `NEXT_PUBLIC_ENABLE_CHECKR`
+
+The Vercel CLI lists encrypted secret names but does not return their values through an environment pull. Presence is therefore combined with runtime evidence: the live Clerk UI uses production mode, the domain resolves, and the current production deployment is Ready.
+
+The two public feature flags must be confirmed as `false` in the deployment runtime after the September candidate ships. Their presence alone does not prove their value.
+
+Not present in the production environment inventory:
+
 - `NEXT_PUBLIC_SENTRY_DSN`
-- `NEXT_PUBLIC_CONVEX_SITE_URL`
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
 
-## Convex production env
+These are not blockers for a very small controlled cohort, but they are real monitoring and rate-limit durability gaps. Assign an owner and due date before expanding access.
 
-Checked with:
+## Convex production environment
 
-```bash
-npx convex env list --prod
-```
+Verified present without exposing secret values:
 
-Present:
-
-- `CLERK_JWT_ISSUER_DOMAIN`
+- `CLERK_JWT_ISSUER_DOMAIN=https://clerk.k12gig.com`
 - `CONVEX_WEBHOOK_SHARED_SECRET`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
 
-Finding:
+The previous audit finding that production Convex still used the Clerk development issuer is resolved.
 
-- `CLERK_JWT_ISSUER_DOMAIN` currently points at the dev Clerk issuer (`regular-wolf-65.clerk.accounts.dev`). Production must point at the production Clerk issuer before launch.
+Before destructive production data work, separately verify:
 
-## Local production audit
+- `ALLOW_DEMO_SEED` is unset or false.
+- `BETA_LAUNCH_ENABLED` is enabled only for the approved launch window.
+- `BETA_LAUNCH_SECRET` is temporary, is never copied into documentation, and is removed immediately after cleanup/seed.
 
-Checked with:
+## Release-time verification
+
+Run this sequence from the exact reviewed release commit:
 
 ```bash
-npm run check:env -- --production
+git status
+npm test
+npm run typecheck
+npm run lint
+npm run test:e2e
+npm audit --omit=dev
+vercel --prod
 ```
 
-The local `.env.local` is intentionally dev/sandbox-shaped:
+After deployment, verify:
 
-- `NEXT_PUBLIC_CONVEX_URL` points at the dev Convex deployment.
-- Clerk keys are test/dev keys.
-- Stripe key is test-mode.
-- `CONVEX_DEPLOY_KEY` is not present locally.
-- Upstash, Resend, Checkr, and Sentry are missing locally.
+- `https://k12gig.com` loads with no SSL or Clerk development warning.
+- Test OTP `424242` does not work in production.
+- Real-email district signup, onboarding, dashboard, browse, post, proposal acceptance, engagement, and Contract Hub work.
+- Real-email consultant signup, onboarding, proposal, My Gigs, engagement, and Contract Hub work.
+- Proposal and engagement emails arrive from the verified sender.
+- Card checkout and Checkr remain unavailable for the controlled-beta launch.
+- Production logs show no repeating auth, Convex, webhook, or mail errors.
 
-Do not use local `.env.local` as proof of production readiness.
+Do not treat local `.env.local` as production proof. It intentionally points at development Clerk and Convex instances.
 
-## Linear follow-up
+## Related documents
 
-- `K12-15` — update Convex prod `CLERK_JWT_ISSUER_DOMAIN`.
-- Stripe production (`K12-54` / `K12-67`) — superseded for launch; checkout stays retired.
-- `K12-57` / `K12-61` — provision Resend and authenticate sending domain.
-- `K12-63` — provision Upstash and add REST env vars.
-- `K12-64` — provision Checkr.
-- `K12-78` — wire/confirm Sentry and monitoring ownership.
+- `CHRIS_LAUNCH_MEETING_2026-09-03.md` — current decision and release brief
+- `BETA_LAUNCH_RUNBOOK.md` — deployment and guarded data steps
+- `CHRIS_DEMO_WALKTHROUGH.md` — role-by-role meeting walkthrough

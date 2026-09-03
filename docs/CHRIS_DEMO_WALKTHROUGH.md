@@ -15,7 +15,7 @@ cd edugig
 npm run dev
 ```
 
-Note the port in the terminal (often `3000` or `3001`). Use that base URL below — replace `http://localhost:3000` if yours differs.
+For the September 3 review, the candidate is running at `http://localhost:3010`. If restarted on a different port, replace that base URL below.
 
 ### 2. Confirm demo data is loaded
 
@@ -47,8 +47,8 @@ All demo accounts use **email code only** — no passwords.
 
 **Always use role-specific sign-in URLs** so demo users skip the “district vs educator” picker:
 
-- District: `http://localhost:3000/sign-in?intent=district`
-- Educator: `http://localhost:3000/sign-in?intent=educator`
+- District: `http://localhost:3010/sign-in?intent=district`
+- Educator: `http://localhost:3010/sign-in?intent=educator`
 
 ### 5. Sign out between demos
 
@@ -241,7 +241,7 @@ Only show if Chris asks about first-time signup.
 
 - [ ] Accept a proposal and open Contract Hub on both dashboards
 - [ ] Sign in as Miguel or Alana to show roster variety
-- [ ] Run Playwright: `npx playwright test e2e/smoke.spec.ts e2e/checkout.spec.ts e2e/launch-flow.spec.ts`
+- [ ] Run Playwright: `npm run test:e2e`
 - [ ] Capture screenshots / Loom for async review
 
 ---

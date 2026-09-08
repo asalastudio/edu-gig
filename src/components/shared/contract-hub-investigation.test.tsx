@@ -191,6 +191,33 @@ describe("ContractHub private agreement flow", () => {
         expect(mocks.requestUpload).toHaveBeenCalledTimes(1);
     });
 
+    it("replays the selected engagement after URL context reacts during uncertain create recovery", async () => {
+        const user = userEvent.setup();
+        window.history.replaceState({}, "", "/dashboard/district/contract-hub?engagement=engagement-1");
+        mocks.engagements = [
+            mocks.engagements[0],
+            { ...mocks.engagements[0], _id: "engagement-2", orgName: "Second District", title: "Math support" },
+        ];
+        mocks.createDraft.mockReset().mockRejectedValueOnce(new Error("Response lost")).mockResolvedValue({ contractId: "contract-2", versionId: "version-1", revision: 1 });
+        const { rerender } = render(<ContractHub role="district" />);
+        await waitFor(() => expect(screen.getByLabelText("Engagement")).toHaveValue("engagement-1"));
+
+        await user.selectOptions(screen.getByLabelText("Engagement"), "engagement-2");
+        await user.upload(screen.getByLabelText("Agreement file"), new File(["agreement"], "scope.pdf", { type: "application/pdf" }));
+        await user.click(screen.getByRole("button", { name: "Save private draft" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Response lost");
+        const first = mocks.createDraft.mock.calls[0][0];
+        expect(first).toMatchObject({ engagementId: "engagement-2" });
+
+        mocks.engagements = mocks.engagements.map((engagement) => ({ ...engagement, revision: Number(engagement.revision) + 1 }));
+        rerender(<ContractHub role="district" />);
+        await user.click(screen.getByRole("button", { name: "Retry unchanged save" }));
+
+        await waitFor(() => expect(mocks.createDraft).toHaveBeenCalledTimes(2));
+        expect(mocks.createDraft.mock.calls[1][0]).toEqual(first);
+        expect(mocks.requestUpload).toHaveBeenCalledTimes(1);
+    });
+
     it("replays an immutable share snapshot after a committed response is lost and revision reacts", async () => {
         const user = userEvent.setup();
         mocks.agreements = [{

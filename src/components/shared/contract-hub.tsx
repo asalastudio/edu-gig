@@ -158,6 +158,7 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
     const [contextVersionId, setContextVersionId] = useState<string | null>(null);
     const [draftRecoveryLocked, setDraftRecoveryLocked] = useState(false);
     const draftOperation = useRef<DraftOperation | null>(null);
+    const appliedUrlContext = useRef<string | null>(null);
 
     const visible = useMemo(
         () => (engagements ?? []).filter((engagement) => !!engagement.archivedForViewer === showArchived),
@@ -170,6 +171,8 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
 
     useEffect(() => {
         if (!engagements) return;
+        const contextKey = window.location.search;
+        if (appliedUrlContext.current === contextKey) return;
         const params = new URLSearchParams(window.location.search);
         const engagementId = params.get("engagement");
         const contextualEngagement = engagements.find((engagement) => engagement._id === engagementId);
@@ -179,6 +182,7 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
         }
         setContextAgreementId(params.get("agreement"));
         setContextVersionId(params.get("version"));
+        appliedUrlContext.current = contextKey;
     }, [engagements, partyEngagements]);
 
     function chooseFile(file: File | null) {
@@ -192,25 +196,29 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
     }
 
     async function saveDraft() {
-        if (!selectedEngagement) return setError("Choose an engagement first.");
-        if (!selectedFile) return setError("Choose an agreement file first.");
+        const recoveryOperation = draftOperation.current?.createAttempted ? draftOperation.current : null;
+        if (!recoveryOperation && !selectedEngagement) return setError("Choose an engagement first.");
+        if (!recoveryOperation && !selectedFile) return setError("Choose an agreement file first.");
         setBusy(true);
         setError(null);
-        setStatus("Uploading private agreement…");
-        const currentInput = {
-            engagementId: selectedEngagement as Id<"engagements">,
-            title: title.trim() || selectedFile.file.name,
-            notes: notes.trim() || undefined,
-            file: selectedFile.file,
-            selectionId: selectedFile.selectionId,
-        };
-        const prior = draftOperation.current;
-        const sameInput = prior && prior.engagementId === currentInput.engagementId && prior.title === currentInput.title && prior.notes === currentInput.notes && prior.selectionId === currentInput.selectionId;
-        const operation = sameInput ? prior : {
-            ...currentInput,
-            uploadRequestId: newRequestId(),
-            mutationRequestId: newRequestId(),
-        };
+        setStatus(recoveryOperation ? "Recovering private agreement…" : "Uploading private agreement…");
+        const operation = recoveryOperation ?? (() => {
+            const fileSelection = selectedFile!;
+            const currentInput = {
+                engagementId: selectedEngagement as Id<"engagements">,
+                title: title.trim() || fileSelection.file.name,
+                notes: notes.trim() || undefined,
+                file: fileSelection.file,
+                selectionId: fileSelection.selectionId,
+            };
+            const prior = draftOperation.current;
+            const sameInput = prior && prior.engagementId === currentInput.engagementId && prior.title === currentInput.title && prior.notes === currentInput.notes && prior.selectionId === currentInput.selectionId;
+            return sameInput ? prior : {
+                ...currentInput,
+                uploadRequestId: newRequestId(),
+                mutationRequestId: newRequestId(),
+            };
+        })();
         draftOperation.current = operation;
         try {
             const privateFileId = operation.privateFileId ?? (await uploadAgreement({
@@ -230,7 +238,7 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
                 requestId: operation.mutationRequestId,
             });
             setStatus("Agreement saved privately. Share it only when it is ready for the other party.");
-            if (selectedFile.selectionId === operation.selectionId) setSelectedFile(null);
+            if (selectedFile?.selectionId === operation.selectionId) setSelectedFile(null);
             draftOperation.current = null;
             setDraftRecoveryLocked(false);
             setNotes("");

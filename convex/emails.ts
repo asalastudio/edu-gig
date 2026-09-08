@@ -44,6 +44,11 @@ type ResendPayload = {
 };
 
 async function sendViaResend(payload: ResendPayload, capture?: { ctx: ActionCtx; kind: string; sourceId: string }): Promise<void> {
+    if (capture && ["sendNewMessageAlert", "sendNewProposalAlert", "sendProposalAcceptedAlert", "sendNewNeedAlert"].includes(capture.kind)) {
+        const outboxId = await capture.ctx.runMutation(internal.delivery.enqueueLegacy, { kind: capture.kind, sourceId: capture.sourceId, subject: payload.subject, text: payload.text, recipientEmail: payload.to[0] });
+        if (outboxId) await capture.ctx.runAction(internal.delivery.dispatch, { outboxId });
+        return;
+    }
     if (process.env.APP_ENV === "staging") {
         assertStagingEnvironment();
         if (!capture) throw new Error("Staging email capture context required");
@@ -212,7 +217,7 @@ export const sendNewMessageAlert = internalAction({
                 senderName,
                 recipientFirstName,
                 messagePreview: content,
-                conversationUrl: `${appUrl()}/dashboard/messages`,
+                conversationUrl: `${appUrl()}/dashboard/messages?to=${sender._id}`,
             });
 
             await sendViaResend({
@@ -301,7 +306,7 @@ export const sendProposalAcceptedAlert = internalAction({
                 needTitle: need.areaOfNeed || "your placement",
                 orgName: need.orgName,
                 educatorFirstName: educatorUser.firstName || "there",
-                needUrl: `${appUrl()}/dashboard/educator/needs`,
+                needUrl: data.engagementId ? `${appUrl()}/dashboard/engagements/${data.engagementId}` : `${appUrl()}/dashboard/board/${need._id}/propose`,
             });
 
             await sendViaResend({
@@ -396,7 +401,7 @@ export const sendNewNeedAlert = internalAction({
                 orgName: need.orgName,
                 areaLabel: getAreaOfNeedLabel(need.areaOfNeed),
                 gradeLevel,
-                needsBoardUrl: `${appUrl()}/dashboard/educator/needs`,
+                needsBoardUrl: `${appUrl()}/dashboard/board/${args.needId}/propose`,
             });
 
             await sendViaResend({
@@ -514,7 +519,8 @@ export const getProposalContext = internalQuery({
         const educatorUser = await ctx.db.get(proposal.educatorUserId);
         const districtUser = await ctx.db.get(need.postedByUserId);
         if (!educatorUser || !districtUser) return null;
-        return { proposal, need, educatorUser, districtUser };
+        const engagement = await ctx.db.query("engagements").withIndex("by_proposal", q => q.eq("proposalId", proposal._id)).first();
+        return { proposal, need, educatorUser, districtUser, engagementId: engagement?._id };
     },
 });
 

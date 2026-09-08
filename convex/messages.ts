@@ -1,8 +1,9 @@
+import { enqueue } from "./lib/outbox";
+import { canAccessEngagement, canManageNeed } from "./lib/auth";
 import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import { canSendMessage } from "../src/lib/messaging-policy";
 
 async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
@@ -41,6 +42,19 @@ export const send = mutation({
         const recipient = await ctx.db.get(args.recipientUserId);
         if (!recipient) throw new Error("Recipient not found");
 
+        if (args.engagementId) {
+            const e = await ctx.db.get(args.engagementId);
+            if (!e || !await canAccessEngagement(ctx, sender, e) || !await canAccessEngagement(ctx, recipient, e) ||
+                (sender._id !== e.educatorUserId && recipient._id !== e.educatorUserId) || (args.needId && args.needId !== e.needId)) throw new Error("Forbidden context");
+        }
+        if (args.needId) {
+            const need = await ctx.db.get(args.needId);
+            if (!need) throw new Error("Forbidden context");
+            const consultant = sender.role === "educator" ? sender : recipient.role === "educator" ? recipient : null;
+            const district = consultant?._id === sender._id ? recipient : sender;
+            const proposals = await ctx.db.query("proposals").withIndex("by_need", q => q.eq("needId", need._id)).collect();
+            if (!consultant || !await canManageNeed(ctx, district, need) || !proposals.some(p => p.educatorUserId === consultant._id)) throw new Error("Forbidden context");
+        }
         const conversationId = conversationKey(sender._id, args.recipientUserId);
 
         // One-way initiation: only districts start conversations. An educator may
@@ -66,21 +80,7 @@ export const send = mutation({
             createdAt: Date.now(),
         });
 
-        await ctx.db.insert("notifications", {
-            userId: args.recipientUserId,
-            type: "message",
-            title: `New message from ${sender.firstName}`,
-            body: args.content.slice(0, 140),
-            read: false,
-            actionUrl: "/dashboard/messages",
-            createdAt: Date.now(),
-        });
-
-        try {
-            await ctx.scheduler.runAfter(0, internal.emails.sendNewMessageAlert, { messageId });
-        } catch (err) {
-            console.log("[messages.send] email schedule skipped:", err);
-        }
+        await enqueue(ctx, { eventKey: `message:${messageId}`, sourceId: messageId, recipientUserId: args.recipientUserId, type: "message", title: `New message from ${sender.firstName}`, body: args.content.slice(0, 140), actionUrl: `/dashboard/messages?to=${sender._id}` });
 
         return messageId;
     },

@@ -1,9 +1,10 @@
+import { enqueue } from "./lib/outbox";
+import { ownedFile } from "./privateFiles";
 import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import { acceptsEducatorProposals } from "../src/lib/need-status";
 import { createEngagementFromAcceptance } from "./lib/createEngagement";
 import { assertProposalAcceptable, assertProposalRejectable } from "./lib/proposalAcceptance";
@@ -56,6 +57,7 @@ const proposalDocValidator = v.object({
     educatorUserId: v.id("users"),
     message: v.string(),
     attachmentStorageId: v.optional(v.id("_storage")),
+    attachmentPrivateFileId: v.optional(v.id("privateFiles")),
     attachmentName: v.optional(v.string()),
     proposedRate: v.optional(v.number()),
     proposedRateUnit: v.optional(proposedRateUnitValidator),
@@ -79,7 +81,7 @@ export const generateAttachmentUploadUrl = mutation({
     returns: v.string(),
     handler: async (ctx) => {
         await requireEducatorViewer(ctx);
-        return await ctx.storage.generateUploadUrl();
+        throw new Error("Private upload required; refresh the application");
     },
 });
 
@@ -88,6 +90,7 @@ export const submit = mutation({
         needId: v.id("needs"),
         message: v.string(),
         attachmentStorageId: v.optional(v.id("_storage")),
+        attachmentPrivateFileId: v.optional(v.id("privateFiles")),
         attachmentName: v.optional(v.string()),
         proposedRate: v.optional(v.number()),
         proposedRateUnit: v.optional(proposedRateUnitValidator),
@@ -101,7 +104,9 @@ export const submit = mutation({
             .withIndex("by_user_id", (q) => q.eq("userId", user._id))
             .first();
         if (!educator) throw new Error("No educator profile");
-        if (!args.attachmentStorageId && !educator.resumeStorageId) {
+        if (args.attachmentStorageId) throw new Error("Raw storage IDs are forbidden");
+        if (args.attachmentPrivateFileId) await ownedFile({ ...ctx, user }, args.attachmentPrivateFileId, "proposal", undefined, args.needId);
+        if (!args.attachmentPrivateFileId && !educator.resumePrivateFileId) {
             throw new Error("Attach a resume/CV or upload one on your profile before submitting a proposal.");
         }
 
@@ -130,7 +135,7 @@ export const submit = mutation({
             educatorId: educator._id,
             educatorUserId: user._id,
             message: trimmed,
-            attachmentStorageId: args.attachmentStorageId ?? educator.resumeStorageId,
+            attachmentPrivateFileId: args.attachmentPrivateFileId ?? educator.resumePrivateFileId,
             attachmentName: args.attachmentName?.trim() || educator.resumeFileName,
             proposedRate: args.proposedRate,
             proposedRateUnit: args.proposedRateUnit,
@@ -140,21 +145,7 @@ export const submit = mutation({
 
         // Notify the poster.
         const educatorName = `${user.firstName} ${user.lastName}`.trim() || "An educator";
-        await ctx.db.insert("notifications", {
-            userId: need.postedByUserId,
-            type: "proposal",
-            title: `New proposal from ${educatorName}`,
-            body: trimmed.slice(0, 140),
-            read: false,
-            actionUrl: `/dashboard/district/needs/${args.needId}`,
-            createdAt: Date.now(),
-        });
-
-        try {
-            await ctx.scheduler.runAfter(0, internal.emails.sendNewProposalAlert, { proposalId });
-        } catch (err) {
-            console.log("[proposals.submit] email schedule skipped:", err);
-        }
+        await enqueue(ctx, { eventKey: `proposal:${proposalId}`, sourceId: proposalId, recipientUserId: need.postedByUserId, type: "proposal", title: `New proposal from ${educatorName}`, body: trimmed.slice(0, 140), actionUrl: `/dashboard/district/needs/${args.needId}` });
 
         return proposalId;
     },
@@ -232,7 +223,7 @@ export const listForNeed = query({
 });
 
 /**
- * Signed URL for a proposal's attachment. Visible to the educator who submitted
+ * Authenticated application route for a proposal's attachment. Visible to the educator who submitted
  * it and to the district that can manage the need. Returns null otherwise.
  */
 export const getAttachmentUrl = query({
@@ -245,7 +236,7 @@ export const getAttachmentUrl = query({
         if (!user) return null;
 
         const proposal = await ctx.db.get(args.proposalId);
-        if (!proposal || !proposal.attachmentStorageId) return null;
+        if (!proposal || !proposal.attachmentPrivateFileId) return null;
 
         const isOwner = proposal.educatorUserId === user._id;
         let allowed = isOwner;
@@ -255,7 +246,7 @@ export const getAttachmentUrl = query({
         }
         if (!allowed) return null;
 
-        return await ctx.storage.getUrl(proposal.attachmentStorageId);
+        return `/api/private-files/proposals/${proposal._id}`;
     },
 });
 
@@ -293,11 +284,15 @@ export const accept = mutation({
             .query("proposals")
             .withIndex("by_need", (q) => q.eq("needId", proposal.needId))
             .collect();
-        const existingEngagement = await ctx.db
+        const historicalEngagements = await ctx.db
             .query("engagements")
             .withIndex("by_need", (q) => q.eq("needId", proposal.needId))
-            .first();
-        assertProposalAcceptable({ proposal, need, siblings, existingEngagement });
+            .collect();
+        const original = historicalEngagements.find(e => e.proposalId === proposal._id);
+        if (proposal.status === "accepted" && original) return { proposalId: proposal._id, engagementId: original._id };
+        const existingEngagement = historicalEngagements.find(e => e.status !== "cancelled") ?? null;
+        const activeSiblings = siblings.filter(p => !historicalEngagements.some(e => e.proposalId === p._id && e.status === "cancelled"));
+        assertProposalAcceptable({ proposal, need, siblings: activeSiblings, existingEngagement });
 
         await ctx.db.patch(args.proposalId, { status: "accepted" });
         await ctx.db.patch(proposal.needId, { status: "placed" });
@@ -317,23 +312,7 @@ export const accept = mutation({
             now: Date.now(),
         });
 
-        await ctx.db.insert("notifications", {
-            userId: proposal.educatorUserId,
-            type: "proposal_accepted",
-            title: "Your proposal was accepted",
-            body: `${need.orgName} accepted your proposal. Open My Gigs to coordinate the engagement.`,
-            read: false,
-            actionUrl: `/dashboard/engagements/${engagementId}`,
-            createdAt: Date.now(),
-        });
-
-        try {
-            await ctx.scheduler.runAfter(0, internal.emails.sendProposalAcceptedAlert, {
-                proposalId: args.proposalId,
-            });
-        } catch (err) {
-            console.log("[proposals.accept] email schedule skipped:", err);
-        }
+        await enqueue(ctx, { eventKey: `proposal-accepted:${proposal._id}`, sourceId: proposal._id, recipientUserId: proposal.educatorUserId, type: "proposal_accepted", title: "Your proposal was accepted", body: `${need.orgName} accepted your proposal. Open My Gigs to coordinate the engagement.`, actionUrl: `/dashboard/engagements/${engagementId}` });
 
         return { proposalId: args.proposalId, engagementId };
     },

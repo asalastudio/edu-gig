@@ -1,3 +1,4 @@
+import { encryptFile, validateFile } from "./lib/privateCrypto";
 /** Internal-only synthetic staging fixtures. No user impersonation or auth bypass. */
 import { v } from "convex/values";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
@@ -6,6 +7,7 @@ import type { Id, TableNames } from "./_generated/dataModel";
 import { assertStagingEnvironment } from "./lib/staging";
 
 const account = v.object({ alias: v.string(), email: v.string(), clerkId: v.string() });
+const encryption = v.object({ sha256: v.string(), nonce: v.string(), keyId: v.string(), size: v.number() });
 const file = v.object({ name: v.string(), base64: v.string() });
 const receipt = v.object({ seeded: v.boolean(), count: v.number() });
 const ALIASES = ["district-a", "consultant-a", "district-b", "consultant-b", "fresh-district", "fresh-consultant", "district-teammate", "consultant-unavailable", "consultant-reviewed", "review-admin"];
@@ -30,15 +32,19 @@ export const seed = internalAction({
         const existing = await ctx.runQuery(internal.qa.status, { namespace: args.namespace });
         if (existing) return { seeded: false, count: existing.count };
         const storageIds: Id<"_storage">[] = [];
+        const encryptedMetadata: Array<{ sha256: string; nonce: string; keyId: string; size: number }> = [];
         try {
             for (const file of args.files) {
                 const bytes = Uint8Array.from(atob(file.base64), c => c.charCodeAt(0));
                 if (bytes.length > 1024 * 1024) throw new Error("QA fixture too large");
-                storageIds.push(await ctx.storage.store(new Blob([bytes], { type: "application/pdf" })));
+                validateFile(bytes, { fileName: file.name, mimeType: "application/pdf", size: bytes.length, purpose: "agreement" });
+                const encrypted = await encryptFile(bytes);
+                storageIds.push(await ctx.storage.store(new Blob([encrypted.ciphertext], { type: "application/octet-stream" })));
+                encryptedMetadata.push({ sha256: encrypted.sha256, nonce: encrypted.nonce, keyId: encrypted.keyId, size: bytes.length });
             }
             const result = await ctx.runMutation(internal.qa.seedRows, {
                 namespace: args.namespace, accounts: args.accounts,
-                files: args.files.map((f, i) => ({ name: f.name, storageId: storageIds[i] })),
+                files: args.files.map((f, i) => ({ name: f.name, storageId: storageIds[i], encryption: encryptedMetadata[i] })),
             });
             if (!result.seeded) for (const id of storageIds) await ctx.storage.delete(id);
             return result;
@@ -50,7 +56,7 @@ export const seed = internalAction({
 });
 
 export const seedRows = internalMutation({
-    args: { namespace: v.string(), accounts: v.array(account), files: v.array(v.object({ name: v.string(), storageId: v.id("_storage") })) }, returns: receipt,
+    args: { namespace: v.string(), accounts: v.array(account), files: v.array(v.object({ name: v.string(), storageId: v.id("_storage"), encryption })) }, returns: receipt,
     handler: async (ctx, args) => {
         assertStagingEnvironment(); namespace(args.namespace);
         const old = await ctx.db.query("qaRuns").withIndex("by_namespace", q => q.eq("namespace", args.namespace)).unique();
@@ -148,6 +154,23 @@ export const seedRows = internalMutation({
         track("qaEmailCaptures", await ctx.db.insert("qaEmailCaptures", {
             sourceId: "synthetic-failure", kind: "fixture", status: "simulated_failure", subject: "Synthetic provider failure; no external request made", appUrl: process.env.NEXT_PUBLIC_APP_URL!, createdAt: now,
         }));
+        // Internal row finalization receives only encrypted storage receipts from seed.
+        {
+            for (const record of [...records]) {
+                if (record.table === "contracts") {
+                    const c = await ctx.db.get(record.id as Id<"contracts">); if (!c?.storageId) continue;
+                    const f = args.files.find(x => x.storageId === c.storageId)!;
+                    const privateFileId = track("privateFiles", await ctx.db.insert("privateFiles", { ownerUserId: c.uploadedByUserId, purpose: "agreement", engagementId: c.engagementId, storageId: f.storageId, fileName: c.fileName ?? f.name, mimeType: "application/pdf", ...f.encryption!, createdAt: c.createdAt }));
+                    const versionId = track("agreementVersions", await ctx.db.insert("agreementVersions", { contractId: c._id, privateFileId, number: 1, kind: "original", uploadedByUserId: c.uploadedByUserId, fileName: c.fileName ?? f.name, createdAt: c.createdAt, legacyStatus: c.status, ...(c.status === "draft" ? {} : { sharedAt: c.createdAt, sharedByUserId: c.uploadedByUserId }) }));
+                    await ctx.db.patch(c._id, { managed: true, revision: 1, privateFileId, currentSharedVersionId: c.status === "draft" ? undefined : versionId, storageId: undefined });
+                } else if (record.table === "proposals") {
+                    const p = await ctx.db.get(record.id as Id<"proposals">); if (!p?.attachmentStorageId) continue;
+                    const f = args.files.find(x => x.storageId === p.attachmentStorageId)!;
+                    const privateFileId = track("privateFiles", await ctx.db.insert("privateFiles", { ownerUserId: p.educatorUserId, purpose: "proposal", needId: p.needId, storageId: f.storageId, fileName: p.attachmentName ?? f.name, mimeType: "application/pdf", ...f.encryption!, createdAt: p.createdAt }));
+                    await ctx.db.patch(p._id, { attachmentPrivateFileId: privateFileId, attachmentStorageId: undefined });
+                }
+            }
+        }
         await ctx.db.insert("qaRuns", { namespace: args.namespace, records, createdAt: now });
         return { seeded: true, count: records.length };
     },
@@ -171,10 +194,18 @@ export const reset = internalMutation({
         assertStagingEnvironment(); namespace(args.namespace);
         const run = await ctx.db.query("qaRuns").withIndex("by_namespace", q => q.eq("namespace", args.namespace)).unique();
         if (!run) return { deleted: 0, cancelledJobs: 0 };
-        const ids = new Set(run.records.map(r => r.id));
+        const records = [...run.records];
+        const ids = new Set(records.map(r => r.id));
+        const outbox = await ctx.db.query("deliveryOutbox").take(500);
+        if (outbox.length === 500) throw new Error("Outbox reset safety bound exceeded");
+        for (const job of outbox) if (ids.has(job.sourceId)) {
+            records.push({ table: "deliveryOutbox", id: job._id }); ids.add(job._id);
+            if (job.notificationId) { records.push({ table: "notifications", id: job.notificationId }); ids.add(job.notificationId); }
+            for (const attempt of await ctx.db.query("deliveryAttempts").withIndex("by_outbox", q => q.eq("outboxId", job._id)).collect()) { records.push({ table: "deliveryAttempts", id: attempt._id }); ids.add(attempt._id); }
+        }
         const referencesFixture = (value: unknown): boolean => typeof value === "string" ? ids.has(value) : Array.isArray(value) ? value.some(referencesFixture) : !!value && typeof value === "object" ? Object.values(value).some(referencesFixture) : false;
         // Never orphan reviewer-created records. Refuse reset if they depend on fixtures.
-        for (const table of ["users", "needs", "proposals", "engagements", "contracts", "contractEvents", "messages", "credentials", "educators", "orders", "reviews"] as const) {
+        for (const table of ["users", "needs", "proposals", "engagements", "contracts", "contractEvents", "messages", "credentials", "educators", "orders", "reviews", "agreementVersions", "privateFiles", "uploadTickets", "operationReceipts", "engagementEvents", "privateMigration"] as const) {
             const rows = await ctx.db.query(table).take(500);
             if (rows.length === 500) throw new Error("Reset safety scan bound exceeded");
             if (rows.some(r => !ids.has(r._id) && referencesFixture(r))) throw new Error(`Reset refused: unrelated ${table} record references fixtures`);
@@ -188,12 +219,12 @@ export const reset = internalMutation({
             if (rows.length === 500) throw new Error("Capture safety scan bound exceeded");
             for (const row of rows) if (!ids.has(row._id) && ids.has(row.sourceId)) await ctx.db.delete(row._id);
         }
-        for (const row of [...run.records].reverse()) {
-            if (row.table === "_storage") await ctx.storage.delete(row.id as Id<"_storage">);
+        for (const row of records.reverse()) {
+            if (row.table === "_storage") { if (await ctx.db.system.get(row.id as Id<"_storage">)) await ctx.storage.delete(row.id as Id<"_storage">); }
             else await ctx.db.delete(row.id as Id<TableNames>);
         }
         await ctx.db.delete(run._id);
-        return { deleted: run.records.length, cancelledJobs };
+        return { deleted: records.length, cancelledJobs };
     },
 });
 

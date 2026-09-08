@@ -282,6 +282,9 @@ export const setAvatar = mutation({
     args: { storageId: v.id("_storage") },
     handler: async (ctx, args) => {
         const user = await requireViewerRow(ctx);
+        if (await ctx.db.query("privateFiles").withIndex("by_storage", q => q.eq("storageId", args.storageId)).first()) throw new Error("Private files cannot be avatars");
+        const stored = await ctx.db.system.get(args.storageId);
+        if (!stored?.contentType?.startsWith("image/")) throw new Error("Avatar image required");
         const url = await ctx.storage.getUrl(args.storageId);
         if (!url) throw new Error("Uploaded file not found");
         if (user.avatarStorageId && user.avatarStorageId !== args.storageId) {
@@ -423,6 +426,7 @@ export const completeOnboarding = mutation({
         const firstName = cleanText(args.firstName) || parts[0] || email.split("@")[0] || "User";
         const lastName = cleanText(args.lastName) || (parts.length > 1 ? parts.slice(1).join(" ") : "");
 
+        if (args.resumeStorageId) throw new Error("Private resume upload required after onboarding");
         const educatorProfile = educatorProfileFromArgs(args);
         const isDistrict = isDistrictRole(args.role);
         const districtName = cleanText(args.organizationName);
@@ -562,6 +566,6 @@ export const generateOnboardingResumeUploadUrl = mutation({
     handler: async (ctx) => {
         const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Not authenticated");
-        return await ctx.storage.generateUploadUrl();
+        throw new Error("Private resume upload required after onboarding");
     },
 });

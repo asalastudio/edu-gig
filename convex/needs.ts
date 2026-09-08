@@ -1,9 +1,9 @@
+import { enqueue } from "./lib/outbox";
 import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import {
     getNeedPublishIssues,
     normalizeNeedInput,
@@ -72,21 +72,7 @@ async function matchEducatorsForNeed(ctx: MutationCtx, need: Doc<"needs">) {
 async function fanOutNeedAlerts(ctx: MutationCtx, need: Doc<"needs">) {
     const matches = await matchEducatorsForNeed(ctx, need);
     for (const { user: educatorUser } of matches) {
-        await ctx.db.insert("notifications", {
-            userId: educatorUser._id,
-            type: "new_need",
-            title: `New need at ${need.orgName}`,
-            body: "A district posted an open need that matches your profile.",
-            read: false,
-            actionUrl: "/dashboard/educator/needs",
-            createdAt: Date.now(),
-        });
-        if (educatorUser.email && educatorUser.emailRemindersOptOut !== true) {
-            await ctx.scheduler.runAfter(0, internal.emails.sendNewNeedAlert, {
-                needId: need._id,
-                recipientUserId: educatorUser._id,
-            });
-        }
+        await enqueue(ctx, { eventKey: `need:${need._id}`, sourceId: need._id, recipientUserId: educatorUser._id, type: "new_need", title: `New need at ${need.orgName}`, body: "A district posted an open need that matches your profile.", actionUrl: `/dashboard/board/${need._id}/propose`, emailEnabled: !!educatorUser.email && educatorUser.emailRemindersOptOut !== true });
     }
 }
 
@@ -344,6 +330,10 @@ export const updateStatus = mutation({
         if (!need) throw new Error("Not found");
         if (!(await canManageNeed(ctx, user, need))) {
             throw new Error("Forbidden");
+        }
+        if (["open", "interviewing"].includes(args.status) && !["open", "interviewing"].includes(need.status)) {
+            const history = await ctx.db.query("engagements").withIndex("by_need", q => q.eq("needId", need._id)).first();
+            if (history) throw new Error("Use explicit canceled-engagement correction to reopen this need");
         }
         await ctx.db.patch(args.needId, { status: args.status });
         return args.needId;

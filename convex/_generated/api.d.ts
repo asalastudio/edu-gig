@@ -8,6 +8,10 @@
  * @module
  */
 
+import type * as agreementVersions from "../agreementVersions.js";
+import type * as privateFiles from "../privateFiles.js";
+import type * as delivery from "../delivery.js";
+import type * as privateMigration from "../privateMigration.js";
 import type * as admin from "../admin.js";
 import type * as beta_founding_profiles from "../beta_founding_profiles.js";
 import type * as beta_launch from "../beta_launch.js";
@@ -48,6 +52,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agreementVersions: typeof agreementVersions;
+  privateFiles: typeof privateFiles;
+  delivery: typeof delivery;
+  privateMigration: typeof privateMigration;
   admin: typeof admin;
   beta_founding_profiles: typeof beta_founding_profiles;
   beta_launch: typeof beta_launch;

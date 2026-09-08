@@ -1,3 +1,5 @@
+import { ownedFile } from "./privateFiles";
+import { downloadPath } from "./lib/releaseDomain";
 import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
@@ -242,13 +244,14 @@ export const generateResumeUploadUrl = mutation({
     returns: v.string(),
     handler: async (ctx) => {
         await requireEducatorViewer(ctx);
-        return await ctx.storage.generateUploadUrl();
+        throw new Error("Private upload required; refresh the application");
     },
 });
 
 export const setResume = mutation({
     args: {
-        storageId: v.id("_storage"),
+        storageId: v.optional(v.id("_storage")),
+        privateFileId: v.optional(v.id("privateFiles")),
         fileName: v.string(),
     },
     returns: v.id("educators"),
@@ -259,13 +262,9 @@ export const setResume = mutation({
             .withIndex("by_user_id", (q) => q.eq("userId", user._id))
             .first();
         if (!edu) throw new Error("No educator profile");
-        if (edu.resumeStorageId && edu.resumeStorageId !== args.storageId) {
-            await ctx.storage.delete(edu.resumeStorageId);
-        }
-        await ctx.db.patch(edu._id, {
-            resumeStorageId: args.storageId,
-            resumeFileName: args.fileName.trim() || "Resume.pdf",
-        });
+        if (args.storageId || !args.privateFileId) throw new Error("Owned private resume required");
+        const file = await ownedFile({ ...ctx, user }, args.privateFileId, "resume");
+        await ctx.db.patch(edu._id, { resumePrivateFileId: file._id, resumeStorageId: undefined, resumeFileName: file.fileName });
         return edu._id;
     },
 });
@@ -280,8 +279,8 @@ export const clearResume = mutation({
             .withIndex("by_user_id", (q) => q.eq("userId", user._id))
             .first();
         if (!edu) throw new Error("No educator profile");
-        if (edu.resumeStorageId) await ctx.storage.delete(edu.resumeStorageId);
         await ctx.db.patch(edu._id, {
+            resumePrivateFileId: undefined,
             resumeStorageId: undefined,
             resumeFileName: undefined,
         });
@@ -301,10 +300,10 @@ export const getResumeUrl = query({
         const viewer = await getUserByClerkId(ctx, identity.subject);
         if (!viewer) return null;
         const educator = await ctx.db.get(args.educatorId);
-        if (!educator || !educator.resumeStorageId) return null;
+        if (!educator || !educator.resumePrivateFileId) return null;
         const isOwner = educator.userId === viewer._id;
         if (!isOwner && !isDistrictRole(viewer.role)) return null;
-        const url = await ctx.storage.getUrl(educator.resumeStorageId);
+        const url = downloadPath(educator.resumePrivateFileId);
         if (!url) return null;
         return { url, fileName: educator.resumeFileName ?? "Resume.pdf" };
     },

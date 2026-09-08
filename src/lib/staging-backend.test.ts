@@ -1,29 +1,11 @@
 // @vitest-environment node
-import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "../../convex/schema";
 import { api, internal } from "../../convex/_generated/api";
 import resources from "../../scripts/staging/resources.json";
-const modules = import.meta.glob("../../convex/**/*.{ts,js}");
-const aliases = ["district-a", "consultant-a", "district-b", "consultant-b", "fresh-district", "fresh-consultant", "district-teammate", "consultant-unavailable", "consultant-reviewed", "review-admin"];
-const accounts = aliases.map((alias, i) => ({ alias, email: `k12gig-staging-${alias}+clerk_test@example.com`, clerkId: `user_test${i}` }));
+import { seeded, accounts, modules } from "./release-test-fixture";
 const namespace = "human-review-v1";
-beforeEach(() => {
-    vi.stubEnv("APP_ENV", "staging"); vi.stubEnv("CONVEX_CLOUD_URL", resources.convexUrl);
-    vi.stubEnv("QA_CONVEX_DEPLOYMENT", resources.convexDeployment); vi.stubEnv("QA_CLERK_INSTANCE_ID", resources.clerkInstanceId);
-    vi.stubEnv("CLERK_JWT_ISSUER_DOMAIN", resources.clerkIssuer); vi.stubEnv("NEXT_PUBLIC_APP_URL", resources.appUrl);
-    vi.stubEnv("QA_EMAIL_MODE", "capture"); vi.stubEnv("QA_ALLOWED_CLERK_IDS", accounts.map(a => a.clerkId).join(","));
-    for (const name of ["RESEND_API_KEY", "STRIPE_SECRET_KEY", "CHECKR_API_KEY"]) vi.stubEnv(name, "");
-});
-afterEach(() => vi.unstubAllEnvs());
-async function seeded() {
-    const t = convexTest(schema, modules);
-    const files = await t.run(async ctx => Promise.all(Array.from({ length: 6 }, async (_, i) => ({ name: `synthetic-${i}.pdf`, storageId: await ctx.storage.store(new Blob(["SYNTHETIC QA — NOT A REAL AGREEMENT"])) }))));
-    await t.mutation(internal.qa.seedRows, { namespace, accounts, files });
-    const rows = await t.run(async ctx => ({ users: await ctx.db.query("users").collect(), engagements: await ctx.db.query("engagements").collect(), contracts: await ctx.db.query("contracts").collect(), messages: await ctx.db.query("messages").collect(), proposals: await ctx.db.query("proposals").collect() }));
-    const as = (alias: string) => t.withIdentity({ subject: accounts.find(a => a.alias === alias)!.clerkId, issuer: resources.clerkIssuer });
-    return { t, files, rows, as };
-}
 describe("isolated staging backend (in-memory; no live fixtures touched)", () => {
     it("seeds twice without duplicates and resets only fixture records, preserving accounts/memberships", async () => {
         const { t, files, rows } = await seeded();
@@ -77,12 +59,11 @@ describe("isolated staging backend (in-memory; no live fixtures touched)", () =>
         await t.mutation(internal.qa.captureNotification, { sourceId: rows.messages[0]._id, kind: "sendNewMessageAlert" });
         expect(await t.run(ctx => ctx.db.query("qaEmailCaptures").collect())).toHaveLength(0);
     });
-    it("records the known message context authorization defect without claiming it fixed", async () => {
+    it("rejects unrelated message context after the release authorization repair", async () => {
         const { as, rows } = await seeded();
         const unrelated = rows.users.find(u => u.firstName === "consultant-b")!;
-        // District B can write a reference to District A's engagement: confirmed defect H/J.
-        const id = await as("district-b").mutation(api.messages.send, { recipientUserId: unrelated._id, content: "Synthetic negative test", engagementId: rows.engagements[0]._id });
-        expect(id).toBeTruthy();
+        // Both context parties must belong to the engagement.
+        await expect(as("district-b").mutation(api.messages.send, { recipientUserId: unrelated._id, content: "Synthetic negative test", engagementId: rows.engagements[0]._id })).rejects.toThrow("Forbidden");
     });
 });
 
@@ -107,14 +88,14 @@ describe('staging notification and acceptance execution', () => {
             expect((await t.run(ctx => ctx.db.system.get(id)))?.state.kind).toBe('canceled');
         } finally { vi.useRealTimers(); }
     });
-    it('accepts once transactionally, rejects competitors and duplicate acceptance', async () => {
+    it('accepts once transactionally, rejects competitors and replays duplicate acceptance', async () => {
         vi.useFakeTimers();
         try {
             const { t, as, rows } = await seeded();
             const pending = rows.proposals.filter(p => p.status === 'pending');
             const district = as('district-a');
-            await district.mutation(api.proposals.accept, { proposalId: pending[0]._id });
-            await expect(district.mutation(api.proposals.accept, { proposalId: pending[0]._id })).rejects.toThrow('pending');
+            const accepted = await district.mutation(api.proposals.accept, { proposalId: pending[0]._id });
+            expect(await district.mutation(api.proposals.accept, { proposalId: pending[0]._id })).toEqual(accepted);
             await expect(district.mutation(api.proposals.accept, { proposalId: pending[1]._id })).rejects.toThrow('pending');
             expect((await t.run(ctx => ctx.db.get(pending[1]._id)))?.status).toBe('rejected');
             expect(await t.run(ctx => ctx.db.query('engagements').withIndex('by_need', q => q.eq('needId', pending[0].needId)).collect())).toHaveLength(1);
@@ -124,7 +105,7 @@ describe('staging notification and acceptance execution', () => {
 });
 
 describe('document ownership characterization', () => {
-    it('confirms raw storage IDs are not bound to their uploading participant', async () => {
+    it('rejects raw storage IDs even when engagement access is legitimate', async () => {
         const { t, as, rows, files } = await seeded();
         const b = rows.users.find(u => u.firstName === 'district-b')!;
         const c = rows.users.find(u => u.firstName === 'consultant-b')!;
@@ -134,8 +115,7 @@ describe('document ownership characterization', () => {
             void _id; void _creationTime;
             return await ctx.db.insert('engagements', { ...copy, buyerUserId: b._id, educatorUserId: c._id, districtId: undefined });
         });
-        // Known defect: correct own-engagement access does not prove file ownership.
-        const linked = await as('district-b').mutation(api.contracts.create, { engagementId: foreignEngagement, title: 'Synthetic relink probe', storageId: files[2].storageId });
-        expect(await as('district-b').query(api.contracts.getFileUrl, { contractId: linked })).toBeTruthy();
+        // Own-engagement access is insufficient to attach another upload.
+        await expect(as('district-b').mutation(api.contracts.create, { engagementId: foreignEngagement, title: 'Synthetic relink probe', storageId: files[2].storageId })).rejects.toThrow('raw storage');
     });
 });

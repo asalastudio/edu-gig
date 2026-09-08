@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { assertStagingEnvironment } from "./lib/staging";
-import { canAccessEngagement } from "./lib/auth";
+import { canAccessEngagementAsParty } from "./lib/auth";
 import { decryptFile, encryptFile, hashBytes, validateFile, PDF, DOCX } from "./lib/privateCrypto";
 type Source = { sourceId: string; table: "contracts" | "proposals" | "educators" | "credentials"; storageId?: Id<"_storage">; legacyReference?: string; ownerUserId?: Id<"users">; purpose: "agreement" | "proposal" | "resume" | "credential"; engagementId?: Id<"engagements">; needId?: Id<"needs">; fileName?: string; snapshot: string; blocked?: string };
 async function sources(ctx: Pick<QueryCtx, "db">): Promise<Source[]> {
@@ -16,7 +16,7 @@ async function sources(ctx: Pick<QueryCtx, "db">): Promise<Source[]> {
    if (table === "contracts") {
     const c = row as Doc<"contracts">; if (!c.storageId) continue;
     const e = await ctx.db.get(c.engagementId); const owner = await ctx.db.get(c.uploadedByUserId);
-    result.push({ sourceId: c._id, table, storageId: c.storageId, ownerUserId: c.uploadedByUserId, purpose: "agreement", engagementId: c.engagementId, fileName: c.fileName, snapshot: JSON.stringify(c), blocked: !e || !owner || !await canAccessEngagement(ctx as QueryCtx, owner, e) ? "Ownership/engagement unavailable" : undefined });
+    result.push({ sourceId: c._id, table, storageId: c.storageId, ownerUserId: c.uploadedByUserId, purpose: "agreement", engagementId: c.engagementId, fileName: c.fileName, snapshot: JSON.stringify(c), blocked: !e || !owner || !await canAccessEngagementAsParty(ctx as QueryCtx, owner, e) ? "Ownership/engagement unavailable" : undefined });
    } else if (table === "proposals") {
     const p = row as Doc<"proposals">; if (!p.attachmentStorageId) continue;
     const owner = await ctx.db.get(p.educatorUserId); const educator = await ctx.db.get(p.educatorId); const need = await ctx.db.get(p.needId);

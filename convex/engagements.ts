@@ -4,7 +4,7 @@ import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import { authedQuery, authedMutation } from "./lib/customFunctions";
-import { canAccessEngagement, canManageNeed, getEducatorForUser } from "./lib/auth";
+import { canAccessEngagement, canManageNeed, canManageNeedAsParty, getEducatorForUser } from "./lib/auth";
 import { createEngagementFromAcceptance } from "./lib/createEngagement";
 import { engagementStatusValidator, engagementSummaryValidator } from "./lib/validators";
 
@@ -207,7 +207,7 @@ export const transition = authedMutation({
   const e = await engagementAccess(ctx, args.engagementId); const fp = JSON.stringify(["transition", args]); const prior = await receipt(ctx, args.requestId, fp); if (prior) return prior;
   current(e.revision, args.expectedRevision);
   const need = await ctx.db.get(e.needId); if (!need) throw new Error("Need unavailable");
-  if (["start", "complete", "reopen_need"].includes(args.action) && !await canManageNeed(ctx, ctx.user, need)) throw new Error("Forbidden");
+  if (["start", "complete", "reopen_need"].includes(args.action) && !await canManageNeedAsParty(ctx, ctx.user, need)) throw new Error("Forbidden");
   let status = e.status;
   if (args.action === "start") { if (e.status !== "active") throw new Error("Only active work can start"); status = "in_progress"; }
   if (args.action === "complete") { if (e.status !== "in_progress") throw new Error("Only in-progress work can complete"); status = "completed"; }

@@ -1,7 +1,7 @@
 import { sameParty, downloadPath, active } from "./lib/releaseDomain";
 import { v } from "convex/values";
 import { authedMutation, authedQuery } from "./lib/customFunctions";
-import { canAccessEngagement } from "./lib/auth";
+import { canAccessEngagementAsParty } from "./lib/auth";
 import { contractStatusValidator } from "./lib/validators";
 
 const contractRowValidator = v.object({
@@ -27,12 +27,12 @@ const contractEventValidator = v.object({
 });
 
 async function requireEngagementAccess(
-    ctx: Parameters<typeof canAccessEngagement>[0] & { user: Parameters<typeof canAccessEngagement>[1]; db: Parameters<typeof canAccessEngagement>[0]["db"] },
-    engagementId: Parameters<typeof canAccessEngagement>[2]["_id"]
+    ctx: Parameters<typeof canAccessEngagementAsParty>[0] & { user: Parameters<typeof canAccessEngagementAsParty>[1]; db: Parameters<typeof canAccessEngagementAsParty>[0]["db"] },
+    engagementId: Parameters<typeof canAccessEngagementAsParty>[2]["_id"]
 ) {
     const engagement = await ctx.db.get(engagementId);
     if (!engagement) throw new Error("Not found");
-    if (!(await canAccessEngagement(ctx, ctx.user, engagement))) {
+    if (!(await canAccessEngagementAsParty(ctx, ctx.user, engagement))) {
         throw new Error("Forbidden");
     }
     return engagement;

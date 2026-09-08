@@ -84,3 +84,15 @@ export async function canAccessEngagement(
     const district = engagement.districtId ? await ctx.db.get(engagement.districtId) : null;
     return userCanAccessEngagement(user, engagement, district?.adminIds ?? null);
 }
+
+/** Private documents and party lifecycle actions do not inherit global admin powers. */
+export async function canManageNeedAsParty(ctx: QueryCtx | MutationCtx, user: Doc<"users">, need: Doc<"needs">) {
+    if (need.postedByUserId === user._id) return true;
+    const district = need.districtId ? await ctx.db.get(need.districtId) : null;
+    return !!district?.adminIds.includes(user._id);
+}
+export async function canAccessEngagementAsParty(ctx: QueryCtx | MutationCtx, user: Doc<"users">, engagement: Doc<"engagements">) {
+    if (engagement.educatorUserId === user._id || engagement.buyerUserId === user._id) return true;
+    const district = engagement.districtId ? await ctx.db.get(engagement.districtId) : null;
+    return !!district?.adminIds.includes(user._id);
+}

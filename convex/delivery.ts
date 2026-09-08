@@ -81,8 +81,8 @@ export const dispatch = internalAction({
  },
 });
 export const listMine = authedQuery({ args: {}, handler: async ctx => {
- const jobs = await ctx.db.query("deliveryOutbox").order("desc").take(200);
- return await Promise.all(jobs.filter(j => j.recipientUserId === ctx.user._id).map(async j => ({ ...j, history: await ctx.db.query("deliveryAttempts").withIndex("by_outbox", q => q.eq("outboxId", j._id)).collect() })));
+ const jobs = await ctx.db.query("deliveryOutbox").withIndex("by_recipient", q => q.eq("recipientUserId", ctx.user._id)).order("desc").take(200);
+ return await Promise.all(jobs.map(async j => ({ ...j, history: await ctx.db.query("deliveryAttempts").withIndex("by_outbox", q => q.eq("outboxId", j._id)).collect() })));
 } });
 export const retry = authedMutation({ args: { outboxId: v.id("deliveryOutbox") }, handler: async (ctx, args) => {
  const job = await ctx.db.get(args.outboxId);

@@ -419,7 +419,7 @@ export default defineSchema({
         payload: v.optional(v.string()), firstAttemptAt: v.optional(v.number()),
         attempts: v.number(), leaseUntil: v.optional(v.number()), leaseToken: v.optional(v.string()),
         lastError: v.optional(v.string()), providerId: v.optional(v.string()), createdAt: v.number(), updatedAt: v.number(),
-    }).index("by_key", ["eventKey", "recipientUserId"]).index("by_source", ["sourceId"]),
+    }).index("by_key", ["eventKey", "recipientUserId"]).index("by_source", ["sourceId"]).index("by_recipient", ["recipientUserId"]),
     deliveryAttempts: defineTable({
         outboxId: v.id("deliveryOutbox"), attempt: v.number(), state: v.string(),
         error: v.optional(v.string()), createdAt: v.number(),

@@ -1,3 +1,4 @@
+import { canManageNeedAsParty } from "./lib/auth";
 import { enqueue } from "./lib/outbox";
 import { ownedFile } from "./privateFiles";
 import { getAppIdentity } from "./lib/staging";
@@ -242,7 +243,7 @@ export const getAttachmentUrl = query({
         let allowed = isOwner;
         if (!allowed) {
             const need = await ctx.db.get(proposal.needId);
-            allowed = !!need && (await canManageNeed(ctx, user, need));
+            allowed = !!need && (await canManageNeedAsParty(ctx, user, need));
         }
         if (!allowed) return null;
 

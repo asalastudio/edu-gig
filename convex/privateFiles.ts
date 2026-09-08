@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { authedMutation, authedQuery } from "./lib/customFunctions";
 import { internalMutation } from "./_generated/server";
-import { canManageNeed, getCurrentUser, isDistrictRole } from "./lib/auth";
+import { canManageNeedAsParty, getCurrentUser, isDistrictRole } from "./lib/auth";
 import { active, downloadPath, engagementAccess, sameParty, type UserCtx } from "./lib/releaseDomain";
 import { validateMetadata } from "./lib/privateCrypto";
 import type { Id } from "./_generated/dataModel";
@@ -85,7 +85,7 @@ export async function authorizedFile(ctx: UserCtx, id: Id<"privateFiles">) {
  if (educator) for (const p of await ctx.db.query("proposals").withIndex("by_educator", q => q.eq("educatorId", educator._id)).collect()) {
   if (p.attachmentPrivateFileId !== f._id) continue;
   const n = await ctx.db.get(p.needId);
-  if (n && await canManageNeed(ctx, ctx.user, n)) return f;
+  if (n && await canManageNeedAsParty(ctx, ctx.user, n)) return f;
  }
  throw new Error("Forbidden");
 }
@@ -97,7 +97,7 @@ export const metadata = authedQuery({ args: { privateFileId: v.id("privateFiles"
 export const downloadDescriptor = authedQuery({ args: { privateFileId: v.id("privateFiles") }, handler: async (ctx, args) => authorizedFile(ctx, args.privateFileId) });
 export const proposalDownloadDescriptor = authedQuery({ args: { proposalId: v.id("proposals") }, handler: async (ctx, args) => {
  const p = await ctx.db.get(args.proposalId); const n = p ? await ctx.db.get(p.needId) : null;
- if (!p || !n || (p.educatorUserId !== ctx.user._id && !await canManageNeed(ctx, ctx.user, n))) throw new Error("Forbidden");
+ if (!p || !n || (p.educatorUserId !== ctx.user._id && !await canManageNeedAsParty(ctx, ctx.user, n))) throw new Error("Forbidden");
  const f = p.attachmentPrivateFileId ? await ctx.db.get(p.attachmentPrivateFileId) : null;
  if (!f) throw new Error("Private file unavailable; migration required"); return f;
 } });

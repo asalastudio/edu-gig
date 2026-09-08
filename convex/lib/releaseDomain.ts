@@ -1,10 +1,10 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
-import { canAccessEngagement } from "./auth";
+import { canAccessEngagementAsParty } from "./auth";
 export type UserCtx = (QueryCtx | MutationCtx) & { user: Doc<"users"> };
 export async function engagementAccess(ctx: UserCtx, id: Id<"engagements">) {
  const e = await ctx.db.get(id);
- if (!e || !await canAccessEngagement(ctx, ctx.user, e)) throw new Error("Forbidden");
+ if (!e || !await canAccessEngagementAsParty(ctx, ctx.user, e)) throw new Error("Forbidden");
  return e;
 }
 export async function sameParty(ctx: UserCtx, e: Doc<"engagements">, owner: Id<"users">) {

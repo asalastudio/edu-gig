@@ -3,10 +3,13 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CredentialsSection } from "./credentials-section";
 
+vi.hoisted(() => { delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY; });
+
 vi.mock("convex/react", () => ({
     useMutation: () => vi.fn(),
     useQuery: () => null,
 }));
+vi.mock("@clerk/nextjs", () => ({ useAuth: () => { throw new Error("useAuth must remain behind the Clerk provider guard"); } }));
 
 vi.mock("@/convex/_generated/api", () => ({
     api: {
@@ -21,6 +24,9 @@ vi.mock("@/convex/_generated/api", () => ({
         },
         users: {
             viewer: {},
+        },
+        privateFiles: {
+            requestUpload: {},
         },
     },
 }));

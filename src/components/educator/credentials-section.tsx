@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { PrimaryButton } from "@/components/shared/button";
 import { CredentialFileLink } from "@/components/shared/credential-file-link";
 import { isCheckrEnabled } from "@/lib/launch-flags";
+import { privateFileMime, uploadPrivateFile } from "@/lib/private-upload";
 import { Certificate, CheckCircle, Clock, FileArrowUp, Plus } from "@phosphor-icons/react";
 import {
     formatCredentialType,
@@ -24,6 +26,7 @@ type CredentialRow = {
     expiryDate?: string;
     documentUrl?: string;
     storageId?: string;
+    privateFileId?: string;
     verified: boolean;
 };
 
@@ -61,6 +64,16 @@ const DEMO_CREDENTIALS: CredentialRow[] = [
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export function CredentialsSection() {
+    if (!hasClerk) return <CredentialsSectionView getToken={async () => null} />;
+    return <CredentialsSectionWithClerk />;
+}
+
+function CredentialsSectionWithClerk() {
+    const { getToken } = useAuth();
+    return <CredentialsSectionView getToken={() => getToken({ template: "convex" })} />;
+}
+
+function CredentialsSectionView({ getToken }: { getToken: () => Promise<string | null> }) {
     const viewer = useQuery(api.users.viewer, hasClerk ? {} : "skip");
     const educator = useQuery(
         api.educators.getMine,
@@ -78,7 +91,7 @@ export function CredentialsSection() {
         ? (educator.verificationStatus as VerificationStatus)
         : "unverified";
 
-    const generateUploadUrl = useMutation(api.credentials.generateUploadUrl);
+    const requestUpload = useMutation(api.privateFiles.requestUpload);
     const finalizeUpload = useMutation(api.credentials.finalizeUpload);
     const removeCredential = useMutation(api.credentials.remove);
 
@@ -94,7 +107,7 @@ export function CredentialsSection() {
     const [stateField, setStateField] = useState("");
     const [issueDate, setIssueDate] = useState("");
     const [expiryDate, setExpiryDate] = useState("");
-    const [file, setFile] = useState<File | null>(null);
+    const [file, setFile] = useState<{ value: File; requestId: string } | null>(null);
     const checkrEnabled = isCheckrEnabled();
 
     const canSubmit = useMemo(
@@ -119,20 +132,22 @@ export function CredentialsSection() {
         setFormError(null);
         setSubmitting(true);
         try {
-            let storageId: Id<"_storage"> | undefined;
+            let privateFileId: Id<"privateFiles"> | undefined;
             if (file) {
-                const uploadUrl = await generateUploadUrl({});
-                const res = await fetch(uploadUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": file.type || "application/octet-stream" },
-                    body: file,
+                const ticket = await requestUpload({
+                    purpose: "credential",
+                    fileName: file.value.name,
+                    mimeType: privateFileMime(file.value),
+                    size: file.value.size,
+                    requestId: file.requestId,
                 });
-                if (!res.ok) throw new Error("Upload failed");
-                const json = (await res.json()) as { storageId: Id<"_storage"> };
-                storageId = json.storageId;
+                const token = await getToken();
+                if (!token) throw new Error("Your session expired. Sign in again, then retry.");
+                const receipt = await uploadPrivateFile({ file: file.value, ticketId: ticket.ticketId, token });
+                privateFileId = receipt.privateFileId;
             }
             await finalizeUpload({
-                storageId,
+                privateFileId,
                 type,
                 title: title.trim(),
                 issuingBody: issuingBody.trim(),
@@ -144,7 +159,7 @@ export function CredentialsSection() {
             setShowForm(false);
         } catch (err) {
             console.error("Credential save failed:", err);
-            setFormError("Could not save credential. Please try again.");
+            setFormError(err instanceof Error ? err.message : "Could not save credential. Please try again.");
         } finally {
             setSubmitting(false);
         }
@@ -313,18 +328,26 @@ export function CredentialsSection() {
                         <label className="flex items-center gap-3 rounded-lg border border-dashed border-[var(--border-strong)] bg-white px-4 py-3 cursor-pointer hover:border-[var(--accent-primary)]/50">
                             <FileArrowUp weight="bold" className="w-5 h-5 text-[var(--text-tertiary)] shrink-0" />
                             <span className="text-sm text-[var(--text-secondary)] truncate">
-                                {file ? file.name : "Attach a scan or photo — PDF, PNG, or JPG (optional)"}
+                                {file ? file.value.name : "Attach a scan or photo — PDF, PNG, or JPG (optional, up to 10 MB)"}
                             </span>
                             <input
                                 type="file"
-                                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                                onChange={(e) => {
+                                    setFormError(null);
+                                    const selected = e.target.files?.[0] ?? null;
+                                    if (!selected) return setFile(null);
+                                    if (selected.size > 10 * 1024 * 1024) return setFormError("Keep the credential file under 10 MB.");
+                                    if (!/\.(pdf|png|jpe?g)$/i.test(selected.name)) return setFormError("Upload a PDF, PNG, or JPEG credential.");
+                                    setFile({ value: selected, requestId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}` });
+                                }}
                                 className="hidden"
                                 accept=".pdf,.png,.jpg,.jpeg"
                             />
                         </label>
                     </div>
 
-                    {formError && <p className="text-sm text-red-600 font-semibold">{formError}</p>}
+                    {submitting && <p role="status" aria-live="polite" className="text-sm text-[var(--text-secondary)]">Uploading and saving credential…</p>}
+                    {formError && <p role="alert" className="text-sm text-red-600 font-semibold">{formError}</p>}
                     <div className="flex items-center gap-3">
                         <PrimaryButton type="submit" disabled={!canSubmit || submitting}>
                             {submitting ? "Saving…" : "Save credential"}
@@ -411,7 +434,7 @@ export function CredentialsSection() {
                                     </span>
                                 )}
                                 <div className="flex items-center gap-3">
-                                    {!isDemo && (c.storageId || c.documentUrl) && (
+                                    {!isDemo && (c.privateFileId || c.storageId || c.documentUrl) && (
                                         <CredentialFileLink credentialId={c._id} />
                                     )}
                                     {!isDemo && (

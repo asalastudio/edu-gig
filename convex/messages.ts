@@ -3,6 +3,7 @@ import { canAccessEngagement, canManageNeed } from "./lib/auth";
 import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { canSendMessage } from "../src/lib/messaging-policy";
 
@@ -103,7 +104,8 @@ export const listMyConversations = query({
 
         type Conversation = {
             conversationId: string;
-            counterpartId: string;
+            counterpartId: Id<"users">;
+            counterpartEducatorId?: Id<"educators">;
             counterpartName: string;
             lastMessage: string;
             lastAt: number;
@@ -115,12 +117,16 @@ export const listMyConversations = query({
             const prev = byConv.get(m.conversationId);
             if (!prev || m.createdAt > prev.lastAt) {
                 const counterpart = await ctx.db.get(counterpartId);
+                const counterpartEducator = counterpart?.role === "educator"
+                    ? await ctx.db.query("educators").withIndex("by_user_id", (q) => q.eq("userId", counterpart._id)).unique()
+                    : null;
                 byConv.set(m.conversationId, {
                     conversationId: m.conversationId,
                     counterpartId,
                     counterpartName: counterpart
                         ? `${counterpart.firstName} ${counterpart.lastName}`.trim()
                         : "Unknown",
+                    counterpartEducatorId: counterpartEducator?._id,
                     lastMessage: m.content,
                     lastAt: m.createdAt,
                     unread: prev?.unread ?? 0,

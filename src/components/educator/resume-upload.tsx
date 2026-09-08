@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { privateFileMime, uploadPrivateFile } from "@/lib/private-upload";
 
 const ACCEPTED = [
     "application/pdf",
@@ -10,11 +12,22 @@ const ACCEPTED = [
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 const MAX_BYTES = 10 * 1024 * 1024;
+const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export function ResumeUpload() {
+    if (!hasClerk) return <ResumeUploadView getToken={async () => null} />;
+    return <ResumeUploadWithClerk />;
+}
+
+function ResumeUploadWithClerk() {
+    const { getToken } = useAuth();
+    return <ResumeUploadView getToken={() => getToken({ template: "convex" })} />;
+}
+
+function ResumeUploadView({ getToken }: { getToken: () => Promise<string | null> }) {
     const inputRef = useRef<HTMLInputElement>(null);
     const mine = useQuery(api.educators.getMine, {});
-    const generateUrl = useMutation(api.educators.generateResumeUploadUrl);
+    const requestUpload = useMutation(api.privateFiles.requestUpload);
     const setResume = useMutation(api.educators.setResume);
     const clearResume = useMutation(api.educators.clearResume);
     const resume = useQuery(
@@ -23,6 +36,31 @@ export function ResumeUpload() {
     );
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [selected, setSelected] = useState<{ file: File; requestId: string } | null>(null);
+
+    async function uploadSelected(next = selected) {
+        if (!next) return;
+        setBusy(true);
+        setError(null);
+        try {
+            const ticket = await requestUpload({
+                purpose: "resume",
+                fileName: next.file.name,
+                mimeType: privateFileMime(next.file),
+                size: next.file.size,
+                requestId: next.requestId,
+            });
+            const token = await getToken();
+            if (!token) throw new Error("Your session expired. Sign in again, then retry.");
+            const receipt = await uploadPrivateFile({ file: next.file, ticketId: ticket.ticketId, token });
+            await setResume({ privateFileId: receipt.privateFileId, fileName: next.file.name });
+            setSelected(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Could not upload resume.");
+        } finally {
+            setBusy(false);
+        }
+    }
 
     async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
         const file = event.target.files?.[0];
@@ -36,22 +74,9 @@ export function ResumeUpload() {
             setError("Keep the file under 10 MB.");
             return;
         }
-        setBusy(true);
-        setError(null);
-        try {
-            const uploadUrl = await generateUrl({});
-            const result = await fetch(uploadUrl, {
-                method: "POST",
-                headers: { "Content-Type": file.type || "application/octet-stream" },
-                body: file,
-            });
-            const json = (await result.json()) as { storageId: string };
-            await setResume({ storageId: json.storageId as never, fileName: file.name });
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Could not upload resume.");
-        } finally {
-            setBusy(false);
-        }
+        const next = { file, requestId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}` };
+        setSelected(next);
+        void uploadSelected(next);
     }
 
     return (
@@ -85,9 +110,16 @@ export function ResumeUpload() {
                         Remove
                     </button>
                 )}
+                {error && selected && (
+                    <button type="button" className="text-sm font-bold text-[var(--accent-primary)]" disabled={busy} onClick={() => void uploadSelected()}>
+                        Retry upload
+                    </button>
+                )}
             </div>
             <input ref={inputRef} type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleFile} />
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {selected && <p className="break-all text-sm font-semibold">{selected.file.name}</p>}
+            {busy && <p role="status" aria-live="polite" className="text-sm text-[var(--text-secondary)]">Uploading resume…</p>}
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         </div>
     );
 }

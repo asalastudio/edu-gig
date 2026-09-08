@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useConvex, useMutation, useQuery } from "convex/react";
@@ -15,6 +15,16 @@ import { formatProposalStatus, formatProposedRate } from "@/lib/map-proposal";
 import { isDistrictRole } from "@/lib/roles";
 import { ArrowLeft, CheckCircle, Paperclip, XCircle } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function looksLikeConvexId(value: string): boolean {
     return value.length >= 20 && !value.includes("-");
@@ -55,8 +65,18 @@ export default function DistrictNeedDetailPage() {
     const rejectProposal = useMutation(api.proposals.reject);
     const [acting, setActing] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    const acceptTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const [pendingAcceptance, setPendingAcceptance] = useState<{
+        proposalId: Id<"proposals">;
+        educatorName: string;
+        message: string;
+        proposedRate?: number;
+        proposedRateUnit?: "hourly" | "daily" | "fixed";
+    } | null>(null);
 
-    async function handleAccept(proposalId: Id<"proposals">) {
+    async function handleAccept() {
+        if (!pendingAcceptance) return;
+        const proposalId = pendingAcceptance.proposalId;
         setActionError(null);
         setActing(proposalId as unknown as string);
         try {
@@ -69,6 +89,7 @@ export default function DistrictNeedDetailPage() {
             setActionError(err instanceof Error ? err.message : "Could not accept proposal.");
         } finally {
             setActing(null);
+            setPendingAcceptance(null);
         }
     }
 
@@ -150,6 +171,32 @@ export default function DistrictNeedDetailPage() {
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <Toaster position="top-right" richColors />
+            <AlertDialog open={!!pendingAcceptance} onOpenChange={(open) => {
+                if (!open && acting === null) {
+                    setPendingAcceptance(null);
+                    setTimeout(() => acceptTriggerRef.current?.focus(), 0);
+                }
+            }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Accept {pendingAcceptance?.educatorName}&apos;s proposal?</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3 text-left">
+                                <p><strong>Need:</strong> {need?.orgName} · {need ? getAreaOfNeedLabel(need.areaOfNeed) : ""}</p>
+                                <p className="whitespace-pre-wrap"><strong>Scope:</strong> {pendingAcceptance?.message}</p>
+                                <p><strong>Proposed rate:</strong> {formatProposedRate(pendingAcceptance?.proposedRate, pendingAcceptance?.proposedRateUnit)}</p>
+                                <p>Accepting creates the canonical engagement, places this need, and rejects other pending proposals for this need. You can later cancel with a recorded reason or reopen the need as an explicit correction.</p>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={acting !== null}>Back</AlertDialogCancel>
+                        <AlertDialogAction disabled={acting !== null} onClick={() => void handleAccept()}>
+                            {acting ? "Accepting…" : "Accept proposal"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <main className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-[1600px] w-full mx-auto px-8 lg:px-12 py-10 flex flex-col gap-10">
                     <Link
@@ -297,7 +344,7 @@ export default function DistrictNeedDetailPage() {
                                                     <span>
                                                         Submitted {new Date(row.proposal.createdAt).toLocaleDateString()}
                                                     </span>
-                                                    {row.proposal.attachmentStorageId && (
+                                                    {row.proposal.attachmentPrivateFileId && (
                                                         <ProposalAttachmentLink
                                                             proposalId={row.proposal._id}
                                                             attachmentName={row.proposal.attachmentName}
@@ -307,7 +354,16 @@ export default function DistrictNeedDetailPage() {
                                                 <div className="flex flex-wrap gap-2 mt-2">
                                                     <PrimaryButton
                                                         type="button"
-                                                        onClick={() => handleAccept(row.proposal._id)}
+                                                        onClick={(event) => {
+                                                            acceptTriggerRef.current = event.currentTarget;
+                                                            setPendingAcceptance({
+                                                                proposalId: row.proposal._id,
+                                                                educatorName,
+                                                                message: row.proposal.message,
+                                                                proposedRate: row.proposal.proposedRate,
+                                                                proposedRateUnit: row.proposal.proposedRateUnit,
+                                                            });
+                                                        }}
                                                         disabled={disableActions}
                                                         className="bg-emerald-600 hover:bg-emerald-700"
                                                     >
@@ -453,9 +509,7 @@ function ShellEmpty({
                         </h1>
                         <p className="text-[var(--text-secondary)] mb-6">{body}</p>
                         {showDashboardLink && (
-                            <Link href="/dashboard/district">
-                                <PrimaryButton>Back to dashboard</PrimaryButton>
-                            </Link>
+                            <Link href="/dashboard/district" className="inline-flex min-h-10 items-center rounded-lg bg-[var(--accent-primary)] px-4 py-2.5 text-sm font-bold text-white">Back to dashboard</Link>
                         )}
                     </div>
                 </div>

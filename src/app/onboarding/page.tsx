@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -51,6 +51,7 @@ import { TAXONOMY } from "@/lib/taxonomy";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { US_STATES } from "@/lib/us-states";
 import { cn } from "@/lib/utils";
+import { privateFileMime, uploadPrivateFile } from "@/lib/private-upload";
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -84,6 +85,7 @@ function OnboardingWithoutClerk() {
 
 function OnboardingWithClerk() {
     const { user, isLoaded } = useUser();
+    const { getToken } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const intentParam = searchParams.get(AUTH_INTENT_PARAM);
@@ -97,7 +99,8 @@ function OnboardingWithClerk() {
 
     const viewer = useQuery(api.users.viewer);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
-    const generateResumeUploadUrl = useMutation(api.users.generateOnboardingResumeUploadUrl);
+    const requestUpload = useMutation(api.privateFiles.requestUpload);
+    const setResume = useMutation(api.educators.setResume);
 
     const [step, setStep] = useState(0);
     const [error, setError] = useState<string | null>(null);
@@ -127,9 +130,10 @@ function OnboardingWithClerk() {
     const [areasOfNeed, setAreasOfNeed] = useState<string[]>([]);
     const [coverageRegions, setCoverageRegions] = useState<string[]>([]);
     const [profileType, setProfileType] = useState<"individual" | "firm">("individual");
-    const [resumeStorageId, setResumeStorageId] = useState<string | null>(null);
-    const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+    const [resumeFile, setResumeFile] = useState<{ value: File; requestId: string } | null>(null);
     const [resumeBusy, setResumeBusy] = useState(false);
+    const [profileCreated, setProfileCreated] = useState(false);
+    const suppressOnboardedRedirect = useRef(false);
 
     const hourlyRate = rateHourly && rateAmount ? Number(rateAmount) : undefined;
     const dailyRate = rateDaily && rateAmount ? Number(rateAmount) : undefined;
@@ -163,7 +167,7 @@ function OnboardingWithClerk() {
             return;
         }
         if (viewer === undefined) return;
-        if (viewer?.onboarded) {
+        if (viewer?.onboarded && !suppressOnboardedRedirect.current) {
             router.replace(safeNext ?? dashboardPathForIntent(intentFromRole(viewer.role)));
         }
     }, [isLoaded, user, viewer, router, safeNext]);
@@ -263,6 +267,7 @@ function OnboardingWithClerk() {
         setError(null);
         setSubmitting(true);
         try {
+            suppressOnboardedRedirect.current = intent === "educator" && !!resumeFile;
             await completeOnboarding({
                 role: intent === "educator" ? "educator" : roleForDistrictOnboarding(districtRole),
                 firstName: intent === "educator" ? firstName.trim() : undefined,
@@ -285,29 +290,63 @@ function OnboardingWithClerk() {
                 coverageRegions: intent === "educator" ? coverageRegions : undefined,
                 availabilityStatus: intent === "educator" ? availabilityStatus : undefined,
                 profileType: intent === "educator" ? profileType : undefined,
-                resumeStorageId: intent === "educator" && resumeStorageId ? (resumeStorageId as never) : undefined,
-                resumeFileName: intent === "educator" ? resumeFileName ?? undefined : undefined,
                 termsVersion: TERMS_VERSION,
                 privacyVersion: PRIVACY_VERSION,
             });
-
-            // Onboarding is done — drop the remembered role so a later
-            // different-role session in this tab starts clean.
-            clearAuthIntent();
-
             const destination =
                 intent === "district"
                     ? destinationForFirstAction(districtAction, safeNext)
                     : safeNext ?? defaultDestinationForIntent(intent);
-            router.replace(destination);
+            setProfileCreated(true);
+            if (intent === "educator" && resumeFile) {
+                await attachResumeAndContinue(destination);
+            } else {
+                clearAuthIntent();
+                router.replace(destination);
+            }
         } catch (err) {
             console.error(err);
-            setError(
-                "Could not save your setup. If you just enabled Clerk, confirm Convex is using the same Clerk issuer and try again."
-            );
+            if (!profileCreated) {
+                suppressOnboardedRedirect.current = false;
+                setError("Could not save your setup. If you just enabled Clerk, confirm Convex is using the same Clerk issuer and try again.");
+            }
         } finally {
             setSubmitting(false);
         }
+    }
+
+    async function attachResumeAndContinue(destination = safeNext ?? defaultDestinationForIntent("educator")) {
+        if (!resumeFile) return;
+        setResumeBusy(true);
+        setError(null);
+        try {
+            const ticket = await requestUpload({
+                purpose: "resume",
+                fileName: resumeFile.value.name,
+                mimeType: privateFileMime(resumeFile.value),
+                size: resumeFile.value.size,
+                requestId: resumeFile.requestId,
+            });
+            const token = await getToken({ template: "convex" });
+            if (!token) throw new Error("Your session expired. Sign in again, then retry.");
+            const receipt = await uploadPrivateFile({ file: resumeFile.value, ticketId: ticket.ticketId, token });
+            await setResume({ privateFileId: receipt.privateFileId, fileName: resumeFile.value.name });
+            setResumeFile(null);
+            suppressOnboardedRedirect.current = false;
+            clearAuthIntent();
+            router.replace(destination);
+        } catch (err) {
+            setProfileCreated(true);
+            setError(`Your profile was saved, but the resume was not attached. ${err instanceof Error ? err.message : "Please retry."}`);
+        } finally {
+            setResumeBusy(false);
+        }
+    }
+
+    function continueWithoutResume() {
+        suppressOnboardedRedirect.current = false;
+        clearAuthIntent();
+        router.replace(safeNext ?? defaultDestinationForIntent("educator"));
     }
 
     if (!isLoaded || viewer === undefined) {
@@ -322,8 +361,30 @@ function OnboardingWithClerk() {
         );
     }
 
-    if (!user || viewer?.onboarded) {
+    if (!user || (viewer?.onboarded && !(profileCreated && resumeFile))) {
         return null;
+    }
+
+    if (profileCreated && resumeFile) {
+        return (
+            <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
+                <SiteHeader />
+                <main className="flex-1 mx-auto flex w-full max-w-xl items-center px-6 py-16">
+                    <div className="w-full rounded-xl border border-[var(--border-subtle)] bg-white p-6 sm:p-8">
+                        <h1 className="font-heading text-2xl font-bold">Your profile is ready</h1>
+                        <p className="mt-2 text-sm text-[var(--text-secondary)]">The selected resume is still on this page and has not been attached yet.</p>
+                        <p className="mt-4 break-all text-sm font-semibold">{resumeFile.value.name}</p>
+                        {resumeBusy && <p role="status" aria-live="polite" className="mt-3 text-sm">Uploading resume…</p>}
+                        {error && <p role="alert" className="mt-3 text-sm font-semibold text-red-700">{error}</p>}
+                        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                            <PrimaryButton type="button" disabled={resumeBusy} onClick={() => void attachResumeAndContinue()}>Retry resume upload</PrimaryButton>
+                            <button type="button" disabled={resumeBusy} onClick={continueWithoutResume} className="rounded-lg border border-[var(--border-strong)] px-4 py-2.5 text-sm font-bold">Continue to profile without resume</button>
+                        </div>
+                    </div>
+                </main>
+                <SiteFooter />
+            </div>
+        );
     }
 
     if (!intentResolved) {
@@ -433,37 +494,24 @@ function OnboardingWithClerk() {
                                     <p className="mt-1 text-sm text-[var(--text-secondary)]">
                                         Districts require a resume on proposals. You can upload one now or later in settings.
                                     </p>
-                                    {resumeFileName ? (
-                                        <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">{resumeFileName}</p>
+                                    {resumeFile ? (
+                                        <p className="mt-3 break-all text-sm font-semibold text-[var(--text-primary)]">{resumeFile.value.name}</p>
                                     ) : null}
                                     <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-[var(--border-strong)] px-4 py-2 text-sm font-bold">
-                                        {resumeBusy ? "Uploading…" : resumeFileName ? "Replace file" : "Upload resume"}
+                                        {resumeFile ? "Replace selected file" : "Choose resume"}
                                         <input
                                             type="file"
                                             className="hidden"
                                             accept=".pdf,.doc,.docx"
-                                            disabled={resumeBusy}
-                                            onChange={async (event) => {
+                                            disabled={submitting}
+                                            onChange={(event) => {
                                                 const file = event.target.files?.[0];
                                                 event.target.value = "";
                                                 if (!file) return;
-                                                setResumeBusy(true);
                                                 setError(null);
-                                                try {
-                                                    const uploadUrl = await generateResumeUploadUrl({});
-                                                    const result = await fetch(uploadUrl, {
-                                                        method: "POST",
-                                                        headers: { "Content-Type": file.type || "application/octet-stream" },
-                                                        body: file,
-                                                    });
-                                                    const json = (await result.json()) as { storageId: string };
-                                                    setResumeStorageId(json.storageId);
-                                                    setResumeFileName(file.name);
-                                                } catch (err) {
-                                                    setError(err instanceof Error ? err.message : "Could not upload resume.");
-                                                } finally {
-                                                    setResumeBusy(false);
-                                                }
+                                                if (file.size > 10 * 1024 * 1024) return setError("Keep the resume under 10 MB.");
+                                                if (!/\.(pdf|doc|docx)$/i.test(file.name)) return setError("Choose a PDF, DOC, or DOCX resume.");
+                                                setResumeFile({ value: file, requestId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}` });
                                             }}
                                         />
                                     </label>

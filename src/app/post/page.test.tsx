@@ -90,3 +90,28 @@ test('focuses an error summary and then each new step without dropping form valu
  fireEvent.click(screen.getByText('Edit logistics'));expect(screen.getByRole('heading',{name:'The Logistics'})).toHaveFocus();expect(screen.getByLabelText(/Desired Start Date/)).toHaveValue('2027-10-15');
  fireEvent.click(screen.getByText('Back'));expect(screen.getByRole('heading',{name:'The Role'})).toHaveFocus();expect(screen.getByLabelText('Organization Name *')).toHaveValue('Focus QA');
 });
+
+test.each(['validation fallback','publication rejection'])('keeps a resolvable draft and feedback through %s, edits and refresh',async(outcome)=>{
+ state.viewer={_id:'account-a',role:'district_admin'};
+ writePostingSession('account-a','new',{step:4,input:{orgName:'Recovery QA',areaOfNeed:'school_improvement',subCategory:'strategic_planning',gradeLevel:'6_8',startDate:'2027-02-15',duration:'8 weeks',compensationRange:'$650',description:outcome==='validation fallback'?'':'A detailed scope with more than fifty characters for this synthetic need.'}});
+ writePostingSession('account-a','unrelated',{step:1,input:{orgName:'Other draft'},draftId:'unrelated'});
+ let rejectPublish:(reason:Error)=>void=()=>{};
+ if(outcome==='publication rejection') state.publish.mockImplementationOnce(()=>new Promise((_,reject)=>{rejectPublish=reject}));
+ const view=render(<Post/>);fireEvent.click(screen.getByRole('button',{name:'Publish need'}));
+ if(outcome==='publication rejection') {
+  await waitFor(()=>expect(state.publish).toHaveBeenCalled());expect(state.replace).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByText('Edit organization and support'));fireEvent.change(screen.getByLabelText('Organization Name *'),{target:{value:'Edited during pending publication'}});
+  rejectPublish(new Error('Publication failed. Please retry.'));
+ } else {expect(state.publish).not.toHaveBeenCalled();}
+ await waitFor(()=>expect(state.replace).toHaveBeenCalledWith('/post?draft=draft-id',{scroll:false}));
+ state.params=new URLSearchParams('draft=draft-id');view.rerender(<Post/>);
+ const feedback=outcome==='validation fallback'?/Draft saved instead of published/:/Publication failed. Please retry./;
+ expect(screen.getByText(feedback)).toBeInTheDocument();expect(readPostingSession('account-a','new')).toBeNull();
+ if(outcome==='publication rejection') expect(screen.getByLabelText('Organization Name *')).toHaveValue('Edited during pending publication');
+ else fireEvent.click(screen.getByText('Edit organization and support'));
+ fireEvent.change(screen.getByLabelText('Organization Name *'),{target:{value:'Edited after failed attempt'}});
+ view.unmount();render(<Post/>);
+ expect(screen.getByLabelText('Organization Name *')).toHaveValue('Edited after failed attempt');expect(screen.getByText(feedback)).toBeInTheDocument();
+ fireEvent.click(screen.getByText('Save draft'));await waitFor(()=>expect(state.save).toHaveBeenLastCalledWith(expect.objectContaining({needId:'draft-id',orgName:'Edited after failed attempt'})));
+ expect(readPostingSession('account-a','unrelated')?.input.orgName).toBe('Other draft');expect(readPostingSession('account-a','new')).toBeNull();
+});

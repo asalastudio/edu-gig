@@ -39,3 +39,10 @@ it('preserves safe unknown support and specialization identifiers without broade
  expect(state.selectedAreas).toEqual(['legacy_unique']);expect(state.selectedSpecializations).toEqual(['legacy_special']);
  expect(readDirectoryState(new URLSearchParams(writeDirectoryState(state)))).toEqual(state);
 });
+
+it('round-trips draft failure feedback only for its owning account and ignores malformed feedback',()=>{
+ sessionStorage.setItem('k12gig:post:a:draft-id',JSON.stringify({input:{orgName:'Recovery'},step:4,draftId:'draft-id',submitError:'Publication failed. Please retry.'}));
+ expect(readPostingSession('a','draft-id')).toMatchObject({submitError:'Publication failed. Please retry.'});expect(readPostingSession('b','draft-id')).toBeNull();
+ sessionStorage.setItem('k12gig:post:a:draft-id',JSON.stringify({input:{orgName:'Recovery'},step:4,submitError:{unexpected:true}}));
+ expect(readPostingSession('a','draft-id')).not.toHaveProperty('submitError');
+});

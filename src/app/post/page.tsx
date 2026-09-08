@@ -12,7 +12,7 @@ import { PrimaryButton, primaryButtonClassName } from "@/components/shared/butto
 import { TAXONOMY, getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { isDistrictRole } from "@/lib/roles";
 import { authPagePath } from "@/lib/auth-intent";
-import { localCalendarDay, readPostingSession, writePostingSession, promotePostingSession, clearPublishedPostingSessions } from "@/lib/discovery-state";
+import { localCalendarDay, readPostingSession, writePostingSession, promotePostingSession, clearPublishedPostingSessions, type PostingSession } from "@/lib/discovery-state";
 import {
     getNeedPublishIssues,
     normalizeNeedInput,
@@ -49,7 +49,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
     const [step, setStep] = useState(restored?.step ?? 1);
     const [isSuccess, setIsSuccess] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [submitError, setSubmitError] = useState<string | null>(restored?.submitError ?? null);
     const [draftNotice, setDraftNotice] = useState<string | null>(null);
     const [previewMode, setPreviewMode] = useState(!!restored);
     const [draftId, setDraftId] = useState<string | null>(requestedDraftId ?? restored?.draftId ?? null);
@@ -67,11 +67,11 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
         consultantUrlChanged.current=true;
         setSelectedEducatorId(educatorParam ?? '');
     },[educatorParam]);
-    const postPath=(savedId?:string)=>{
+    const postPath=(savedId?:string,educatorId=selectedEducatorId)=>{
         const params=new URLSearchParams(searchParams.toString());
         params.delete('name');
         params.delete('educator');
-        if(selectedEducatorId) params.set('educator',selectedEducatorId);
+        if(educatorId) params.set('educator',educatorId);
         if(savedId) params.set('draft',savedId);
         return `/post${params.toString()?`?${params}`:''}`;
     };
@@ -217,8 +217,10 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
         description, compensationBasis, location, deliveryMode, selectedEducatorId: selectedEducatorId || undefined,
     });
 
-    const snapshot = JSON.stringify({input:currentInput(),step,educatorId:selectedEducatorId,draftId:draftId ?? undefined});
+    const snapshot = JSON.stringify({input:currentInput(),step,educatorId:selectedEducatorId,draftId:draftId ?? undefined,submitError:submitError ?? undefined});
+    const latestSnapshot=useRef(snapshot);
     useEffect(()=>{
+        latestSnapshot.current=snapshot;
         if(isSuccess || (!accountId && !previewMode) || (requestedDraftId && !hydratedDraftId)) return;
         // A new empty account never reads or copies the anonymous browser draft.
         writePostingSession(accountId,persistenceContext.current,JSON.parse(snapshot));
@@ -273,6 +275,18 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
         }
     };
 
+    const recoverSavedDraft = (savedId: Id<"needs"> | null, message: string) => {
+        if(!active.current) return;
+        setSubmitError(message);
+        setDraftNotice(null);
+        if(!savedId) return;
+        // The attempt has settled. Keep edits and feedback available after the
+        // saved-ID route remounts, without resurrecting a stale `new` alias.
+        const latest: PostingSession=JSON.parse(latestSnapshot.current);
+        writePostingSession(accountId,savedId,{...latest,draftId:savedId,submitError:message});
+        if(requestedDraftId!==savedId) router.replace(postPath(savedId,latest.educatorId ?? ''),{scroll:false});
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitError(null);
@@ -286,8 +300,9 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
             >
         );
         setSubmitting(true);
+        let savedId: Id<"needs"> | null=null;
         try {
-            const savedId = await saveDraftProgress(
+            savedId = await saveDraftProgress(
                 input,
                 publishIssues.length > 0
                     ? "Draft saved. Complete the highlighted fields when you are ready to publish."
@@ -295,7 +310,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
             );
             if (!savedId) return;
             if (publishIssues.length > 0) {
-                setSubmitError(
+                recoverSavedDraft(savedId,
                     `Draft saved instead of published. ${publishIssues.map((issue) => issue.message).join(" ")}`
                 );
                 return;
@@ -305,8 +320,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
             if(!active.current) return;
             clearPublishedPostingSessions(accountId!,savedId);
         } catch (err) {
-
-            setSubmitError(
+            recoverSavedDraft(savedId,
                 err instanceof Error
                     ? err.message
                     : "Could not save or publish this need. Please try again."

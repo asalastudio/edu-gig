@@ -39,14 +39,14 @@ export function toggleSavedConsultant(accountId: string | null, educatorId: stri
     const current=readSavedConsultants(accountId);const next=current.includes(educatorId)?current.filter(id=>id!==educatorId):[...current,educatorId];
     localStorage.setItem(savedKey(accountId),JSON.stringify(next));window.dispatchEvent(new Event('k12gig:saved-consultants'));
 }
-export type PostingSession = {input: NeedInput; step: number; educatorId?: string; draftId?: string};
+export type PostingSession = {input: NeedInput; step: number; educatorId?: string; draftId?: string; submitError?: string};
 const postKey=(accountId:string|null,context:string)=>`k12gig:post:${accountId ?? 'anonymous'}:${context}`;
 export function readPostingSession(accountId:string|null,context:string): PostingSession|null {
     if(typeof window==='undefined') return null;
     try {const value=JSON.parse(sessionStorage.getItem(postKey(accountId,context))??'null');
         if(!value || !value.input || typeof value.input!=='object' || Array.isArray(value.input)) return null;
         const input=Object.fromEntries(Object.entries(value.input).filter(([key,v])=>['orgName','areaOfNeed','subCategory','gradeLevel','engagementType','startDate','duration','compensationRange','description','compensationBasis','location','deliveryMode','selectedEducatorId'].includes(key)&&typeof v==='string'));
-        return {input,step:Math.max(1,Math.min(4,Number(value.step)||1)),...(typeof value.educatorId==='string'?{educatorId:value.educatorId}:{}),...(typeof value.draftId==='string'?{draftId:value.draftId}:{})};
+        return {input,step:Math.max(1,Math.min(4,Number(value.step)||1)),...(typeof value.educatorId==='string'?{educatorId:value.educatorId}:{}),...(typeof value.draftId==='string'?{draftId:value.draftId}:{}),...(typeof value.submitError==='string'?{submitError:value.submitError}:{})};
     }catch{return null;}
 }
 export function writePostingSession(accountId:string|null,context:string,value:PostingSession):void {

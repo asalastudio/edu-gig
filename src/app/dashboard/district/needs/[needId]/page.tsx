@@ -1,5 +1,6 @@
 "use client";
 
+import {NeedLogistics} from "@/components/shared/need-logistics";
 import React, { useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -234,6 +235,7 @@ export default function DistrictNeedDetailPage() {
                                     value={new Date(need.createdAt).toLocaleDateString()}
                                 />
                             </dl>
+                            <NeedLogistics need={need} />
                             {need.description && (
                                 <div>
                                     <dt className="text-sm font-semibold text-[var(--text-tertiary)] uppercase tracking-widest mb-1">

@@ -1,3 +1,4 @@
+import { credentialWasReviewed } from "./lib/credentialReview";
 import { ownedFile } from "./privateFiles";
 import { downloadPath } from "./lib/releaseDomain";
 import { getAppIdentity } from "./lib/staging";
@@ -84,6 +85,7 @@ export const listForBrowse = query({
             reviewCount: number;
             gradeLevels: string[];
             areasOfNeed: string[];
+            subCategories: string[];
             engagementTypes: string[];
             coverageRegions: string[];
             startingRate?: number;
@@ -104,25 +106,22 @@ export const listForBrowse = query({
                 .query("credentials")
                 .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
                 .collect();
-            const hasReviewedCredential = credentials.some((credential) => credential.verified);
-            const hasBackgroundCheck =
-                !!educator.backgroundCheckId &&
-                (educator.verificationStatus === "verified" || educator.verificationStatus === "premier");
+            const hasReviewedCredential = (await Promise.all(credentials.map((credential) => credentialWasReviewed(ctx, credential._id)))).some(Boolean);
             const badges: string[] = [];
             if (hasReviewedCredential) badges.push("Credentials reviewed");
-            if (hasBackgroundCheck) badges.push("Background check complete");
-            if (badges.length === 0) badges.push("Profile in progress");
+            if (badges.length === 0) badges.push(educator.profileCompletePct === 100 ? "Profile complete" : "Profile in progress");
             out.push({
                 id: educator._id,
                 name: businessName || personalName,
                 ...(businessName && personalName ? { secondaryName: personalName } : {}),
                 headline: educator.headline,
                 avatarUrl: user.avatarUrl,
-                verificationTier: verificationToTier(educator.verificationStatus),
+                verificationTier: hasReviewedCredential ? "verified" : "basic",
                 overallRating: 0,
                 reviewCount: 0,
                 gradeLevels: educator.gradeLevelBands,
                 areasOfNeed: educator.areasOfNeed,
+                subCategories: educator.subCategories,
                 engagementTypes: educator.engagementTypes,
                 coverageRegions: educator.coverageRegions,
                 startingRate: educator.hourlyRate ?? educator.dailyRate,
@@ -372,5 +371,18 @@ export const updateVerificationFromWebhook = mutation({
         }
         await ctx.db.patch(educator._id, patch);
         return educator._id;
+    },
+});
+
+/** Validates a posting handoff without trusting a display name or casting a URL id. */
+export const getSelectedForPosting = query({
+    args: { educatorId: v.string() },
+    handler: async (ctx, args) => {
+        await requireDistrictViewer(ctx);
+        const id=ctx.db.normalizeId("educators",args.educatorId);
+        const educator=id ? await ctx.db.get(id) : null;
+        if(!educator?.isActive) return null;
+        const user=await ctx.db.get(educator.userId);
+        return user ? {educatorId:educator._id,name:educator.businessName?.trim() || `${user.firstName} ${user.lastName}`.trim()} : null;
     },
 });

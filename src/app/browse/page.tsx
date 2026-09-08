@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageHeader } from "@/components/shared/page-header";
@@ -11,43 +11,22 @@ import { EducatorCard, type EducatorCardProps } from "@/components/shared/educat
 import { TAXONOMY, getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxonomy";
 import {
     filterEducatorRoster,
-    type DirectoryQuickFilter,
 } from "@/lib/filter-educators";
 import { PrimaryButton } from "@/components/shared/button";
-import { ArrowLeft, FadersHorizontal, Lightning, Clock, MapPin, Funnel } from "@phosphor-icons/react";
+import { ArrowLeft, FadersHorizontal, Funnel } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
 import { cn } from "@/lib/utils";
 import { isDistrictRole } from "@/lib/roles";
-import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
+import { authPagePath } from "@/lib/auth-intent";
+import { readDirectoryState, writeDirectoryState, type DirectoryState } from "@/lib/discovery-state";
+import { useSavedConsultants } from "@/lib/use-saved-consultants";
 
 const USE_CONVEX_BROWSE = process.env.NEXT_PUBLIC_USE_CONVEX_BROWSE === "true";
 
-function searchParamList(name: string, fallback?: string): string[] {
-    if (typeof window === "undefined") return [];
-    const params = new URLSearchParams(window.location.search);
-    const value = params.get(name) ?? (fallback ? params.get(fallback) : null);
-    return value ? [value] : [];
-}
-
-function savedEducatorIdsFromStorage(): string[] {
-    if (typeof window === "undefined") return [];
-    try {
-        const raw = window.localStorage.getItem("k12gig_saved_educators");
-        return raw ? JSON.parse(raw) : [];
-    } catch {
-        return [];
-    }
-}
-
-const QUICK_FILTERS = [
-    { id: "quick_avail", label: "Available Now", icon: Clock, color: "text-emerald-700", active: "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 ring-emerald-100" },
-    { id: "quick_local", label: "Local to Me", icon: MapPin, color: "text-[var(--accent-tertiary)]", active: "bg-sky-50 hover:bg-sky-100 border-sky-200 ring-sky-100" },
-    { id: "quick_instant", label: "Ready to Request", icon: Lightning, color: "text-[var(--accent-primary)]", active: "bg-green-50 hover:bg-green-100 border-green-200 ring-green-100" },
-] as const;
-
-export default function BrowsePage() {
+export default function BrowsePage() { return <Suspense fallback={null}><BrowseDirectory /></Suspense>; }
+function BrowseDirectory() {
     const router = useRouter();
     const viewer = useQuery(api.users.viewer, {});
     const districtOK = !!viewer && isDistrictRole(viewer.role);
@@ -82,45 +61,27 @@ export default function BrowsePage() {
     const needsDistrictSignIn = USE_CONVEX_BROWSE && viewer === null;
     const wrongAccountType = USE_CONVEX_BROWSE && !!viewer && !districtOK;
 
-    const [selectedAreas, setSelectedAreas] = useState<string[]>(() => searchParamList("area"));
-    const [selectedGrades, setSelectedGrades] = useState<string[]>(() => searchParamList("grade"));
-    const [selectedRegions, setSelectedRegions] = useState<string[]>(() => searchParamList("region", "location"));
-    const [selectedEngagements, setSelectedEngagements] = useState<string[]>(() => searchParamList("engagement"));
-    const [verifiedOnly, setVerifiedOnly] = useState(false);
-    const [availableNow, setAvailableNow] = useState(false);
-    const [sortOption, setSortOption] = useState("relevance");
-    const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-    const [showSavedOnly, setShowSavedOnly] = useState(false);
-    const [savedEducatorIds] = useState<string[]>(() => savedEducatorIdsFromStorage());
-    
-    // Quick filter active state
-    const [activeQuickFilter, setActiveQuickFilter] = useState<DirectoryQuickFilter>(null);
-
-    const toggleFilter = (setter: React.Dispatch<React.SetStateAction<string[]>>, id: string) => {
-        setter(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
+    const searchParams = useSearchParams();
+    const directoryState = readDirectoryState(new URLSearchParams(searchParams.toString()));
+    const {selectedAreas, selectedSpecializations, selectedGrades, selectedRegions, selectedEngagements, verifiedOnly, availableNow, sortOption, showSavedOnly} = directoryState;
+    const directoryPath = `/browse${searchParams.toString() ? `?${searchParams}` : ""}`;
+    const setField = <K extends keyof DirectoryState>(key:K) => (value: React.SetStateAction<DirectoryState[K]>) => {
+        const next = typeof value === 'function' ? (value as (old:DirectoryState[K])=>DirectoryState[K])(directoryState[key]) : value;
+        const query=writeDirectoryState({...directoryState,[key]:next});
+        router.replace(`/browse${query ? `?${query}` : ""}`,{scroll:false});
     };
-
-    const handleQuickFilter = (id: Exclude<DirectoryQuickFilter, null>) => {
-        if (!convexLive) return;
-        if (activeQuickFilter === id) {
-            setActiveQuickFilter(null);
-            setAvailableNow(false);
-        } else {
-            setActiveQuickFilter(id);
-            setAvailableNow(id === "quick_avail" || id === "quick_instant");
-        }
-    };
-
-    const clearAvailableNow = () => {
-        setAvailableNow(false);
-        setActiveQuickFilter((current) =>
-            current === "quick_avail" || current === "quick_instant" ? null : current
-        );
-    };
+    const setSelectedAreas=setField('selectedAreas'), setSelectedSpecializations=setField('selectedSpecializations'), setSelectedGrades=setField('selectedGrades'), setSelectedRegions=setField('selectedRegions'), setSelectedEngagements=setField('selectedEngagements');
+    const setVerifiedOnly=setField('verifiedOnly'),setAvailableNow=setField('availableNow'),setSortOption=setField('sortOption'),setShowSavedOnly=setField('showSavedOnly');
+    const [mobileFilterOpen,setMobileFilterOpen]=useState(false);
+    const {ids:savedEducatorIds}=useSavedConsultants(viewer?._id ?? null);
+    const toggleFilter = (setter: React.Dispatch<React.SetStateAction<string[]>>, id: string) => setter(prev=>prev.includes(id)?prev.filter(v=>v!==id):[...prev,id]);
+    const clearAvailableNow=()=>setAvailableNow(false);
+    const resetFilters=()=>router.replace('/browse',{scroll:false});
 
     // Filter logic
     const filteredEducators = filterEducatorRoster(roster, {
         selectedAreas,
+        selectedSpecializations,
         selectedGrades,
         selectedRegions,
         selectedEngagements,
@@ -128,20 +89,19 @@ export default function BrowsePage() {
         availableNow,
         showSavedOnly,
         savedEducatorIds,
-        activeQuickFilter,
+        activeQuickFilter: null,
         districtRegion: districtMine?.region,
     });
 
     const activeFilterChips = [
+        ...selectedSpecializations.map(id=>({id:`specialization:${id}`,label:getAreaOfNeedLabel(id),clear:()=>setSelectedSpecializations(prev=>prev.filter(v=>v!==id))})),
         ...selectedAreas.map((id) => ({ id: `area:${id}`, label: getAreaOfNeedLabel(id), clear: () => setSelectedAreas((prev) => prev.filter((v) => v !== id)) })),
         ...selectedGrades.map((id) => ({ id: `grade:${id}`, label: TAXONOMY.gradeLevelBands.find((g) => g.id === id)?.label ?? id, clear: () => setSelectedGrades((prev) => prev.filter((v) => v !== id)) })),
         ...selectedRegions.map((id) => ({ id: `region:${id}`, label: getCoverageRegionLabel(id), clear: () => setSelectedRegions((prev) => prev.filter((v) => v !== id)) })),
         ...selectedEngagements.map((id) => ({ id: `engagement:${id}`, label: TAXONOMY.engagementTypes.find((e) => e.id === id)?.label ?? id, clear: () => setSelectedEngagements((prev) => prev.filter((v) => v !== id)) })),
-        ...(availableNow ? [{ id: "available", label: "Available now", clear: clearAvailableNow }] : []),
-        ...(activeQuickFilter === "quick_local" ? [{ id: "quick_local", label: "Local coverage", clear: () => setActiveQuickFilter(null) }] : []),
-        ...(activeQuickFilter === "quick_instant" ? [{ id: "quick_instant", label: "Ready to request", clear: () => setActiveQuickFilter(null) }] : []),
-        ...(verifiedOnly ? [{ id: "verified", label: "Verified only", clear: () => setVerifiedOnly(false) }] : []),
-        ...(showSavedOnly ? [{ id: "saved", label: "Saved educators", clear: () => setShowSavedOnly(false) }] : []),
+        ...(availableNow ? [{ id: "available", label: "Accepting new clients", clear: clearAvailableNow }] : []),
+        ...(verifiedOnly ? [{ id: "verified", label: "Credentials reviewed", clear: () => setVerifiedOnly(false) }] : []),
+        ...(showSavedOnly ? [{ id: "saved", label: "Saved consultants", clear: () => setShowSavedOnly(false) }] : []),
     ];
 
     // Sort logic
@@ -152,9 +112,6 @@ export default function BrowsePage() {
     }
 
     const canUseDirectory = convexLive;
-    const showLocalQuickFilter = districtOK && !!districtMine?.region;
-    const visibleQuickFilters = QUICK_FILTERS.filter((f) => f.id !== "quick_local" || showLocalQuickFilter);
-
     const signedIn = !!viewer;
     const emptyState = (() => {
         if (sessionChecking) {
@@ -167,13 +124,13 @@ export default function BrowsePage() {
         if (needsDistrictSignIn) {
             return {
                 title: "Sign in to view the live directory",
-                body: "The educator directory is available to district hiring teams. Sign in or create a district account to browse verified profiles, save favorites, and start booking.",
+                body: "The educator directory is available to district hiring teams. Sign in or create a district account to browse profiles, save favorites, and discuss a need.",
                 action: (
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <Link href="/login">
+                        <Link href={authPagePath("/sign-in", "district", directoryPath)}>
                             <PrimaryButton>Sign in to browse</PrimaryButton>
                         </Link>
-                        <Link href={`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent("/browse")}`}>
+                        <Link href={authPagePath("/sign-up", "district", directoryPath)}>
                             <button className="w-full sm:w-auto px-6 py-3 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
                                 Create district account
                             </button>
@@ -187,7 +144,7 @@ export default function BrowsePage() {
                 title: "Use a district account",
                 body: "Educator accounts can manage profiles and gigs. Browse access is reserved for district hiring teams.",
                 action: (
-                    <Link href="/login">
+                    <Link href={authPagePath("/sign-in", "district", directoryPath)}>
                         <PrimaryButton>Choose another account</PrimaryButton>
                     </Link>
                 ),
@@ -199,16 +156,7 @@ export default function BrowsePage() {
             action: (
                 <PrimaryButton
                     className="px-6 shadow-sm bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90"
-                    onClick={() => {
-                        setSelectedAreas([]);
-                        setSelectedGrades([]);
-                        setSelectedRegions([]);
-                        setSelectedEngagements([]);
-                        setVerifiedOnly(false);
-                        setAvailableNow(false);
-                        setActiveQuickFilter(null);
-                        setShowSavedOnly(false);
-                    }}
+                    onClick={resetFilters}
                 >
                     Clear filters
                 </PrimaryButton>
@@ -226,38 +174,20 @@ export default function BrowsePage() {
                 )}
 
                 <PageHeader
-                    title="Find K-12 Educators"
+                    title="Find K-12 Consultants"
                     description={
                         needsDistrictSignIn
                             ? "The live educator directory is available to district hiring teams."
-                            : "Browse and connect with verified specialists for your district's needs."
+                            : "Browse and connect with consultants for your district's needs."
                     }
                     actions={
                         districtOK ? (
                             <PrimaryButton onClick={() => setShowSavedOnly((v) => !v)}>
-                                {showSavedOnly ? "Show All" : `Saved Educators (${savedEducatorIds.length})`}
+                                {showSavedOnly ? "Show All" : `Saved Consultants (${savedEducatorIds.length})`}
                             </PrimaryButton>
                         ) : undefined
                     }
                 />
-
-                {USE_CONVEX_BROWSE && needsDistrictSignIn && (
-                    <div className="mt-4 rounded-lg border border-[var(--accent-primary)]/25 bg-[var(--accent-primary)]/5 px-4 py-4 md:flex md:items-center md:justify-between md:gap-4">
-                        <p className="text-sm font-medium text-[var(--text-secondary)]">
-                            Sign in with a district account to browse verified educators and use filters on the live roster.
-                        </p>
-                        <div className="mt-3 flex flex-col gap-2 sm:flex-row md:mt-0 md:shrink-0">
-                            <Link href="/login">
-                                <PrimaryButton className="w-full sm:w-auto text-sm min-h-9 h-9">Sign in</PrimaryButton>
-                            </Link>
-                            <Link href={`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent("/browse")}`}>
-                                <button className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[var(--border-strong)] text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
-                                    Create district account
-                                </button>
-                            </Link>
-                        </div>
-                    </div>
-                )}
 
                 {USE_CONVEX_BROWSE && !needsDistrictSignIn && (
                     <div
@@ -271,7 +201,7 @@ export default function BrowsePage() {
                         )}
                     >
                         {convexLoading && "Loading district directory…"}
-                        {!convexLoading && convexLive && "Showing verified district directory."}
+                        {!convexLoading && convexLive && "Showing the district directory."}
                         {!convexLoading && !convexLive && viewer === null && "Sign in with a district account to save educators and use the live roster."}
                         {!convexLoading && !convexLive && viewer && !districtOK && "Use a district account to access live district hiring tools."}
                         {!convexLoading && !convexLive && viewer === undefined && "Checking session…"}
@@ -292,11 +222,11 @@ export default function BrowsePage() {
                     <aside className={`w-full lg:w-[280px] flex-shrink-0 flex-col gap-6 lg:flex ${mobileFilterOpen ? 'flex' : 'hidden'}`}>
                         <div className="surface-raised p-5 flex flex-col gap-5 sticky top-24">
                             <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
-                                <FadersHorizontal weight="bold" className="w-4 h-4 text-[var(--text-tertiary)]" /> Filters
+                                <FadersHorizontal weight="bold" className="w-4 h-4 text-[var(--text-secondary)]" /> Filters
                             </h3>
 
                             <div className="flex flex-col gap-3">
-                                <span className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
+                                <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                                     Support Type
                                 </span>
                                 <TaxonomyFilter
@@ -307,12 +237,16 @@ export default function BrowsePage() {
                                 />
                             </div>
 
+                            <div className="flex flex-col gap-3">
+                                <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Specialization</span>
+                                <TaxonomyFilter label="Select Specializations" options={TAXONOMY.areasOfNeed.filter(a=>selectedAreas.length===0 || selectedAreas.includes(a.id)).flatMap(a=>a.subCategories.map(s=>({id:s.id,label:s.label})))} selected={selectedSpecializations} onChange={id=>toggleFilter(setSelectedSpecializations,id)} />
+                            </div>
                             {/* Hidden while the platform is consulting-only (PRD v3
                                 Issue #6) — a single-option filter is noise. Restore
                                 when more engagement types launch. */}
                             {TAXONOMY.engagementTypes.length > 1 && (
                                 <div className="flex flex-col gap-3">
-                                    <span className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
+                                    <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                                         Engagement Type
                                     </span>
                                     <TaxonomyFilter
@@ -325,7 +259,7 @@ export default function BrowsePage() {
                             )}
 
                             <div className="flex flex-col gap-3">
-                                <span className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
+                                <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                                     Grade Level
                                 </span>
                                 <TaxonomyFilter
@@ -337,7 +271,7 @@ export default function BrowsePage() {
                             </div>
 
                             <div className="flex flex-col gap-3">
-                                <span className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
+                                <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                                     Coverage Area
                                 </span>
                                 <TaxonomyFilter
@@ -358,7 +292,7 @@ export default function BrowsePage() {
                                         checked={verifiedOnly}
                                         onChange={(e) => setVerifiedOnly(e.target.checked)}
                                     />
-                                    <span className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Verified Only</span>
+                                    <span className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Credentials reviewed</span>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer group">
                                     <input 
@@ -367,24 +301,15 @@ export default function BrowsePage() {
                                         checked={availableNow}
                                         onChange={(e) => setAvailableNow(e.target.checked)}
                                     />
-                                    <span className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Available Now</span>
+                                    <span className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Accepting new clients</span>
                                 </label>
                             </div>
 
                             <div className="h-px bg-[var(--border-subtle)] w-full my-1" />
 
                             <button
-                                className="text-sm font-bold text-[var(--text-tertiary)] hover:text-[var(--text-primary)] text-left transition-colors"
-                                onClick={() => {
-                                    setSelectedAreas([]);
-                                    setSelectedGrades([]);
-                                    setSelectedRegions([]);
-                                    setSelectedEngagements([]);
-                                    setVerifiedOnly(false);
-                                    setAvailableNow(false);
-                                    setActiveQuickFilter(null);
-                                    setShowSavedOnly(false);
-                                }}
+                                className="text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-left transition-colors"
+                                onClick={resetFilters}
                             >
                                 Clear All Filters
                             </button>
@@ -394,29 +319,6 @@ export default function BrowsePage() {
                     {/* Results Grid */}
                     <main className="flex-1 flex flex-col">
                         
-                        {/* Quick Action Filter Chips */}
-                        <div className="flex flex-wrap gap-2.5 mb-5">
-                            {visibleQuickFilters.map(f => (
-                                <button 
-                                    key={f.id}
-                                    type="button"
-                                    disabled={!canUseDirectory}
-                                    title={!canUseDirectory ? "Sign in with a district account to filter the live roster" : undefined}
-                                    onClick={() => handleQuickFilter(f.id)}
-                                    className={cn(
-                                        "flex items-center gap-2 px-3.5 py-2 rounded-full border text-sm font-semibold transition-all duration-200",
-                                        !canUseDirectory && "cursor-not-allowed opacity-50",
-                                        activeQuickFilter === f.id
-                                            ? `${f.active} ring-2 ring-offset-2`
-                                            : "bg-white border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:shadow-sm"
-                                    )}
-                                >
-                                    <f.icon weight={activeQuickFilter === f.id ? "fill" : "regular"} className={cn("w-4 h-4", activeQuickFilter === f.id ? f.color : "text-[var(--text-tertiary)]")} />
-                                    <span className={activeQuickFilter === f.id ? "text-[var(--text-primary)]" : ""}>{f.label}</span>
-                                </button>
-                            ))}
-                        </div>
-
                         {activeFilterChips.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-5">
                                 {activeFilterChips.map((chip) => (
@@ -442,10 +344,10 @@ export default function BrowsePage() {
                                         : `Showing ${filteredEducators.length} result${filteredEducators.length !== 1 ? "s" : ""}`}
                             </span>
 
-                            <select 
+                            <select aria-label="Sort consultants"
                                 className="h-10 px-3 rounded-lg border border-[var(--border-subtle)] bg-white text-[var(--text-primary)] text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 shadow-sm cursor-pointer"
                                 value={sortOption}
-                                onChange={(e) => setSortOption(e.target.value)}
+                                onChange={(e) => setSortOption(e.target.value as DirectoryState["sortOption"])}
                             >
                                 <option value="relevance">Sort by: Relevance</option>
                                 <option value="availability">Sort by: Availability</option>
@@ -460,13 +362,14 @@ export default function BrowsePage() {
                                         key={educator.id}
                                         educator={educator}
                                         highlightedAreaIds={selectedAreas}
+                                        returnTo={directoryPath}
                                     />
                                 ))}
                             </div>
                         ) : (
                             <div className="flex min-h-[360px] flex-col items-center justify-center surface-raised p-8 text-center md:p-10">
                                 <div className="w-16 h-16 bg-[var(--bg-subtle)] rounded-full flex items-center justify-center mb-4">
-                                    <Funnel weight="regular" className="w-8 h-8 text-[var(--text-tertiary)]" />
+                                    <Funnel weight="regular" className="w-8 h-8 text-[var(--text-secondary)]" />
                                 </div>
                                 <h3 className="text-xl font-heading font-bold text-[var(--text-primary)] mb-2">{emptyState.title}</h3>
                                 <p className="text-sm leading-6 text-[var(--text-secondary)] max-w-sm mb-6">{emptyState.body}</p>

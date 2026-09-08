@@ -1,3 +1,4 @@
+import { credentialWasReviewed } from "./lib/credentialReview";
 import { ownedFile } from "./privateFiles";
 import { downloadPath } from "./lib/releaseDomain";
 import { getAppIdentity } from "./lib/staging";
@@ -151,11 +152,12 @@ export const listMine = query({
         if (!user || user.role !== "educator") return [];
         const educator = await getEducatorForUser(ctx, user._id);
         if (!educator) return [];
-        return await ctx.db
+        const rows=await ctx.db
             .query("credentials")
             .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
             .order("desc")
             .collect();
+        return Promise.all(rows.map(async credential=>({...credential,reviewed:await credentialWasReviewed(ctx,credential._id)})));
     },
 });
 
@@ -213,7 +215,7 @@ export const listForEducatorProfile = query({
             .order("desc")
             .collect();
 
-        return rows.map((credential) => ({
+        return Promise.all(rows.map(async (credential) => ({
             id: credential._id,
             type: credential.type,
             title: credential.title,
@@ -222,7 +224,8 @@ export const listForEducatorProfile = query({
             issueDate: credential.issueDate,
             expiryDate: credential.expiryDate,
             verified: credential.verified,
+            reviewed: await credentialWasReviewed(ctx, credential._id),
             hasFile: !!credential.privateFileId || !!credentialStorageId(credential),
-        }));
+        })));
     },
 });

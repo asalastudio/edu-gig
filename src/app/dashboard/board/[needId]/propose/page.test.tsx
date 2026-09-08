@@ -14,7 +14,7 @@ vi.mock("convex/react", () => ({
     useQuery: (ref: Parameters<typeof getFunctionName>[0]) => {
         const name = getFunctionName(ref);
         if (name === "users:viewer") return { _id: "educator-user", role: "educator" };
-        if (name === "needs:listOpenForEducators") return [{ _id: "need-1", orgName: "Reopened District", areaOfNeed: "leadership", status: "open", createdAt: Date.now() }];
+        if (name === "needs:listOpenForEducators") return [{ _id: "need-1", orgName: "Reopened District", location:"Lansing, MI",deliveryMode:"hybrid",compensationBasis:"day", areaOfNeed: "leadership", status: "open", createdAt: Date.now() }];
         if (name === "proposals:listMine") return [{ _id: "proposal-old", needId: "need-1", status: state.proposalStatus }];
         if (name === "educators:getMine") return { _id: "educator-1", resumePrivateFileId: "resume-1", resumeFileName: "resume.pdf" };
         return undefined;
@@ -42,3 +42,5 @@ describe("proposal replacement after an explicit reopen", () => {
         expect(screen.queryByRole("button", { name: /send proposal/i })).not.toBeInTheDocument();
     });
 });
+
+it("shows location, delivery and compensation basis before the consultant proposes",()=>{render(<ProposePage/>);expect(screen.getByText(/Lansing, MI/)).toBeInTheDocument();expect(screen.getByText(/Hybrid/)).toBeInTheDocument();expect(screen.getByText(/Per day/)).toBeInTheDocument();});

@@ -1,14 +1,13 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState, useRef } from "react";
 import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { MonitoringInit } from "@/components/monitoring-init";
-import { SeedAccountLinker } from "@/components/seed-account-linker";
 import { ConvexReactClient, ConvexProvider } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://dummy-url.convex.cloud";
-const convex = new ConvexReactClient(convexUrl);
+
 
 // Override Clerk's default "{{applicationName}}" copy so the auth UI reads
 // "K12Gig" regardless of the application name configured in the Clerk dashboard.
@@ -27,23 +26,38 @@ const clerkLocalization = {
     },
 };
 
+function useSessionClient() {
+    const [client]=useState(()=>new ConvexReactClient(convexUrl));
+    const closeTimer=useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(()=>{
+        if(closeTimer.current) clearTimeout(closeTimer.current);
+        return ()=>{closeTimer.current=setTimeout(()=>{void client.close();},0);};
+    },[client]);
+    return client;
+}
+function AccountConvexSession({ children }: { children: ReactNode }) {
+    const client=useSessionClient();
+    return <ConvexProviderWithClerk client={client} useAuth={useAuth}><MonitoringInit />{children}</ConvexProviderWithClerk>;
+}
+function IdentityBoundary({ children }: { children: ReactNode }) {
+    const { isLoaded, userId, sessionId } = useAuth();
+    if (!isLoaded) return <div role="status">Checking your session…</div>;
+    return <AccountConvexSession key={`${userId ?? "anonymous"}:${sessionId ?? "none"}`}>{children}</AccountConvexSession>;
+}
+function PublicConvexSession({ children }: { children: ReactNode }) {
+    const client=useSessionClient();
+    return <ConvexProvider client={client}><MonitoringInit />{children}</ConvexProvider>;
+}
 function ClerkConvexProviders({ children }: { children: ReactNode }) {
     const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     if (!publishableKey) {
         return (
-            <ConvexProvider client={convex}>
-                <MonitoringInit />
-                {children}
-            </ConvexProvider>
+            <PublicConvexSession>{children}</PublicConvexSession>
         );
     }
     return (
         <ClerkProvider publishableKey={publishableKey} localization={clerkLocalization}>
-            <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-                <MonitoringInit />
-                <SeedAccountLinker />
-                {children}
-            </ConvexProviderWithClerk>
+            <IdentityBoundary>{children}</IdentityBoundary>
         </ClerkProvider>
     );
 }

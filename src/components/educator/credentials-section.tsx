@@ -28,6 +28,7 @@ type CredentialRow = {
     storageId?: string;
     privateFileId?: string;
     verified: boolean;
+    reviewed?: boolean;
 };
 
 const CREDENTIAL_TYPES: { value: CredentialType; label: string }[] = [
@@ -38,28 +39,6 @@ const CREDENTIAL_TYPES: { value: CredentialType; label: string }[] = [
 ];
 
 type VerificationStatus = "unverified" | "pending" | "verified" | "premier";
-
-/** Two hardcoded example credentials shown when no educator viewer is signed in. */
-const DEMO_CREDENTIALS: CredentialRow[] = [
-    {
-        _id: "demo-1",
-        type: "state_license",
-        title: "Standard Teaching Certificate",
-        issuingBody: "Michigan Department of Education",
-        state: "MI",
-        issueDate: "2018-08-15",
-        expiryDate: "2028-08-15",
-        verified: true,
-    },
-    {
-        _id: "demo-2",
-        type: "certification",
-        title: "National Board Certification (NBCT)",
-        issuingBody: "NBPTS",
-        issueDate: "2020-11-01",
-        verified: true,
-    },
-];
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -85,7 +64,7 @@ function CredentialsSectionView({ getToken }: { getToken: () => Promise<string |
     );
 
     const isDemo = !viewer;
-    const credentials = (isDemo ? DEMO_CREDENTIALS : (credentialsQuery ?? [])) as CredentialRow[];
+    const credentials = (credentialsQuery ?? []) as CredentialRow[];
 
     const verificationStatus: VerificationStatus = educator
         ? (educator.verificationStatus as VerificationStatus)
@@ -424,9 +403,9 @@ function CredentialsSectionView({ getToken }: { getToken: () => Promise<string |
                                 </div>
                             </div>
                             <div className="flex flex-col items-end gap-2 shrink-0">
-                                {c.verified ? (
+                                {c.reviewed ? (
                                     <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md">
-                                        <CheckCircle weight="fill" className="w-3.5 h-3.5" /> Verified
+                                        <CheckCircle weight="fill" className="w-3.5 h-3.5" /> Credentials reviewed
                                     </span>
                                 ) : (
                                     <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-2 py-1 rounded-md">

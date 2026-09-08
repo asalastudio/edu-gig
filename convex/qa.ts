@@ -205,7 +205,7 @@ export const reset = internalMutation({
         }
         const referencesFixture = (value: unknown): boolean => typeof value === "string" ? ids.has(value) : Array.isArray(value) ? value.some(referencesFixture) : !!value && typeof value === "object" ? Object.values(value).some(referencesFixture) : false;
         // Never orphan reviewer-created records. Refuse reset if they depend on fixtures.
-        for (const table of ["users", "needs", "proposals", "engagements", "contracts", "contractEvents", "messages", "credentials", "educators", "orders", "reviews", "agreementVersions", "privateFiles", "uploadTickets", "operationReceipts", "engagementEvents", "privateMigration"] as const) {
+        for (const table of ["users", "needs", "proposals", "engagements", "contracts", "contractEvents", "messages", "credentials", "credentialReviewRecords", "educators", "orders", "reviews", "agreementVersions", "privateFiles", "uploadTickets", "operationReceipts", "engagementEvents", "privateMigration"] as const) {
             const rows = await ctx.db.query(table).take(500);
             if (rows.length === 500) throw new Error("Reset safety scan bound exceeded");
             if (rows.some(r => !ids.has(r._id) && referencesFixture(r))) throw new Error(`Reset refused: unrelated ${table} record references fixtures`);

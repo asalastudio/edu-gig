@@ -84,7 +84,7 @@ export const TAXONOMY = {
                 { id: "human_resources", label: "Human Resources", specializations: [] },
                 { id: "grant_writing", label: "Grant Writing", specializations: [] },
                 { id: "payroll_financial_accounting", label: "Payroll & Financial Accounting", specializations: [] },
-                { id: "keynote", label: "Keynote", specializations: [] },
+                { id: "keynote", label: "Keynote speaking", specializations: [] },
             ]
         },
         {
@@ -133,8 +133,8 @@ export const TAXONOMY = {
 
     verificationTiers: [
         { id: "basic", label: "Basic", description: "Profile complete" },
-        { id: "verified", label: "Verified", description: "Background check + license confirmed" },
-        { id: "premier", label: "Premier", description: "References checked + portfolio reviewed" },
+        { id: "verified", label: "Verified", description: "Supporting credential review recorded" },
+        { id: "premier", label: "Premier", description: "Legacy profile tier; credential reviews are recorded separately" },
     ],
 } as const;
 

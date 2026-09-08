@@ -1,19 +1,13 @@
 import type { Doc } from "@/convex/_generated/dataModel";
 import type { EducatorProfileView } from "@/lib/educator-profile-view";
 import { formatEducatorRateSummary } from "@/lib/onboarding";
-import { TAXONOMY, getAreaOfNeedLabel, getEngagementTypeLabel } from "@/lib/taxonomy";
+import { TAXONOMY, getAreaOfNeedLabel, getEngagementTypeLabel, getCoverageRegionLabel } from "@/lib/taxonomy";
 
 function initialsFromName(name: string): string {
     const parts = name.replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.)\s+/i, "").split(/\s+/);
     const a = parts[0]?.[0] ?? "";
     const b = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "";
     return (a + b).toUpperCase() || "EG";
-}
-
-function verificationToTier(status: Doc<"educators">["verificationStatus"]): EducatorProfileView["verificationTier"] {
-    if (status === "unverified" || status === "pending") return "basic";
-    if (status === "verified") return "verified";
-    return "premier";
 }
 
 const gradeLabelMap: Record<string, string> = Object.fromEntries(
@@ -30,6 +24,7 @@ export type PublicCredentialRow = {
     issueDate: string;
     expiryDate?: string;
     verified: boolean;
+    reviewed?: boolean;
     hasFile: boolean;
 };
 
@@ -42,7 +37,7 @@ export function mapConvexEducatorToProfileView(
     const businessName = educator.businessName?.trim();
     const name = businessName || personalName || "Educator";
     const secondaryName = businessName && personalName ? personalName : undefined;
-    const tier = verificationToTier(educator.verificationStatus);
+    const tier = credentials?.some(c => c.reviewed) ? "verified" : "basic";
     const gradeLevelsLabel = educator.gradeLevelBands.includes("all")
         ? "All grades"
         : educator.gradeLevelBands.map((g) => gradeLabelMap[g] ?? g.replace("_", "–")).join(", ");
@@ -56,12 +51,12 @@ export function mapConvexEducatorToProfileView(
               issuer: credential.state
                   ? `${credential.issuingBody} (${credential.state})`
                   : credential.issuingBody,
-              status: credential.verified ? "Verified" : "Submitted",
+              status: credential.reviewed ? "Credentials reviewed" : "Submitted",
               expiry: credential.expiryDate || "—",
               credentialId: credential.id,
               hasFile: credential.hasFile,
           }));
-    const hasReviewedCredential = credentials?.some((credential) => credential.verified) ?? false;
+    const hasReviewedCredential = credentials?.some((credential) => credential.reviewed) ?? false;
 
     const amOpen = educator.availabilityStatus === "open";
     const pmOpen = educator.availabilityStatus !== "closed";
@@ -80,19 +75,10 @@ export function mapConvexEducatorToProfileView(
         placements: Math.min(50, Math.max(0, educator.profileCompletePct / 5)),
         avgRating: 0,
         reviewCount: 0,
-        location: "Michigan (see coverage regions)",
+        location: educator.coverageRegions?.map(getCoverageRegionLabel).join(", ") || "Service area not specified",
         education: "See credentials",
         areas: areaLabels.length ? areaLabels : ["K-12 support"],
-        badges: [
-            ...(hasReviewedCredential ? ["Credentials reviewed"] : []),
-            ...(educator.backgroundCheckId && (educator.verificationStatus === "verified" || educator.verificationStatus === "premier")
-                ? ["Background check complete"]
-                : []),
-        ].concat(
-            hasReviewedCredential || (educator.backgroundCheckId && (educator.verificationStatus === "verified" || educator.verificationStatus === "premier"))
-                ? []
-                : ["Profile in progress"]
-        ),
+        badges: hasReviewedCredential ? ["Credentials reviewed"] : [educator.profileCompletePct === 100 ? "Profile complete" : "Profile in progress"],
         licenses,
         presenterBio: educator.presenterBio?.trim() || undefined,
         teamMembers: educator.teamMembers?.length ? educator.teamMembers : undefined,

@@ -1,5 +1,6 @@
 "use client";
 
+import {NeedLogistics} from "@/components/shared/need-logistics";
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
@@ -30,6 +31,7 @@ type OpenNeed = {
     gradeLevel?: string;
     engagementType?: string;
     compensationRange?: string;
+    location?:string;deliveryMode?:string;compensationBasis?:string;
     description?: string;
     status: string;
     createdAt: number;
@@ -334,6 +336,7 @@ function ProposePageView({ getToken }: { getToken: () => Promise<string | null> 
                         </span>
                     )}
                 </div>
+                <NeedLogistics need={need} />
                 {need.description && (
                     <p className="text-base text-[var(--text-primary)] whitespace-pre-wrap">
                         {need.description}

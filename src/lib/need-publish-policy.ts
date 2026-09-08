@@ -13,6 +13,11 @@ export type NeedInput = {
     duration?: string;
     compensationRange?: string;
     description?: string;
+    location?: string;
+    deliveryMode?: string;
+    compensationBasis?: string;
+    selectedEducatorId?: string;
+
 };
 
 export type NormalizedNeedInput = {
@@ -25,6 +30,11 @@ export type NormalizedNeedInput = {
     duration?: string;
     compensationRange?: string;
     description?: string;
+    location?: string;
+    deliveryMode?: string;
+    compensationBasis?: string;
+    selectedEducatorId?: string;
+
 };
 
 export type NeedPublishField = keyof NormalizedNeedInput;
@@ -50,6 +60,11 @@ export function normalizeNeedInput(input: NeedInput): NormalizedNeedInput {
         duration: optionalTrimmed(input.duration),
         compensationRange: optionalTrimmed(input.compensationRange),
         description: optionalTrimmed(input.description),
+        location: optionalTrimmed(input.location),
+        deliveryMode: optionalTrimmed(input.deliveryMode),
+        compensationBasis: optionalTrimmed(input.compensationBasis),
+        selectedEducatorId: optionalTrimmed(input.selectedEducatorId),
+
     };
 }
 
@@ -59,6 +74,10 @@ export function parseStoredNeedDraft(raw: string): NormalizedNeedInput | null {
         if (!value || typeof value !== "object" || Array.isArray(value)) return null;
         const candidate = value as Record<string, unknown>;
         const input: NeedInput = {
+            location: typeof candidate.location === "string" ? candidate.location : undefined,
+            deliveryMode: typeof candidate.deliveryMode === "string" ? candidate.deliveryMode : undefined,
+            compensationBasis: typeof candidate.compensationBasis === "string" ? candidate.compensationBasis : undefined,
+            selectedEducatorId: typeof candidate.selectedEducatorId === "string" ? candidate.selectedEducatorId : undefined,
             orgName: typeof candidate.orgName === "string" ? candidate.orgName : undefined,
             areaOfNeed: typeof candidate.areaOfNeed === "string" ? candidate.areaOfNeed : undefined,
             subCategory: typeof candidate.subCategory === "string" ? candidate.subCategory : undefined,

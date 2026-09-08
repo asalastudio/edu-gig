@@ -44,7 +44,7 @@ describe("mapConvexEducatorToProfileView", () => {
 
         expect(view.name).toBe("Dr. Sarah Jenkins");
         expect(view.initials).toBe("SJ");
-        expect(view.verificationTier).toBe("premier");
+        expect(view.verificationTier).toBe("basic");
         expect(view.primarySubjectLabel).toBe("Instruction & Curriculum");
         expect(view.gradeLevelsLabel).toBe("6–8, 9–12");
         expect(view.startingRate).toBe(95);
@@ -128,6 +128,7 @@ describe("mapConvexEducatorToProfileView", () => {
                 issueDate: "2020-01-01",
                 expiryDate: "2027-06-30",
                 verified: true,
+                reviewed: true,
                 hasFile: true,
             },
             {
@@ -147,7 +148,7 @@ describe("mapConvexEducatorToProfileView", () => {
         expect(view.licenses[0]).toMatchObject({
             type: "Professional Teaching Certificate",
             issuer: "MDE (MI)",
-            status: "Verified",
+            status: "Credentials reviewed",
             expiry: "2027-06-30",
             credentialId: "cred_1",
             hasFile: true,
@@ -219,13 +220,13 @@ describe("mapConvexEducatorToProfileView", () => {
         expect(bare.reviewCount).toBe(0);
     });
 
-    it("shows a background-check badge only when a check id and verified status both exist", () => {
+    it("does not infer a background check from a legacy check id and status", () => {
         const verified = {
             ...educator,
             verificationStatus: "verified" as const,
             backgroundCheckId: "chk_123",
         };
-        expect(mapConvexEducatorToProfileView(verified, user).badges).toContain("Background check complete");
+        expect(mapConvexEducatorToProfileView(verified, user).badges).not.toContain("Background check complete");
 
         const pendingWithId = {
             ...educator,

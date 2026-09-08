@@ -74,6 +74,12 @@ export default defineSchema({
         }),
 
     // ─── Credentials ─────────────────────────────────────────
+    credentialReviewRecords: defineTable({
+        credentialId: v.id("credentials"), educatorId: v.id("educators"),
+        reviewerId: v.id("users"), reviewed: v.boolean(),
+        note: v.string(), evidenceReference: v.string(), reviewedAt: v.number(),
+    }).index("by_credential", ["credentialId"]),
+
     credentials: defineTable({
         educatorId: v.id("educators"),
         type: v.union(
@@ -199,6 +205,10 @@ export default defineSchema({
         duration: v.optional(v.string()),
         compensationRange: v.optional(v.string()),
         description: v.optional(v.string()),
+        location: v.optional(v.string()),
+        deliveryMode: v.optional(v.string()),
+        compensationBasis: v.optional(v.string()),
+        selectedEducatorId: v.optional(v.string()),
         status: v.union(
             v.literal("draft"),
             v.literal("open"),

@@ -92,6 +92,11 @@ const needInputArgs = {
     startDate: v.optional(v.string()),
     duration: v.optional(v.string()),
     compensationRange: v.optional(v.string()),
+    location: v.optional(v.string()),
+    deliveryMode: v.optional(v.string()),
+    compensationBasis: v.optional(v.string()),
+    selectedEducatorId: v.optional(v.string()),
+
     description: v.optional(v.string()),
 };
 
@@ -120,6 +125,11 @@ export const saveDraft = mutation({
     handler: async (ctx, args) => {
         const user = await requireDistrictViewer(ctx);
         const input = assertDraftMinimum(args);
+        if(input.selectedEducatorId) {
+            const id=ctx.db.normalizeId("educators",input.selectedEducatorId);
+            const educator=id ? await ctx.db.get(id) : null;
+            if(!educator?.isActive) throw new Error("Selected consultant is unavailable. Choose a current profile.");
+        }
         const now = Date.now();
 
         if (args.needId) {

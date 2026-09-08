@@ -1,5 +1,6 @@
 "use client";
 
+import {useOwnedFormState, clearOwnedOnboarding} from "@/lib/use-owned-form-state";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth, useUser } from "@clerk/nextjs";
@@ -45,9 +46,8 @@ import {
     type DistrictFirstAction,
     type DistrictOnboardingRole,
 } from "@/lib/onboarding";
-import { RateField } from "@/components/educator/rate-field";
 import { RegionCoverageLink } from "@/components/shared/region-coverage-link";
-import { TAXONOMY } from "@/lib/taxonomy";
+import { TAXONOMY, getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { US_STATES } from "@/lib/us-states";
 import { cn } from "@/lib/utils";
@@ -84,6 +84,11 @@ function OnboardingWithoutClerk() {
 }
 
 function OnboardingWithClerk() {
+    const {user,isLoaded}=useUser();
+    if(!isLoaded) return <div role="status">Checking your session…</div>;
+    return <OnboardingAccount key={user?.id ?? "anonymous"} />;
+}
+function OnboardingAccount() {
     const { user, isLoaded } = useUser();
     const { getToken } = useAuth();
     const router = useRouter();
@@ -102,41 +107,43 @@ function OnboardingWithClerk() {
     const requestUpload = useMutation(api.privateFiles.requestUpload);
     const setResume = useMutation(api.educators.setResume);
 
-    const [step, setStep] = useState(0);
+    const [step, setStep] = useOwnedFormState<number>(user?.id ?? null,"step",0);
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [acceptedLegal, setAcceptedLegal] = useState(false);
     const [intentResolved, setIntentResolved] = useState(false);
 
-    const [districtRole, setDistrictRole] = useState<DistrictOnboardingRole>("superintendent");
-    const [organizationName, setOrganizationName] = useState("");
-    const [districtState, setDistrictState] = useState("MI");
-    const [districtRegion, setDistrictRegion] = useState("region_6");
-    const [districtNceaId, setDistrictNceaId] = useState("");
-    const [districtAction, setDistrictAction] = useState<DistrictFirstAction>("post_need");
+    const [districtRole, setDistrictRole] = useOwnedFormState<DistrictOnboardingRole>(user?.id ?? null,"districtRole","superintendent");
+    const [organizationName, setOrganizationName] = useOwnedFormState<string>(user?.id ?? null,"organizationName","");
+    const [districtState, setDistrictState] = useOwnedFormState<string>(user?.id ?? null,"districtState","");
+    const [districtRegion, setDistrictRegion] = useOwnedFormState<string>(user?.id ?? null,"districtRegion","");
+    const [districtNceaId, setDistrictNceaId] = useOwnedFormState<string>(user?.id ?? null,"districtNceaId","");
+    const [districtAction, setDistrictAction] = useOwnedFormState<DistrictFirstAction>(user?.id ?? null,"districtAction","post_need");
 
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
-    const [businessName, setBusinessName] = useState("");
-    const [headline, setHeadline] = useState("");
-    const [bio, setBio] = useState("");
-    const [engagementTypes, setEngagementTypes] = useState<string[]>([...DEFAULT_ENGAGEMENT_TYPES]);
-    const [yearsExperience, setYearsExperience] = useState("5");
-    const [rateAmount, setRateAmount] = useState("");
-    const [rateHourly, setRateHourly] = useState(true);
-    const [rateDaily, setRateDaily] = useState(false);
-    const [availabilityStatus, setAvailabilityStatus] = useState<"open" | "limited" | "closed">("open");
-    const [gradeLevelBands, setGradeLevelBands] = useState<string[]>([]);
-    const [areasOfNeed, setAreasOfNeed] = useState<string[]>([]);
-    const [coverageRegions, setCoverageRegions] = useState<string[]>([]);
-    const [profileType, setProfileType] = useState<"individual" | "firm">("individual");
+    const [firstName, setFirstName] = useOwnedFormState<string>(user?.id ?? null,"firstName",user?.firstName?.trim() ?? "");
+    const [lastName, setLastName] = useOwnedFormState<string>(user?.id ?? null,"lastName",user?.lastName?.trim() ?? "");
+    const [businessName, setBusinessName] = useOwnedFormState<string>(user?.id ?? null,"businessName","");
+    const [headline, setHeadline] = useOwnedFormState<string>(user?.id ?? null,"headline","");
+    const [bio, setBio] = useOwnedFormState<string>(user?.id ?? null,"bio","");
+    const [engagementTypes, setEngagementTypes] = useOwnedFormState<string[]>(user?.id ?? null,"engagementTypes",[...DEFAULT_ENGAGEMENT_TYPES]);
+    const [yearsExperience, setYearsExperience] = useOwnedFormState<string>(user?.id ?? null,"yearsExperience","");
+    const [hourlyAmount, setHourlyAmount] = useOwnedFormState<string>(user?.id ?? null,"hourlyAmount","");
+    const [dailyAmount,setDailyAmount]=useOwnedFormState<string>(user?.id ?? null,"dailyAmount","");
+    const [availabilityStatus, setAvailabilityStatus] = useOwnedFormState<"open" | "limited" | "closed">(user?.id ?? null,"availabilityStatus","open");
+    const [gradeLevelBands, setGradeLevelBands] = useOwnedFormState<string[]>(user?.id ?? null,"gradeLevelBands",[]);
+    const [subCategories,setSubCategories]=useOwnedFormState<string[]>(user?.id ?? null,"subCategories",[]);
+    const [areasOfNeed, setAreasOfNeed] = useOwnedFormState<string[]>(user?.id ?? null,"areasOfNeed",[]);
+    const [coverageRegions, setCoverageRegions] = useOwnedFormState<string[]>(user?.id ?? null,"coverageRegions",[]);
+    const [profileType, setProfileType] = useOwnedFormState<"individual" | "firm">(user?.id ?? null,"profileType","individual");
     const [resumeFile, setResumeFile] = useState<{ value: File; requestId: string } | null>(null);
     const [resumeBusy, setResumeBusy] = useState(false);
     const [profileCreated, setProfileCreated] = useState(false);
     const suppressOnboardedRedirect = useRef(false);
+    const active=useRef(true);
+    useEffect(()=>{active.current=true;return ()=>{active.current=false;};},[]);
 
-    const hourlyRate = rateHourly && rateAmount ? Number(rateAmount) : undefined;
-    const dailyRate = rateDaily && rateAmount ? Number(rateAmount) : undefined;
+    const hourlyRate = hourlyAmount ? Number(hourlyAmount) : undefined;
+    const dailyRate = dailyAmount ? Number(dailyAmount) : undefined;
 
     const isEducator = intent === "educator";
     const steps = isEducator ? EDUCATOR_STEPS : DISTRICT_STEPS;
@@ -184,21 +191,14 @@ function OnboardingWithClerk() {
         setIntentResolved(true);
     }, [urlIntent]);
 
+    const previousIntent=useRef(intent);
     useEffect(() => {
+        if(previousIntent.current===intent) return;
+        previousIntent.current=intent;
         setStep(0);
         setError(null);
         setAcceptedLegal(false);
-    }, [intent]);
-
-    // Seed the name fields once from the Clerk profile so returning users don't
-    // retype what Clerk already knows; later edits stay under the user's control.
-    const nameSeeded = useRef(false);
-    useEffect(() => {
-        if (!user || nameSeeded.current) return;
-        nameSeeded.current = true;
-        setFirstName(user.firstName?.trim() ?? "");
-        setLastName(user.lastName?.trim() ?? "");
-    }, [user]);
+    }, [intent,setStep]);
 
     function validateStep(targetStep = step) {
         if (!intent) return null;
@@ -212,6 +212,7 @@ function OnboardingWithClerk() {
         }
 
         if (targetStep === 0) {
+            if(yearsExperience === "" || !Number.isFinite(Number(yearsExperience)) || Number(yearsExperience)<0) return "Enter your years in education, including zero if applicable.";
             if (firstName.trim().length === 0) return "Add your first name.";
             if (headline.trim().length < 12) return "Add a professional headline with at least a little context.";
             if (bio.trim().length < 40) return "Add a short bio so districts know what outcomes you support.";
@@ -223,10 +224,9 @@ function OnboardingWithClerk() {
         }
         if (targetStep === 2) {
             if (coverageRegions.length === 0) return "Choose at least one coverage area.";
-            if (!rateAmount || Number(rateAmount) <= 0) return "Add your starting rate.";
-            if (!rateHourly && !rateDaily) return "Choose whether your rate is hourly, daily, or both.";
-            if (rateHourly && Number(rateAmount) < 20) return "Hourly rates should be $20 or more.";
-            if (rateDaily && Number(rateAmount) < 100) return "Daily rates should be $100 or more.";
+            if(!hourlyAmount && !dailyAmount) return "Add an hourly or daily rate.";
+            if(hourlyAmount && (!Number.isFinite(hourlyRate) || hourlyRate! < 20)) return "Hourly rates should be $20 or more.";
+            if(dailyAmount && (!Number.isFinite(dailyRate) || dailyRate! < 100)) return "Daily rates should be $100 or more.";
         }
         return null;
     }
@@ -286,6 +286,7 @@ function OnboardingWithClerk() {
                 dailyRate: intent === "educator" ? dailyRate : undefined,
                 gradeLevelBands: intent === "educator" ? gradeLevelBands : undefined,
                 areasOfNeed: intent === "educator" ? areasOfNeed : undefined,
+                subCategories: intent === "educator" ? subCategories : undefined,
                 engagementTypes: intent === "educator" ? (engagementTypes.length ? engagementTypes : [...DEFAULT_ENGAGEMENT_TYPES]) : undefined,
                 coverageRegions: intent === "educator" ? coverageRegions : undefined,
                 availabilityStatus: intent === "educator" ? availabilityStatus : undefined,
@@ -293,6 +294,7 @@ function OnboardingWithClerk() {
                 termsVersion: TERMS_VERSION,
                 privacyVersion: PRIVACY_VERSION,
             });
+            if(!active.current) return;
             const destination =
                 intent === "district"
                     ? destinationForFirstAction(districtAction, safeNext)
@@ -301,11 +303,12 @@ function OnboardingWithClerk() {
             if (intent === "educator" && resumeFile) {
                 await attachResumeAndContinue(destination);
             } else {
+                if(user) clearOwnedOnboarding(user.id);
                 clearAuthIntent();
                 router.replace(destination);
             }
-        } catch (err) {
-            console.error(err);
+        } catch {
+            if(!active.current) return;
             if (!profileCreated) {
                 suppressOnboardedRedirect.current = false;
                 setError("Could not save your setup. If you just enabled Clerk, confirm Convex is using the same Clerk issuer and try again.");
@@ -327,12 +330,17 @@ function OnboardingWithClerk() {
                 size: resumeFile.value.size,
                 requestId: resumeFile.requestId,
             });
+            if(!active.current) return;
             const token = await getToken({ template: "convex" });
+            if(!active.current) return;
             if (!token) throw new Error("Your session expired. Sign in again, then retry.");
             const receipt = await uploadPrivateFile({ file: resumeFile.value, ticketId: ticket.ticketId, token });
+            if(!active.current) return;
             await setResume({ privateFileId: receipt.privateFileId, fileName: resumeFile.value.name });
+            if(!active.current) return;
             setResumeFile(null);
             suppressOnboardedRedirect.current = false;
+            if(user) clearOwnedOnboarding(user.id);
             clearAuthIntent();
             router.replace(destination);
         } catch (err) {
@@ -345,6 +353,7 @@ function OnboardingWithClerk() {
 
     function continueWithoutResume() {
         suppressOnboardedRedirect.current = false;
+        if(user) clearOwnedOnboarding(user.id);
         clearAuthIntent();
         router.replace(safeNext ?? defaultDestinationForIntent("educator"));
     }
@@ -462,16 +471,13 @@ function OnboardingWithClerk() {
                                     onEngagementTypesChange={setEngagementTypes}
                                     yearsExperience={yearsExperience}
                                     onYearsExperienceChange={setYearsExperience}
-                                    rateAmount={rateAmount}
-                                    onRateAmountChange={setRateAmount}
-                                    rateHourly={rateHourly}
-                                    onRateHourlyChange={setRateHourly}
-                                    rateDaily={rateDaily}
-                                    onRateDailyChange={setRateDaily}
+                                    hourlyAmount={hourlyAmount} onHourlyAmountChange={setHourlyAmount}
+                                    dailyAmount={dailyAmount} onDailyAmountChange={setDailyAmount}
                                     availabilityStatus={availabilityStatus}
                                     onAvailabilityStatusChange={setAvailabilityStatus}
                                     gradeLevelBands={gradeLevelBands}
                                     onGradeLevelBandsChange={setGradeLevelBands}
+                                    subCategories={subCategories} onSubCategoriesChange={setSubCategories}
                                     areasOfNeed={areasOfNeed}
                                     onAreasOfNeedChange={setAreasOfNeed}
                                     coverageRegions={coverageRegions}
@@ -700,6 +706,7 @@ function DistrictStep(props: {
                     </Field>
                     <Field label="State">
                         <select value={props.state} onChange={(e) => props.onStateChange(e.target.value)} className="field-control">
+                            <option value="">Choose a state</option>
                             {US_STATES.map((state) => (
                                 <option key={state.code} value={state.code}>
                                     {state.name}
@@ -710,6 +717,7 @@ function DistrictStep(props: {
                     <div className="flex flex-col gap-2">
                         <Field label="Location by region">
                             <select value={props.region} onChange={(e) => props.onRegionChange(e.target.value)} className="field-control">
+                                <option value="">Choose a service region</option>
                                 {TAXONOMY.coverageRegions.map((region) => (
                                     <option key={region.id} value={region.id}>
                                         {region.label}
@@ -770,16 +778,13 @@ function EducatorStep(props: {
     onEngagementTypesChange: (value: string[]) => void;
     yearsExperience: string;
     onYearsExperienceChange: (value: string) => void;
-    rateAmount: string;
-    onRateAmountChange: (value: string) => void;
-    rateHourly: boolean;
-    onRateHourlyChange: (value: boolean) => void;
-    rateDaily: boolean;
-    onRateDailyChange: (value: boolean) => void;
+    hourlyAmount: string; onHourlyAmountChange:(value:string)=>void;
+    dailyAmount: string; onDailyAmountChange:(value:string)=>void;
     availabilityStatus: "open" | "limited" | "closed";
     onAvailabilityStatusChange: (value: "open" | "limited" | "closed") => void;
     gradeLevelBands: string[];
     onGradeLevelBandsChange: (value: string[]) => void;
+    subCategories: string[];onSubCategoriesChange:(value:string[])=>void;
     areasOfNeed: string[];
     onAreasOfNeedChange: (value: string[]) => void;
     coverageRegions: string[];
@@ -801,7 +806,7 @@ function EducatorStep(props: {
                         <input
                             value={props.firstName}
                             onChange={(e) => props.onFirstNameChange(e.target.value)}
-                            placeholder="Jordan"
+                            placeholder="Example: Jordan"
                             autoFocus
                             className="field-control"
                         />
@@ -810,7 +815,7 @@ function EducatorStep(props: {
                         <input
                             value={props.lastName}
                             onChange={(e) => props.onLastNameChange(e.target.value)}
-                            placeholder="Lee"
+                            placeholder="Example: Lee"
                             className="field-control"
                         />
                     </Field>
@@ -818,7 +823,7 @@ function EducatorStep(props: {
                         <input
                             value={props.businessName}
                             onChange={(e) => props.onBusinessNameChange(e.target.value)}
-                            placeholder="SparkSum Learning"
+                            placeholder="Example: SparkSum Learning"
                             className="field-control"
                         />
                         <span className="text-xs font-semibold text-[var(--text-tertiary)]">
@@ -846,7 +851,7 @@ function EducatorStep(props: {
                         <input
                             value={props.headline}
                             onChange={(e) => props.onHeadlineChange(e.target.value)}
-                            placeholder="Math interventionist and instructional coach"
+                            placeholder="Example: Math interventionist and instructional coach"
                             className="field-control"
                         />
                     </Field>
@@ -864,7 +869,7 @@ function EducatorStep(props: {
                             value={props.bio}
                             onChange={(e) => props.onBioChange(e.target.value)}
                             rows={5}
-                            placeholder="I help campuses strengthen Tier 2 math intervention, coach teachers through data cycles, and support implementation with practical classroom routines."
+                            placeholder="Example: I help campuses strengthen Tier 2 math intervention, coach teachers through data cycles, and support implementation with practical classroom routines."
                             className="field-control min-h-32 py-3"
                         />
                     </Field>
@@ -887,18 +892,14 @@ function EducatorStep(props: {
                     selected={props.areasOfNeed}
                     onChange={props.onAreasOfNeedChange}
                 />
+                <MultiSelectGroup label="Specializations" values={TAXONOMY.areasOfNeed.filter(a=>props.areasOfNeed.includes(a.id)).flatMap(a=>a.subCategories.map(s=>({id:s.id,label:s.label})))} selected={props.subCategories} onChange={props.onSubCategoriesChange} />
                 <MultiSelectGroup
                     label="Grade bands"
                     values={TAXONOMY.gradeLevelBands.filter((grade) => grade.id !== "other")}
                     selected={props.gradeLevelBands}
                     onChange={props.onGradeLevelBandsChange}
                 />
-                <MultiSelectGroup
-                    label="Engagement types"
-                    values={TAXONOMY.engagementTypes}
-                    selected={props.engagementTypes}
-                    onChange={props.onEngagementTypesChange}
-                />
+                <p className="text-sm">New profiles offer freelance consulting. Describe your services and specializations in your profile.</p>
             </div>
         );
     }
@@ -934,14 +935,9 @@ function EducatorStep(props: {
                             ))}
                         </select>
                     </Field>
-                    <RateField
-                        amount={props.rateAmount}
-                        onAmountChange={props.onRateAmountChange}
-                        hourly={props.rateHourly}
-                        onHourlyChange={props.onRateHourlyChange}
-                        daily={props.rateDaily}
-                        onDailyChange={props.onRateDailyChange}
-                    />
+                    <Field label="Hourly rate (USD per hour)"><input type="number" min={20} value={props.hourlyAmount} onChange={e=>props.onHourlyAmountChange(e.target.value)} placeholder="Example: 95" className="field-control" /></Field>
+                    <Field label="Daily rate (USD per day)"><input type="number" min={100} value={props.dailyAmount} onChange={e=>props.onDailyAmountChange(e.target.value)} placeholder="Example: 650" className="field-control" /></Field>
+                    <p className="text-sm text-[var(--text-secondary)]">Enter one or both rates. Each amount is independent; final scope and payment are agreed directly.</p>
                 </div>
             </div>
         );
@@ -972,6 +968,7 @@ function EducatorStep(props: {
                     ["Headline", props.headline],
                     ["Experience", `${Number(props.yearsExperience) || 0} years`],
                     ["Areas", props.areasOfNeed.length ? `${props.areasOfNeed.length} selected` : "None selected"],
+                    ["Specializations", props.subCategories.map(getAreaOfNeedLabel).join(", ") || "None selected"],
                     ["Grades", props.gradeLevelBands.length ? `${props.gradeLevelBands.length} selected` : "None selected"],
                     [
                         "Engagement types",
@@ -983,8 +980,8 @@ function EducatorStep(props: {
                     [
                         "Rate",
                         formatEducatorRateSummary({
-                            hourlyRate: props.rateHourly && props.rateAmount ? Number(props.rateAmount) : undefined,
-                            dailyRate: props.rateDaily && props.rateAmount ? Number(props.rateAmount) : undefined,
+                            hourlyRate: props.hourlyAmount ? Number(props.hourlyAmount) : undefined,
+                            dailyRate: props.dailyAmount ? Number(props.dailyAmount) : undefined,
                         }),
                     ],
                 ]}
@@ -1170,6 +1167,7 @@ function MultiSelectGroup({
                             key={item.id}
                             type="button"
                             onClick={() => toggle(item.id)}
+                            aria-pressed={active}
                             className={cn(
                                 "min-h-10 rounded-lg border px-3 py-2 text-sm font-bold transition-colors",
                                 active

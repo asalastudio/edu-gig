@@ -5,17 +5,17 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { PrimaryButton } from "@/components/shared/button";
-import { TAXONOMY } from "@/lib/taxonomy";
+import { TAXONOMY, getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { isDistrictRole } from "@/lib/roles";
-import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
+import { authPagePath } from "@/lib/auth-intent";
+import { localCalendarDay, readPostingSession, writePostingSession, clearPostingSession } from "@/lib/discovery-state";
 import {
     getNeedPublishIssues,
     normalizeNeedInput,
-    parseStoredNeedDraft,
     type NeedInput,
     type NeedPublishField,
 } from "@/lib/need-publish-policy";
@@ -33,41 +33,59 @@ export default function PostNeedPage() {
 }
 
 function PostNeedPageInner() {
+    const viewer = useQuery(api.users.viewer, hasClerk ? {} : "skip");
+    const params = useSearchParams();
+    if(hasClerk && viewer === undefined) return <div role="status">Checking your session…</div>;
+    return <PostNeedEditor key={`${viewer?._id ?? "anonymous"}:${params.get("draft") ?? "new"}`} viewer={viewer ?? null} />;
+}
+function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [step, setStep] = useState(1);
+    const requestedDraftId = searchParams.get("draft");
+    const context = requestedDraftId ?? 'new';
+    const accountId = viewer?._id ?? null;
+    const [restored] = useState(()=>readPostingSession(accountId,context));
+    const [step, setStep] = useState(restored?.step ?? 1);
     const [isSuccess, setIsSuccess] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [draftNotice, setDraftNotice] = useState<string | null>(null);
-    const [previewMode, setPreviewMode] = useState(false);
-    const requestedDraftId = searchParams.get("draft");
-    const [draftId, setDraftId] = useState<string | null>(requestedDraftId);
-    const [hydratedDraftId, setHydratedDraftId] = useState<string | null>(null);
-    const [localDraftTransferState, setLocalDraftTransferState] = useState<
-        "idle" | "transferring" | "complete" | "failed"
-    >("idle");
-    const localDraftTransferStarted = useRef(false);
+    const [previewMode, setPreviewMode] = useState(!!restored);
+    const [draftId, setDraftId] = useState<string | null>(requestedDraftId ?? restored?.draftId ?? null);
+    const [hydratedDraftId, setHydratedDraftId] = useState<string | null>(restored && requestedDraftId ? requestedDraftId : null);
+    const [anonymousAvailable,setAnonymousAvailable]=useState(()=>!!accountId && !!readPostingSession(null,'new'));
+    const active=useRef(true);
+    useEffect(()=>{active.current=true;return ()=>{active.current=false;};},[]);
+    const [selectedEducatorId,setSelectedEducatorId]=useState(searchParams.get('educator') ?? restored?.educatorId ?? '');
+    const postPath=(savedId?:string)=>{
+        const params=new URLSearchParams(searchParams.toString());
+        params.delete('name');
+        params.delete('educator');
+        if(selectedEducatorId) params.set('educator',selectedEducatorId);
+        if(savedId) params.set('draft',savedId);
+        return `/post${params.toString()?`?${params}`:''}`;
+    };
 
     // Form state
     // null = untouched; the district profile name is used until the user edits.
-    const [orgNameInput, setOrgNameInput] = useState<string | null>(null);
-    const [areaId, setAreaId] = useState("");
-    const [specId, setSpecId] = useState("");
-    const [gradeLevel, setGradeLevel] = useState("");
-    // Freelance consulting is the only launch-supported engagement type
-    // (PRD v3 Issue #6), so it is fixed rather than chosen in the form.
-    const [engagementType] = useState("consulting");
-    const todayISO = new Date().toISOString().slice(0, 10);
-    const [startDate, setStartDate] = useState("");
-    const [duration, setDuration] = useState("");
-    const [compensationRange, setCompensationRange] = useState("");
-    const [description, setDescription] = useState("");
+    const [orgNameInput, setOrgNameInput] = useState<string | null>(restored?.input.orgName ?? null);
+    const [areaId, setAreaId] = useState(restored?.input.areaOfNeed ?? "");
+    const [specId, setSpecId] = useState(restored?.input.subCategory ?? "");
+    const [gradeLevel, setGradeLevel] = useState(restored?.input.gradeLevel ?? "");
+    // New drafts use consulting; resumed legacy drafts retain their recorded type.
+    const [engagementType,setEngagementType] = useState(restored?.input.engagementType ?? "consulting");
+    const todayISO = localCalendarDay();
+    const [startDate, setStartDate] = useState(restored?.input.startDate ?? "");
+    const [duration, setDuration] = useState(restored?.input.duration ?? "");
+    const [compensationRange, setCompensationRange] = useState(restored?.input.compensationRange ?? "");
+    const [description, setDescription] = useState(restored?.input.description ?? "");
 
+    const [compensationBasis,setCompensationBasis]=useState(restored?.input.compensationBasis ?? '');
+    const [location,setLocation]=useState(restored?.input.location ?? '');
+    const [deliveryMode,setDeliveryMode]=useState(restored?.input.deliveryMode ?? '');
     // Errors
     const [errors, setErrors] = useState<Partial<Record<NeedPublishField, string>>>({});
 
-    const viewer = useQuery(api.users.viewer, hasClerk ? {} : "skip");
     const canPersist = !!viewer && isDistrictRole(viewer.role);
     const district = useQuery(api.districts.getMine, canPersist ? {} : "skip");
     const saveNeedDraft = useMutation(api.needs.saveDraft);
@@ -80,7 +98,8 @@ function PostNeedPageInner() {
     );
     const existingDraft =
         existingDraftResult?.status === "ready" ? existingDraftResult.need : null;
-    const educatorName = searchParams.get("name");
+    const selectedConsultant = useQuery(api.educators.getSelectedForPosting, canPersist && selectedEducatorId ? { educatorId: selectedEducatorId } : "skip");
+    const educatorName = selectedConsultant?.name;
     const requestedSlot = searchParams.get("slot");
 
     // Prefill the organization name from the district profile captured at
@@ -93,10 +112,13 @@ function PostNeedPageInner() {
         setAreaId(existingDraft.areaOfNeed);
         setSpecId(existingDraft.subCategory ?? "");
         setGradeLevel(existingDraft.gradeLevel ?? "");
+        setEngagementType(existingDraft.engagementType ?? "consulting");
         setStartDate(existingDraft.startDate ?? "");
         setDuration(existingDraft.duration ?? "");
         setCompensationRange(existingDraft.compensationRange ?? "");
         setDescription(existingDraft.description ?? "");
+        setCompensationBasis(existingDraft.compensationBasis ?? "");setLocation(existingDraft.location ?? "");setDeliveryMode(existingDraft.deliveryMode ?? "");
+        if(existingDraft.selectedEducatorId) setSelectedEducatorId(existingDraft.selectedEducatorId);
         setDraftId(existingDraft._id);
         setHydratedDraftId(existingDraft._id);
         setDraftNotice("Draft loaded. Continue where you left off.");
@@ -111,59 +133,16 @@ function PostNeedPageInner() {
         }
     }, [requestedDraftId, canPersist, existingDraftResult]);
 
-    useEffect(() => {
-        if (
-            !canPersist ||
-            requestedDraftId ||
-            localDraftTransferState !== "idle" ||
-            localDraftTransferStarted.current
-        ) {
-            return;
-        }
-        const raw = window.localStorage.getItem("k12gig_post_need_draft");
-        if (!raw) return;
-        const storedDraft = parseStoredNeedDraft(raw);
-        if (!storedDraft) {
-            window.localStorage.removeItem("k12gig_post_need_draft");
-            return;
-        }
-
-        localDraftTransferStarted.current = true;
-        setLocalDraftTransferState("transferring");
-        setOrgNameInput(storedDraft.orgName);
-        setAreaId(storedDraft.areaOfNeed);
-        setSpecId(storedDraft.subCategory ?? "");
-        setGradeLevel(storedDraft.gradeLevel ?? "");
-        setStartDate(storedDraft.startDate ?? "");
-        setDuration(storedDraft.duration ?? "");
-        setCompensationRange(storedDraft.compensationRange ?? "");
-        setDescription(storedDraft.description ?? "");
-
-        void saveNeedDraft(storedDraft)
-            .then((savedId) => {
-                const savedIdString = savedId as unknown as string;
-                window.localStorage.removeItem("k12gig_post_need_draft");
-                setDraftId(savedIdString);
-                setLocalDraftTransferState("complete");
-                setDraftNotice("Your saved progress is now in your district account.");
-                router.replace(`/post?draft=${encodeURIComponent(savedIdString)}`, { scroll: false });
-            })
-            .catch((err: unknown) => {
-                localDraftTransferStarted.current = false;
-                setLocalDraftTransferState("failed");
-                setSubmitError(
-                    err instanceof Error
-                        ? err.message
-                        : "Could not transfer your saved draft. Your browser copy is still available."
-                );
-            });
-    }, [
-        canPersist,
-        localDraftTransferState,
-        requestedDraftId,
-        router,
-        saveNeedDraft,
-    ]);
+    const importAnonymous = () => {
+        const draft=readPostingSession(null,'new');
+        if(!draft) return;
+        setOrgNameInput(draft.input.orgName ?? '');setAreaId(draft.input.areaOfNeed ?? '');setSpecId(draft.input.subCategory ?? '');
+        setEngagementType(draft.input.engagementType ?? 'consulting');setGradeLevel(draft.input.gradeLevel ?? '');setStartDate(draft.input.startDate ?? '');setDuration(draft.input.duration ?? '');
+        setCompensationRange(draft.input.compensationRange ?? '');setDescription(draft.input.description ?? '');
+        setCompensationBasis(draft.input.compensationBasis ?? '');setLocation(draft.input.location ?? '');setDeliveryMode(draft.input.deliveryMode ?? '');
+        setSelectedEducatorId(draft.educatorId ?? '');setStep(draft.step);setAnonymousAvailable(false);
+        setDraftNotice('Preview imported into this form. Review it before saving to your account.');
+    };
 
     const requestedDraftLoading =
         !!requestedDraftId && canPersist && existingDraftResult === undefined;
@@ -173,7 +152,7 @@ function PostNeedPageInner() {
         !!existingDraftResult &&
         existingDraftResult.status !== "ready";
     const editorLoading =
-        requestedDraftLoading || localDraftTransferState === "transferring";
+        requestedDraftLoading;
 
     const selectedAreaObj = TAXONOMY.areasOfNeed.find(a => a.id === areaId);
     const specs = selectedAreaObj?.subCategories || [];
@@ -191,7 +170,7 @@ function PostNeedPageInner() {
                 return;
             }
         }
-        setStep(prev => Math.min(prev + 1, 3));
+        setStep(prev => Math.min(prev + 1, 4));
     };
 
     const handleBack = (e?: React.MouseEvent) => {
@@ -208,8 +187,15 @@ function PostNeedPageInner() {
         startDate,
         duration,
         compensationRange,
-        description,
+        description, compensationBasis, location, deliveryMode, selectedEducatorId: selectedEducatorId || undefined,
     });
+
+    const snapshot = JSON.stringify({input:currentInput(),step,educatorId:selectedEducatorId,draftId:draftId ?? undefined});
+    useEffect(()=>{
+        if(isSuccess || (!accountId && !previewMode) || (requestedDraftId && !hydratedDraftId)) return;
+        // A new empty account never reads or copies the anonymous browser draft.
+        writePostingSession(accountId,context,JSON.parse(snapshot));
+    },[snapshot,accountId,context,isSuccess,requestedDraftId,hydratedDraftId,previewMode]);
 
     const saveDraftProgress = async (input: NeedInput, notice: string) => {
         const normalized = normalizeNeedInput(input);
@@ -227,8 +213,8 @@ function PostNeedPageInner() {
         }
 
         if (!canPersist) {
-            window.localStorage.setItem("k12gig_post_need_draft", JSON.stringify(normalized));
-            router.push(`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent("/post")}`);
+            writePostingSession(null,context,{input:normalized,step,educatorId:selectedEducatorId});
+            router.push(authPagePath("/sign-in","district",postPath()));
             return null;
         }
 
@@ -236,10 +222,11 @@ function PostNeedPageInner() {
             needId: draftId ? (draftId as Id<"needs">) : undefined,
             ...normalized,
         });
+        if(!active.current) return null;
         const savedIdString = savedId as unknown as string;
         setDraftId(savedIdString);
         setDraftNotice(notice);
-        router.replace(`/post?draft=${encodeURIComponent(savedIdString)}`, { scroll: false });
+        writePostingSession(accountId,savedIdString,{input:normalized,step,educatorId:selectedEducatorId,draftId:savedIdString});
         return savedId;
     };
 
@@ -248,7 +235,8 @@ function PostNeedPageInner() {
         setDraftNotice(null);
         setSubmitting(true);
         try {
-            await saveDraftProgress(currentInput(), "Draft saved. You can keep editing or return later.");
+            const savedId=await saveDraftProgress(currentInput(), "Draft saved. You can keep editing or return later.");
+            if(savedId && active.current) router.replace(postPath(savedId), {scroll:false});
         } catch (err) {
             setSubmitError(err instanceof Error ? err.message : "Could not save this draft.");
         } finally {
@@ -282,9 +270,13 @@ function PostNeedPageInner() {
                 );
                 return;
             }
+            if(!active.current) return;
             await publishNeedDraft({ needId: savedId });
+            if(!active.current) return;
+            clearPostingSession(accountId,context);
+            clearPostingSession(accountId,savedId);
         } catch (err) {
-            console.error(err);
+
             setSubmitError(
                 err instanceof Error
                     ? err.message
@@ -295,6 +287,7 @@ function PostNeedPageInner() {
             setSubmitting(false);
         }
 
+        if(!active.current) return;
         setIsSuccess(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
@@ -306,7 +299,7 @@ function PostNeedPageInner() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
             <SiteHeader />
-            
+
             <main className="flex-1 max-w-3xl mx-auto w-full px-6 lg:px-12 py-12">
                 <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-8 w-fit">
                     <ArrowLeft className="w-4 h-4" /> Home
@@ -318,13 +311,23 @@ function PostNeedPageInner() {
                     </div>
                 )}
 
+                {canPersist && anonymousAvailable && !requestedDraftId && <div className="mb-6 rounded-lg border p-4 bg-white">
+                    <p>A preview draft is available in this browser session. Import it only if it belongs in this account.</p>
+                    <button type="button" onClick={importAnonymous} className="font-bold underline mt-3">Import preview draft</button>
+                    <button type="button" onClick={()=>setAnonymousAvailable(false)} className="ml-6 underline">Keep this account&apos;s form</button>
+                </div>}
+                {canPersist && selectedEducatorId && <p role="status" className="mb-4">{selectedConsultant === undefined ? 'Loading selected consultant…' : selectedConsultant ? `Selected consultant: ${selectedConsultant.name}. Posting a need does not hire or notify this consultant directly.` : 'Selected consultant unavailable. Choose a current profile before making a request.'}</p>}
+                {canPersist && selectedEducatorId && <button type="button" className="underline mb-4" onClick={()=>{
+                    setSelectedEducatorId('');const params=new URLSearchParams(searchParams.toString());params.delete('educator');params.delete('name');
+                    router.replace(`/post${params.toString()?`?${params}`:''}`,{scroll:false});
+                }}>Remove selected consultant</button>}
                 {signedOut && !previewMode && (
                     <div className="bg-white p-8 md:p-10 rounded-lg shadow-sm border border-[var(--border-subtle)]">
                         <h1 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-4">
                             Sign in to post a need
                         </h1>
                         <p className="text-lg text-[var(--text-secondary)] mb-6">
-                            K12Gig saves district requests to your account so educators can respond, message you, and move toward booking.
+                            K12Gig saves district requests to your account so educators can respond, message you, and coordinate an engagement.
                             Sign in or create a district account before posting.
                         </p>
                         {(educatorName || requestedSlot) && (
@@ -334,10 +337,10 @@ function PostNeedPageInner() {
                             </div>
                         )}
                         <div className="flex flex-col sm:flex-row gap-3">
-                            <Link href={`/sign-in?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent("/post")}`}>
+                            <Link href={authPagePath("/sign-in","district",postPath())}>
                                 <PrimaryButton className="w-full sm:w-auto">Sign in to post</PrimaryButton>
                             </Link>
-                            <Link href={`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent("/post")}`}>
+                            <Link href={authPagePath("/sign-up","district",postPath())}>
                                 <button className="w-full sm:w-auto px-6 py-3 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
                                     Create district account
                                 </button>
@@ -391,12 +394,12 @@ function PostNeedPageInner() {
                                         : "Tell us what your district is looking for."}
                                 </p>
                             </div>
-                            <span className="text-sm font-bold text-[var(--text-tertiary)] bg-[var(--bg-subtle)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">Step {step} of 3</span>
+                            <span className="text-sm font-bold text-[var(--text-tertiary)] bg-[var(--bg-subtle)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">Step {step} of 4</span>
                         </div>
 
                         {/* Progress Bar */}
                         <div className="flex gap-2 mb-10">
-                            {[1, 2, 3].map(i => (
+                            {[1, 2, 3, 4].map(i => (
                                 <div key={i} className="h-2 flex-1 rounded-full overflow-hidden bg-[var(--bg-subtle)]">
                                     <div className={cn(
                                         "h-full transition-all duration-500",
@@ -418,7 +421,7 @@ function PostNeedPageInner() {
                         )}
 
                         <form onSubmit={handleSubmit} className="bg-white p-8 md:p-10 rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-[var(--border-subtle)] flex flex-col gap-6 relative overflow-hidden">
-                            
+
                             {step === 1 && (
                                 <div className="animate-in slide-in-from-right-4 fade-in duration-300 flex flex-col gap-6">
                                     <div className="flex items-center gap-3 mb-2 text-[var(--accent-primary)]">
@@ -430,9 +433,9 @@ function PostNeedPageInner() {
 
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="orgName" className="text-sm font-semibold text-[var(--text-primary)]">Organization Name *</label>
-                                        <input 
+                                        <input
                                             id="orgName"
-                                            type="text" 
+                                            type="text"
                                             placeholder="e.g. Ann Arbor Public Schools"
                                             className={cn(
                                                 "w-full h-12 px-4 rounded-lg border bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all",
@@ -444,13 +447,14 @@ function PostNeedPageInner() {
                                                 if (errors.orgName) setErrors({...errors, orgName: undefined});
                                             }}
                                             aria-invalid={!!errors.orgName}
+                                                aria-describedby={errors.orgName ? "orgName-error" : undefined}
                                         />
-                                        {errors.orgName && <span className="text-sm text-red-500 font-medium">{errors.orgName}</span>}
+                                        {errors.orgName && <span id="orgName-error" className="text-sm text-red-500 font-medium">{errors.orgName}</span>}
                                     </div>
 
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="areaId" className="text-sm font-semibold text-[var(--text-primary)]">Support Type *</label>
-                                        <select 
+                                        <select
                                             id="areaId"
                                             className={cn(
                                                 "w-full h-12 px-4 rounded-lg border bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all",
@@ -463,18 +467,19 @@ function PostNeedPageInner() {
                                                 if (errors.areaOfNeed) setErrors({...errors, areaOfNeed: undefined});
                                             }}
                                             aria-invalid={!!errors.areaOfNeed}
+                                                aria-describedby={errors.areaOfNeed ? "areaOfNeed-error" : undefined}
                                         >
                                             <option value="">Select Support Type</option>
                                             {TAXONOMY.areasOfNeed.map(a => (
                                                 <option key={a.id} value={a.id}>{a.label}</option>
                                             ))}
                                         </select>
-                                        {errors.areaOfNeed && <span className="text-sm text-red-500 font-medium">{errors.areaOfNeed}</span>}
+                                        {errors.areaOfNeed && <span id="areaOfNeed-error" className="text-sm text-red-500 font-medium">{errors.areaOfNeed}</span>}
                                     </div>
 
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="specId" className="text-sm font-semibold text-[var(--text-primary)]">Area of Expertise <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
-                                        <select 
+                                        <select
                                             id="specId"
                                             className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all disabled:opacity-50"
                                             value={specId}
@@ -484,13 +489,14 @@ function PostNeedPageInner() {
                                             }}
                                             disabled={!areaId || specs.length === 0}
                                             aria-invalid={!!errors.subCategory}
+                                                aria-describedby={errors.subCategory ? "subCategory-error" : undefined}
                                         >
                                             <option value="">Select Area of Expertise</option>
                                             {specs.map(s => (
                                                 <option key={s.id} value={s.id}>{s.label}</option>
                                             ))}
                                         </select>
-                                        {errors.subCategory && <span className="text-sm text-red-500 font-medium">{errors.subCategory}</span>}
+                                        {errors.subCategory && <span id="subCategory-error" className="text-sm text-red-500 font-medium">{errors.subCategory}</span>}
                                     </div>
 
                                     <div className="flex flex-col gap-2">
@@ -503,6 +509,7 @@ function PostNeedPageInner() {
                                                 if (errors.gradeLevel) setErrors({...errors, gradeLevel: undefined});
                                             }}
                                             aria-invalid={!!errors.gradeLevel}
+                                                aria-describedby={errors.gradeLevel ? "gradeLevel-error" : undefined}
                                             className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
                                         >
                                             <option value="">Select Grade</option>
@@ -510,7 +517,7 @@ function PostNeedPageInner() {
                                                 <option key={g.id} value={g.id}>{g.label}</option>
                                             ))}
                                         </select>
-                                        {errors.gradeLevel && <span className="text-sm text-red-500 font-medium">{errors.gradeLevel}</span>}
+                                        {errors.gradeLevel && <span id="gradeLevel-error" className="text-sm text-red-500 font-medium">{errors.gradeLevel}</span>}
                                     </div>
                                 </div>
                             )}
@@ -524,6 +531,8 @@ function PostNeedPageInner() {
                                         <h2 className="text-xl font-bold">The Logistics</h2>
                                     </div>
 
+                                    <label className="flex flex-col gap-2 font-semibold">Delivery expectations<select value={deliveryMode} onChange={e=>setDeliveryMode(e.target.value)} className="field-control"><option value="">Choose delivery expectations</option><option value="onsite">On site</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="discuss">Discuss with consultant</option></select></label>
+                                    <label className="flex flex-col gap-2 font-semibold">Location or remote expectations<input value={location} onChange={e=>setLocation(e.target.value)} placeholder="Example: Lansing, MI; remote meetings in Eastern time" className="field-control" /></label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                                         <div className="flex flex-col gap-2">
                                             <label htmlFor="startDate" className="text-sm font-semibold text-[var(--text-primary)]">Desired Start Date <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
@@ -537,9 +546,10 @@ function PostNeedPageInner() {
                                                     if (errors.startDate) setErrors({...errors, startDate: undefined});
                                                 }}
                                                 aria-invalid={!!errors.startDate}
+                                                aria-describedby={errors.startDate ? "startDate-error" : undefined}
                                                 className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
                                             />
-                                            {errors.startDate && <span className="text-sm text-red-500 font-medium">{errors.startDate}</span>}
+                                            {errors.startDate && <span id="startDate-error" className="text-sm text-red-500 font-medium">{errors.startDate}</span>}
                                         </div>
                                         <div className="flex flex-col gap-2">
                                             <label htmlFor="duration" className="text-sm font-semibold text-[var(--text-primary)]">Duration <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
@@ -552,10 +562,11 @@ function PostNeedPageInner() {
                                                     if (errors.duration) setErrors({...errors, duration: undefined});
                                                 }}
                                                 aria-invalid={!!errors.duration}
+                                                aria-describedby={errors.duration ? "duration-error" : undefined}
                                                 placeholder="e.g. 1 semester, Ongoing"
                                                 className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
                                             />
-                                            {errors.duration && <span className="text-sm text-red-500 font-medium">{errors.duration}</span>}
+                                            {errors.duration && <span id="duration-error" className="text-sm text-red-500 font-medium">{errors.duration}</span>}
                                         </div>
                                     </div>
                                 </div>
@@ -570,6 +581,7 @@ function PostNeedPageInner() {
                                         <h2 className="text-xl font-bold">The Details</h2>
                                     </div>
 
+                                    <label className="flex flex-col gap-2 font-semibold">Compensation basis<select value={compensationBasis} onChange={e=>setCompensationBasis(e.target.value)} className="field-control"><option value="">Choose a basis</option><option value="hour">Per hour</option><option value="day">Per day</option><option value="project">Project total</option><option value="discuss">To be discussed</option></select></label>
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="compRange" className="text-sm font-semibold text-[var(--text-primary)]">Compensation Range <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
                                         <input
@@ -581,10 +593,11 @@ function PostNeedPageInner() {
                                                 if (errors.compensationRange) setErrors({...errors, compensationRange: undefined});
                                             }}
                                             aria-invalid={!!errors.compensationRange}
+                                                aria-describedby={errors.compensationRange ? "compensationRange-error" : undefined}
                                             placeholder="e.g. $80–$100/hr or Per salary schedule"
                                             className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
                                         />
-                                        {errors.compensationRange && <span className="text-sm text-red-500 font-medium">{errors.compensationRange}</span>}
+                                        {errors.compensationRange && <span id="compensationRange-error" className="text-sm text-red-500 font-medium">{errors.compensationRange}</span>}
                                     </div>
 
                                     <div className="flex flex-col gap-2">
@@ -597,19 +610,28 @@ function PostNeedPageInner() {
                                                 if (errors.description) setErrors({...errors, description: undefined});
                                             }}
                                             aria-invalid={!!errors.description}
+                                                aria-describedby={errors.description ? "description-error" : undefined}
                                             rows={5}
                                             placeholder="Describe the role, requirements, and any context that will help educators understand the opportunity."
                                             className="w-full p-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
                                         ></textarea>
-                                        {errors.description && <span className="text-sm text-red-500 font-medium">{errors.description}</span>}
+                                        {errors.description && <span id="description-error" className="text-sm text-red-500 font-medium">{errors.description}</span>}
                                     </div>
                                 </div>
                             )}
 
+                            {step === 4 && <section aria-label="Review need" className="space-y-4">
+                                <h2 className="text-xl font-bold">Review your need</h2>
+                                <p>{canPersist ? 'Check the scope before publishing. Use Back to edit details.' : 'Sign in to a district account to import this preview and publish after review.'}</p>
+                                <dl className="space-y-3">{Object.entries({Organization:orgName,Support:TAXONOMY.areasOfNeed.find(a=>a.id===areaId)?.label ?? areaId,Specialization:getAreaOfNeedLabel(specId),Grades:TAXONOMY.gradeLevelBands.find(g=>g.id===gradeLevel)?.label ?? gradeLevel,'Start date':startDate,Duration:duration,Delivery:deliveryMode,Location:location,Compensation:`${compensationRange} ${compensationBasis}`,Description:description}).map(([label,value])=><div key={label}><dt className="font-bold">{label}</dt><dd className="whitespace-pre-wrap break-words">{value || 'Not specified'}</dd></div>)}</dl>
+                                <p>Payment and signing are arranged outside K12Gig. Publication invites proposals; it does not create an agreement.</p>
+                                <button type="button" className="underline" onClick={()=>setStep(1)}>Edit organization and support</button>
+                                <button type="button" className="underline ml-4" onClick={()=>setStep(2)}>Edit logistics</button>
+                            </section>}
                             <div className="flex items-center justify-between mt-6 pt-6 border-t border-[var(--border-subtle)]">
                                 {step > 1 ? (
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={handleBack}
                                         className="px-6 py-2.5 rounded-lg text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
                                     >
@@ -626,13 +648,13 @@ function PostNeedPageInner() {
                                     >
                                         Save draft
                                     </button>
-                                    {step < 3 ? (
+                                    {step < 4 ? (
                                         <PrimaryButton type="button" onClick={handleNext} disabled={submitting} className="flex items-center gap-1 pl-6 pr-4 shadow-md bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90">
-                                            Continue <CaretRight weight="bold" className="w-4 h-4" />
+                                            {step === 3 ? "Review need" : "Continue"} <CaretRight weight="bold" className="w-4 h-4" />
                                         </PrimaryButton>
                                     ) : (
                                         <PrimaryButton type="submit" disabled={submitting} className="shadow-md bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90">
-                                            {submitting ? "Saving…" : "Publish need"}
+                                            {submitting ? "Saving…" : canPersist ? "Publish need" : "Sign in to continue"}
                                         </PrimaryButton>
                                     )}
                                 </div>

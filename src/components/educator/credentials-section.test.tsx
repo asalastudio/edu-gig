@@ -41,6 +41,8 @@ describe("CredentialsSection", () => {
         render(<CredentialsSection />);
 
         expect(screen.getByText(/background checks are deferred/i)).toBeInTheDocument();
+        expect(screen.queryAllByText("Verified")).toHaveLength(0);
+        expect(screen.queryByText("Standard Teaching Certificate")).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /start background check/i })).not.toBeInTheDocument();
     });
 });

@@ -22,6 +22,7 @@ type EngagementSummary = {
     _id: Id<"engagements">;
     revision?: number;
     archivedForViewer?: boolean;
+    partyAccess: boolean;
     orgName: string;
     consultantName: string;
     buyerUserId: Id<"users">;
@@ -58,7 +59,25 @@ type Agreement = {
     allowedActions: { attachFirstVersion: boolean; upload: boolean; share: boolean; signedCopy: boolean; recordSigning: boolean };
 };
 
-type SelectedFile = { file: File; requestId: string };
+type SelectedFile = { file: File; selectionId: string };
+type DraftOperation = {
+    engagementId: Id<"engagements">;
+    title: string;
+    notes?: string;
+    file: File;
+    selectionId: string;
+    uploadRequestId: string;
+    mutationRequestId: string;
+    privateFileId?: Id<"privateFiles">;
+    createAttempted?: boolean;
+};
+type VersionSelection = SelectedFile & { kind: "revision" | "signed_copy" | "first"; parent?: Id<"agreementVersions"> };
+type VersionOperation = VersionSelection & {
+    expectedRevision: number;
+    uploadRequestId: string;
+    mutationRequestId: string;
+    privateFileId?: Id<"privateFiles">;
+};
 
 function newRequestId() {
     return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -72,7 +91,11 @@ function validateAgreement(file: File) {
 
 function messageFrom(error: unknown, fallback: string) {
     const message = error instanceof Error ? error.message : fallback;
-    return /stale/i.test(message) ? `${message} Refresh this agreement before trying again; your selected file is still here.` : message;
+    return isStaleError(error) ? `${message} Refresh this agreement before trying again; your selected file is still here.` : message;
+}
+
+function isStaleError(error: unknown) {
+    return error instanceof Error && /(stale|record changed|refresh.*try again)/i.test(error.message);
 }
 
 function viewUrl(version: AgreementVersion) {
@@ -133,14 +156,16 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
     const [showArchived, setShowArchived] = useState(false);
     const [contextAgreementId, setContextAgreementId] = useState<string | null>(null);
     const [contextVersionId, setContextVersionId] = useState<string | null>(null);
+    const [draftRecoveryLocked, setDraftRecoveryLocked] = useState(false);
+    const draftOperation = useRef<DraftOperation | null>(null);
 
     const visible = useMemo(
         () => (engagements ?? []).filter((engagement) => !!engagement.archivedForViewer === showArchived),
         [engagements, showArchived]
     );
     const partyEngagements = useMemo(
-        () => (engagements ?? []).filter((engagement) => viewer?._id === engagement.buyerUserId || viewer?._id === engagement.educatorUserId),
-        [engagements, viewer?._id]
+        () => (engagements ?? []).filter((engagement) => engagement.partyAccess),
+        [engagements]
     );
 
     useEffect(() => {
@@ -162,7 +187,8 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
         if (!file) return setSelectedFile(null);
         const validation = validateAgreement(file);
         if (validation) return setError(validation);
-        setSelectedFile({ file, requestId: newRequestId() });
+        draftOperation.current = null;
+        setSelectedFile({ file, selectionId: newRequestId() });
     }
 
     async function saveDraft() {
@@ -171,26 +197,46 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
         setBusy(true);
         setError(null);
         setStatus("Uploading private agreement…");
+        const currentInput = {
+            engagementId: selectedEngagement as Id<"engagements">,
+            title: title.trim() || selectedFile.file.name,
+            notes: notes.trim() || undefined,
+            file: selectedFile.file,
+            selectionId: selectedFile.selectionId,
+        };
+        const prior = draftOperation.current;
+        const sameInput = prior && prior.engagementId === currentInput.engagementId && prior.title === currentInput.title && prior.notes === currentInput.notes && prior.selectionId === currentInput.selectionId;
+        const operation = sameInput ? prior : {
+            ...currentInput,
+            uploadRequestId: newRequestId(),
+            mutationRequestId: newRequestId(),
+        };
+        draftOperation.current = operation;
         try {
-            const receipt = await uploadAgreement({
-                file: selectedFile.file,
-                uploadRequestId: selectedFile.requestId,
-                engagementId: selectedEngagement as Id<"engagements">,
+            const privateFileId = operation.privateFileId ?? (await uploadAgreement({
+                file: operation.file,
+                uploadRequestId: operation.uploadRequestId,
+                engagementId: operation.engagementId,
                 getToken,
                 requestUpload,
-            });
+            })).privateFileId;
+            operation.privateFileId = privateFileId;
+            operation.createAttempted = true;
             await createDraft({
-                engagementId: selectedEngagement as Id<"engagements">,
-                title: title.trim() || selectedFile.file.name,
-                notes: notes.trim() || undefined,
-                privateFileId: receipt.privateFileId,
-                requestId: selectedFile.requestId,
+                engagementId: operation.engagementId,
+                title: operation.title,
+                notes: operation.notes,
+                privateFileId,
+                requestId: operation.mutationRequestId,
             });
             setStatus("Agreement saved privately. Share it only when it is ready for the other party.");
-            setSelectedFile(null);
+            if (selectedFile.selectionId === operation.selectionId) setSelectedFile(null);
+            draftOperation.current = null;
+            setDraftRecoveryLocked(false);
             setNotes("");
         } catch (caught) {
             setStatus(null);
+            if (operation.createAttempted) setDraftRecoveryLocked(true);
             setError(messageFrom(caught, "Could not save the agreement."));
         } finally {
             setBusy(false);
@@ -219,7 +265,7 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
                         ) : (
                             <>
                                 <label className="text-sm font-semibold">Engagement
-                                    <select className="field-control mt-1" value={selectedEngagement} onChange={(event) => setSelectedEngagement(event.target.value)}>
+                                    <select className="field-control mt-1" value={selectedEngagement} disabled={busy || draftRecoveryLocked} onChange={(event) => setSelectedEngagement(event.target.value)}>
                                         <option value="">Select an accepted gig</option>
                                         {partyEngagements.filter((engagement) => !engagement.archivedForViewer).map((engagement) => (
                                             <option key={engagement._id} value={engagement._id}>{engagement.orgName} — {engagement.title}</option>
@@ -227,21 +273,22 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
                                     </select>
                                 </label>
                                 <label className="text-sm font-semibold">Agreement title
-                                    <input className="field-control mt-1" value={title} onChange={(event) => setTitle(event.target.value)} />
+                                    <input className="field-control mt-1" value={title} disabled={busy || draftRecoveryLocked} onChange={(event) => setTitle(event.target.value)} />
                                 </label>
                                 <label className="text-sm font-semibold">Notes
-                                    <textarea className="field-control mt-1 min-h-20" value={notes} onChange={(event) => setNotes(event.target.value)} />
+                                    <textarea className="field-control mt-1 min-h-20" value={notes} disabled={busy || draftRecoveryLocked} onChange={(event) => setNotes(event.target.value)} />
                                 </label>
                                 <label className="text-sm font-semibold">Agreement file
-                                    <input type="file" accept=".pdf,.docx" className="mt-2 block max-w-full text-sm" disabled={busy} onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} />
+                                    <input type="file" accept=".pdf,.docx" className="mt-2 block max-w-full text-sm" disabled={busy || draftRecoveryLocked} onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} />
                                 </label>
                                 <p className="text-xs text-[var(--text-tertiary)]">PDF or DOCX, up to 10 MB. The original stays preserved in version history.</p>
                                 {selectedFile && <p className="break-all text-sm font-semibold">{selectedFile.file.name}</p>}
                                 <div className="flex flex-wrap gap-3">
                                     <PrimaryButton type="button" disabled={busy || !selectedFile} onClick={() => void saveDraft()}>Save private draft</PrimaryButton>
-                                    {error && selectedFile && <button type="button" disabled={busy} onClick={() => void saveDraft()} className="rounded-lg border border-[var(--border-strong)] px-4 py-2 text-sm font-bold">Retry upload</button>}
+                                    {error && selectedFile && <button type="button" disabled={busy} onClick={() => void saveDraft()} className="rounded-lg border border-[var(--border-strong)] px-4 py-2 text-sm font-bold">{draftRecoveryLocked ? "Retry unchanged save" : "Retry upload"}</button>}
                                 </div>
                                 {error && <p role="alert" className="text-sm font-semibold text-red-700">{error}</p>}
+                                {draftRecoveryLocked && <p className="text-xs text-[var(--text-secondary)]">The create response was uncertain. Retry the unchanged save to recover its committed result before starting different agreement details.</p>}
                                 {status && <p role="status" aria-live="polite" className="text-sm font-semibold text-[var(--accent-primary)]">{status}</p>}
                             </>
                         )}
@@ -255,7 +302,7 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
                     <div className="mt-4 flex flex-col gap-6">
                         {engagements === undefined ? <p>Loading engagements…</p> : visible.length === 0 ? (
                             <Card className="p-10 text-center"><FileText className="mx-auto mb-3 h-8 w-8 text-[var(--text-tertiary)]" /><p className="font-bold">No {showArchived ? "archived" : "active"} engagements</p></Card>
-                        ) : visible.map((engagement) => <EngagementGroup key={engagement._id} engagement={engagement} viewerId={viewer?._id as Id<"users"> | undefined} getToken={getToken} contextAgreementId={contextAgreementId} contextVersionId={contextVersionId} />)}
+                        ) : visible.map((engagement) => <EngagementGroup key={engagement._id} engagement={engagement} getToken={getToken} contextAgreementId={contextAgreementId} contextVersionId={contextVersionId} />)}
                     </div>
 
                     <Link href={role === "educator" ? "/dashboard/educator/my-gigs" : "/dashboard/district"} className="mt-8 inline-flex min-h-10 items-center rounded-lg bg-[var(--accent-primary)] px-4 py-2.5 text-sm font-bold text-white">Back to gigs</Link>
@@ -265,8 +312,8 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
     );
 }
 
-function EngagementGroup({ engagement, viewerId, getToken, contextAgreementId, contextVersionId }: { engagement: EngagementSummary; viewerId?: Id<"users">; getToken: () => Promise<string | null>; contextAgreementId: string | null; contextVersionId: string | null }) {
-    const isParty = viewerId === engagement.buyerUserId || viewerId === engagement.educatorUserId;
+function EngagementGroup({ engagement, getToken, contextAgreementId, contextVersionId }: { engagement: EngagementSummary; getToken: () => Promise<string | null>; contextAgreementId: string | null; contextVersionId: string | null }) {
+    const isParty = engagement.partyAccess;
     const agreements = useQuery(api.agreementVersions.listForEngagement, isParty ? { engagementId: engagement._id } : "skip") as Agreement[] | undefined;
     const nextAction = engagement.status === "active" ? "Coordinate the agreement, then start work." : engagement.status === "in_progress" ? "Keep versions current, then record work complete." : engagement.status === "cancelled" ? "Review the history or reopen the need as a correction." : "Review, download, or archive this completed engagement.";
     return (
@@ -293,13 +340,15 @@ function AgreementCard({ engagementId, agreement, getToken, focused, contextVers
     const saveVersion = useMutation(api.agreementVersions.saveVersion);
     const share = useMutation(api.agreementVersions.share);
     const recordSigning = useMutation(api.agreementVersions.recordSigning);
-    const [upload, setUpload] = useState<(SelectedFile & { kind: "revision" | "signed_copy" | "first"; parent?: Id<"agreementVersions"> }) | null>(null);
+    const [upload, setUpload] = useState<VersionSelection | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [status, setStatus] = useState<string | null>(null);
     const [signingNote, setSigningNote] = useState("");
     const [acknowledged, setAcknowledged] = useState(false);
-    const actionRequestIds = useRef<Record<string, string>>({});
+    const versionOperation = useRef<VersionOperation | null>(null);
+    const shareOperations = useRef<Record<string, { contractId: Id<"contracts">; versionId: Id<"agreementVersions">; expectedRevision: number; requestId: string }>>({});
+    const signingOperations = useRef<Record<string, { contractId: Id<"contracts">; versionId: Id<"agreementVersions">; expectedRevision: number; requestId: string; state: "waiting" | "signed_externally"; note: string; acknowledged: true }>>({});
     const currentShared = agreement.versions.find((version) => version.versionId === agreement.currentSharedVersionId);
     const latestMine = agreement.versions.find((version) => version.isMine);
     const articleRef = useRef<HTMLElement | null>(null);
@@ -309,55 +358,72 @@ function AgreementCard({ engagementId, agreement, getToken, focused, contextVers
         const target = contextVersionId ? document.getElementById(`agreement-version-${contextVersionId}`) : articleRef.current;
         target?.scrollIntoView({ block: "center" });
     }, [contextVersionId, focused]);
-    function stableActionRequestId(key: string) {
-        return actionRequestIds.current[key] ?? (actionRequestIds.current[key] = newRequestId());
-    }
-
     function selectVersionFile(file: File | null, kind: "revision" | "signed_copy" | "first", parent?: Id<"agreementVersions">) {
         setError(null); setStatus(null);
         if (!file) return setUpload(null);
         const validation = validateAgreement(file);
         if (validation) return setError(validation);
-        setUpload({ file, requestId: newRequestId(), kind, parent });
+        versionOperation.current = null;
+        setUpload({ file, selectionId: newRequestId(), kind, parent });
     }
 
-    async function saveSelectedVersion() {
+    async function saveSelectedVersion(refreshRevision = false) {
         if (!upload) return;
         setBusy(true); setError(null); setStatus("Uploading private version…");
+        const prior = versionOperation.current;
+        const sameInput = prior && prior.selectionId === upload.selectionId && prior.kind === upload.kind && prior.parent === upload.parent;
+        const operation: VersionOperation = !refreshRevision && sameInput ? prior : {
+            ...upload,
+            expectedRevision: agreement.revision,
+            uploadRequestId: newRequestId(),
+            mutationRequestId: newRequestId(),
+            ...(refreshRevision && sameInput && prior.privateFileId ? { privateFileId: prior.privateFileId } : {}),
+        };
+        versionOperation.current = operation;
         try {
-            const receipt = await uploadAgreement({ file: upload.file, uploadRequestId: upload.requestId, engagementId, getToken, requestUpload });
-            if (upload.kind === "first") {
-                await attachFirstVersion({ contractId: agreement.contractId, privateFileId: receipt.privateFileId, expectedRevision: agreement.revision, requestId: upload.requestId });
-            } else if (upload.parent) {
-                await saveVersion({ contractId: agreement.contractId, privateFileId: receipt.privateFileId, kind: upload.kind, parentVersionId: upload.parent, expectedRevision: agreement.revision, requestId: upload.requestId });
+            const privateFileId = operation.privateFileId ?? (await uploadAgreement({ file: operation.file, uploadRequestId: operation.uploadRequestId, engagementId, getToken, requestUpload })).privateFileId;
+            operation.privateFileId = privateFileId;
+            if (operation.kind === "first") {
+                await attachFirstVersion({ contractId: agreement.contractId, privateFileId, expectedRevision: operation.expectedRevision, requestId: operation.mutationRequestId });
+            } else if (operation.parent) {
+                await saveVersion({ contractId: agreement.contractId, privateFileId, kind: operation.kind, parentVersionId: operation.parent, expectedRevision: operation.expectedRevision, requestId: operation.mutationRequestId });
             }
-            setStatus(upload.kind === "signed_copy" ? "Signed copy saved privately. It does not mark signing or work complete." : "Version saved privately. Share it when it is ready.");
-            setUpload(null);
+            setStatus(operation.kind === "signed_copy" ? "Signed copy saved privately. It does not mark signing or work complete." : "Version saved privately. Share it when it is ready.");
+            if (upload.selectionId === operation.selectionId) setUpload(null);
+            versionOperation.current = null;
         } catch (caught) { setStatus(null); setError(messageFrom(caught, "Could not save this version.")); }
         finally { setBusy(false); }
     }
 
     async function shareVersion(version: AgreementVersion) {
         setBusy(true); setError(null);
+        const key = `share:${version.versionId}`;
+        const operation = shareOperations.current[key] ?? (shareOperations.current[key] = { contractId: agreement.contractId, versionId: version.versionId, expectedRevision: agreement.revision, requestId: newRequestId() });
         try {
-            const key = `share:${version.versionId}`;
-            await share({ contractId: agreement.contractId, versionId: version.versionId, expectedRevision: agreement.revision, requestId: stableActionRequestId(key) });
-            delete actionRequestIds.current[key];
+            await share(operation);
+            delete shareOperations.current[key];
             setStatus(`Version ${version.number} shared with the other party.`);
-        } catch (caught) { setError(messageFrom(caught, "Could not share this version.")); }
+        } catch (caught) {
+            if (isStaleError(caught)) delete shareOperations.current[key];
+            setError(messageFrom(caught, "Could not share this version."));
+        }
         finally { setBusy(false); }
     }
 
     async function signing(state: "waiting" | "signed_externally") {
         if (!currentShared || !signingNote.trim() || !acknowledged) return setError("Add a note and confirm the acknowledgement first.");
         setBusy(true); setError(null);
+        const key = JSON.stringify([currentShared.versionId, state, signingNote.trim(), true]);
+        const operation = signingOperations.current[key] ?? (signingOperations.current[key] = { contractId: agreement.contractId, versionId: currentShared.versionId, expectedRevision: agreement.revision, requestId: newRequestId(), state, note: signingNote.trim(), acknowledged: true });
         try {
-            const key = `signing:${currentShared.versionId}:${state}:${signingNote.trim()}`;
-            await recordSigning({ contractId: agreement.contractId, versionId: currentShared.versionId, expectedRevision: agreement.revision, requestId: stableActionRequestId(key), state, note: signingNote.trim(), acknowledged: true });
-            delete actionRequestIds.current[key];
+            await recordSigning(operation);
+            delete signingOperations.current[key];
             setStatus(state === "waiting" ? "Waiting for off-platform signing recorded. Work status is unchanged." : "External signing recorded for this version. Work status is unchanged.");
             setSigningNote(""); setAcknowledged(false);
-        } catch (caught) { setError(messageFrom(caught, "Could not record signing coordination.")); }
+        } catch (caught) {
+            if (isStaleError(caught)) delete signingOperations.current[key];
+            setError(messageFrom(caught, "Could not record signing coordination."));
+        }
         finally { setBusy(false); }
     }
 
@@ -368,16 +434,16 @@ function AgreementCard({ engagementId, agreement, getToken, focused, contextVers
                 <div className="min-w-0"><h3 className="break-words font-heading text-lg font-bold">{agreement.title}</h3>{agreement.notes && <p className="mt-1 text-sm text-[var(--text-secondary)]">{agreement.notes}</p>}</div>
                 <span className="rounded-md bg-[var(--bg-subtle)] px-2 py-1 text-xs font-bold uppercase tracking-wide">{stateLabel}</span>
             </div>
-            {agreement.legacy && <p className="mt-3 text-sm text-amber-800">This legacy agreement has no retrievable private file yet. Attach its first version without replacing its identity.</p>}
+            {agreement.legacy && <p className="mt-3 text-sm text-amber-800">{agreement.allowedActions.attachFirstVersion ? "This text-only legacy agreement can receive its first private version without replacing its identity." : "This legacy agreement has prior content that requires guarded migration before a new version can be attached."}</p>}
             <div className="mt-4 flex flex-col gap-3">
                 {agreement.versions.map((version) => (
                     <div id={`agreement-version-${version.versionId}`} key={version.versionId} className={`min-w-0 scroll-mt-6 rounded-lg p-3 ${contextVersionId === version.versionId ? "bg-[var(--accent-primary)]/10 ring-2 ring-[var(--accent-primary)]/20" : "bg-[var(--bg-subtle)]"}`}>
                         <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-                            <div className="min-w-0"><p className="break-all text-sm font-bold">Version {version.number} · {version.fileName}</p><p className="text-xs text-[var(--text-tertiary)]">{version.uploaderName} · {new Date(version.createdAt).toLocaleDateString()} · {version.coordinationState === "draft" ? "Private" : version.coordinationState.replace("_", " ")}</p></div>
+                            <div className="min-w-0"><p className="break-all text-sm font-bold">Version {version.number} · {version.fileName}</p><p className="text-xs text-[var(--text-tertiary)]">{version.uploaderName} · {new Date(version.createdAt).toLocaleDateString()} · {version.coordinationState === "draft" ? "Private" : version.coordinationState.replace("_", " ")}</p><p className="mt-1 text-xs font-bold text-[var(--text-secondary)]">{version.versionId === currentShared?.versionId ? "Current shared version" : version.versionId === latestMine?.versionId && version.coordinationState === "draft" ? "Latest private draft" : "Earlier version"}</p></div>
                             <div className="flex flex-wrap gap-3 text-sm font-bold">
                                 <a href={viewUrl(version)} target="_blank" rel="noreferrer" className="text-[var(--accent-primary)]">{version.fileName.toLowerCase().endsWith(".pdf") ? "View" : "Download to view"}</a>
                                 <a href={version.downloadUrl} className="text-[var(--accent-primary)]">Download</a>
-                                {agreement.allowedActions.share && version.isMine && version.coordinationState === "draft" && <button type="button" disabled={busy} onClick={() => void shareVersion(version)} className="text-[var(--accent-primary)]">Share version {version.number}</button>}
+                                {agreement.allowedActions.share && version.versionId === latestMine?.versionId && version.isMine && version.coordinationState === "draft" && <button type="button" disabled={busy} onClick={() => void shareVersion(version)} className="text-[var(--accent-primary)]">Share version {version.number}</button>}
                             </div>
                         </div>
                     </div>
@@ -385,10 +451,10 @@ function AgreementCard({ engagementId, agreement, getToken, focused, contextVers
             </div>
             <Link href={`/dashboard/engagements/${engagementId}?agreement=${agreement.contractId}${currentShared ? `&version=${currentShared.versionId}` : latestMine ? `&version=${latestMine.versionId}` : ""}`} className="mt-3 inline-flex text-sm font-bold text-[var(--accent-primary)]">Open agreement in engagement</Link>
 
-            {agreement.allowedActions.attachFirstVersion && <UploadChoice label="Attach first agreement file" onFile={(file) => selectVersionFile(file, "first")} />}
-            {agreement.allowedActions.upload && latestMine && <UploadChoice label="Upload a revision" onFile={(file) => selectVersionFile(file, "revision", latestMine.versionId)} />}
-            {agreement.allowedActions.signedCopy && currentShared && <UploadChoice label="Return a signed copy" onFile={(file) => selectVersionFile(file, "signed_copy", currentShared.versionId)} />}
-            {upload && <div className="mt-3 flex min-w-0 flex-wrap items-center gap-3"><span className="max-w-full break-all text-sm font-semibold">{upload.file.name}</span><PrimaryButton type="button" disabled={busy} onClick={() => void saveSelectedVersion()}>{upload.kind === "signed_copy" ? "Save signed copy privately" : "Save private version"}</PrimaryButton>{error && <button type="button" onClick={() => void saveSelectedVersion()} className="text-sm font-bold text-[var(--accent-primary)]">Retry upload</button>}</div>}
+            {agreement.allowedActions.attachFirstVersion && <UploadChoice label="Attach first agreement file" disabled={busy} onFile={(file) => selectVersionFile(file, "first")} />}
+            {agreement.allowedActions.upload && latestMine && <UploadChoice label="Upload a revision" disabled={busy} onFile={(file) => selectVersionFile(file, "revision", latestMine.versionId)} />}
+            {agreement.allowedActions.signedCopy && currentShared && <UploadChoice label="Return a signed copy" disabled={busy} onFile={(file) => selectVersionFile(file, "signed_copy", currentShared.versionId)} />}
+            {upload && <div className="mt-3 flex min-w-0 flex-wrap items-center gap-3"><span className="max-w-full break-all text-sm font-semibold">{upload.file.name}</span><PrimaryButton type="button" disabled={busy} onClick={() => void saveSelectedVersion()}>{upload.kind === "signed_copy" ? "Save signed copy privately" : "Save private version"}</PrimaryButton>{error && <button type="button" disabled={busy} onClick={() => void saveSelectedVersion(isStaleError(new Error(error)))} className="text-sm font-bold text-[var(--accent-primary)]">{isStaleError(new Error(error)) ? "Retry with latest revision" : "Retry upload"}</button>}</div>}
 
             {agreement.allowedActions.recordSigning && currentShared && agreement.currentVersionState !== "signed_externally" && <div className="mt-4 rounded-lg border border-[var(--border-subtle)] p-3"><label className="text-sm font-semibold">Signing coordination note<input className="field-control mt-1" value={signingNote} onChange={(event) => setSigningNote(event.target.value)} placeholder="Where and when signing happened" /></label><label className="mt-2 flex items-start gap-2 text-sm"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} /><span>I understand this records off-platform coordination for the current shared version and does not complete the work.</span></label><div className="mt-3 flex flex-wrap gap-3">{currentShared.isMine && agreement.currentVersionState === "shared" && <button type="button" disabled={busy} onClick={() => void signing("waiting")} className="rounded-lg border border-[var(--border-strong)] px-3 py-2 text-sm font-bold">Record waiting for signature</button>}<button type="button" disabled={busy} onClick={() => void signing("signed_externally")} className="rounded-lg border border-[var(--border-strong)] px-3 py-2 text-sm font-bold">Record signed off-platform</button></div></div>}
 
@@ -399,6 +465,6 @@ function AgreementCard({ engagementId, agreement, getToken, focused, contextVers
     );
 }
 
-function UploadChoice({ label, onFile }: { label: string; onFile: (file: File | null) => void }) {
-    return <label className="mt-3 block text-sm font-bold text-[var(--accent-primary)]">{label}<input type="file" accept=".pdf,.docx" className="mt-1 block max-w-full text-sm font-normal text-[var(--text-primary)]" onChange={(event) => onFile(event.target.files?.[0] ?? null)} /></label>;
+function UploadChoice({ label, disabled, onFile }: { label: string; disabled: boolean; onFile: (file: File | null) => void }) {
+    return <label className="mt-3 block text-sm font-bold text-[var(--accent-primary)]">{label}<input type="file" accept=".pdf,.docx" disabled={disabled} className="mt-1 block max-w-full text-sm font-normal text-[var(--text-primary)]" onChange={(event) => onFile(event.target.files?.[0] ?? null)} /></label>;
 }

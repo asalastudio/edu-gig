@@ -5,8 +5,15 @@ import { internal } from "./_generated/api";
 import { authedMutation, authedQuery } from "./lib/customFunctions";
 import { sourceExists } from "./lib/outbox";
 import { assertStagingEnvironment } from "./lib/staging";
+import type { Doc, Id } from "./_generated/dataModel";
 const MAX_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
+const deliveryState = v.union(v.literal("queued"), v.literal("sending"), v.literal("captured"), v.literal("provider_accepted"), v.literal("failed"), v.literal("invalidated"), v.literal("suppressed"));
+const deliveryAttemptSummary = v.object({ _id: v.id("deliveryAttempts"), _creationTime: v.number(), outboxId: v.id("deliveryOutbox"), attempt: v.number(), state: v.string(), error: v.optional(v.string()), createdAt: v.number() });
+const engagementDeliverySummary = v.object({ outboxId: v.id("deliveryOutbox"), eventKey: v.string(), state: deliveryState, title: v.string(), attempts: v.number(), lastError: v.optional(v.string()), createdAt: v.number(), updatedAt: v.number(), history: v.array(deliveryAttemptSummary), canRetry: v.boolean() });
+function retryAvailable(job: Doc<"deliveryOutbox">, viewerId: Id<"users">, now: number) {
+ return job.recipientUserId === viewerId && job.state === "failed" && job.attempts < MAX_ATTEMPTS && (job.attempts === 0 || now - (job.firstAttemptAt ?? job.createdAt) < 23 * 60 * 60_000);
+}
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 export const claim = internalMutation({
  args: { outboxId: v.id("deliveryOutbox"), token: v.string() },
@@ -82,7 +89,7 @@ export const dispatch = internalAction({
 });
 export const listMine = authedQuery({ args: {}, handler: async ctx => {
  const jobs = await ctx.db.query("deliveryOutbox").withIndex("by_recipient", q => q.eq("recipientUserId", ctx.user._id)).order("desc").take(200);
- return await Promise.all(jobs.map(async j => ({ ...j, history: await ctx.db.query("deliveryAttempts").withIndex("by_outbox", q => q.eq("outboxId", j._id)).collect() })));
+ return await Promise.all(jobs.map(async j => ({ ...j, canRetry: retryAvailable(j, ctx.user._id, Date.now()), history: await ctx.db.query("deliveryAttempts").withIndex("by_outbox", q => q.eq("outboxId", j._id)).collect() })));
 } });
 export const retry = authedMutation({ args: { outboxId: v.id("deliveryOutbox") }, handler: async (ctx, args) => {
  const job = await ctx.db.get(args.outboxId);
@@ -119,12 +126,12 @@ export const enqueueLegacy = internalMutation({
  },
 });
 
-export const listForEngagement = authedQuery({ args: { engagementId: v.id("engagements") }, handler: async (ctx, args) => {
+export const listForEngagement = authedQuery({ args: { engagementId: v.id("engagements") }, returns: v.array(engagementDeliverySummary), handler: async (ctx, args) => {
  const e = await engagementAccess(ctx, args.engagementId);
  const contracts = await ctx.db.query("contracts").withIndex("by_engagement", q => q.eq("engagementId", e._id)).collect();
  const sourceIds = [e._id, e.proposalId, ...contracts.map(c => c._id)]; const result = [];
  for (const sourceId of sourceIds) for (const job of await ctx.db.query("deliveryOutbox").withIndex("by_source", q => q.eq("sourceId", sourceId)).collect()) {
-  result.push({ outboxId: job._id, eventKey: job.eventKey, state: job.state, title: job.title, attempts: job.attempts, lastError: job.lastError, createdAt: job.createdAt, updatedAt: job.updatedAt, history: await ctx.db.query("deliveryAttempts").withIndex("by_outbox", q => q.eq("outboxId", job._id)).collect() });
+  result.push({ outboxId: job._id, eventKey: job.eventKey, state: job.state, title: job.title, attempts: job.attempts, lastError: job.lastError, createdAt: job.createdAt, updatedAt: job.updatedAt, history: await ctx.db.query("deliveryAttempts").withIndex("by_outbox", q => q.eq("outboxId", job._id)).collect(), canRetry: retryAvailable(job, ctx.user._id, Date.now()) });
  }
  return result.sort((a,b) => b.createdAt-a.createdAt);
 } });

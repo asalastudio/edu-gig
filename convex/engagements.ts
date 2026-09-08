@@ -1,10 +1,11 @@
 import { active, current, engagementAccess, receipt, saveReceipt } from "./lib/releaseDomain";
 import { enqueue } from "./lib/outbox";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import { authedQuery, authedMutation } from "./lib/customFunctions";
-import { canAccessEngagement, canManageNeed, canManageNeedAsParty, getEducatorForUser } from "./lib/auth";
+import type { QueryCtx } from "./_generated/server";
+import { canAccessEngagement, canAccessEngagementAsParty, canManageNeed, canManageNeedAsParty, getEducatorForUser } from "./lib/auth";
 import { createEngagementFromAcceptance } from "./lib/createEngagement";
 import { engagementStatusValidator, engagementSummaryValidator } from "./lib/validators";
 
@@ -17,7 +18,7 @@ const engagementDetailValidator = v.object({
 });
 
 async function toSummary(
-    ctx: { db: import("./_generated/server").QueryCtx["db"]; user?: { _id: Id<"users"> } },
+    ctx: QueryCtx & { user: Doc<"users"> },
     engagement: import("./_generated/dataModel").Doc<"engagements">
 ) {
     const educatorUser = await ctx.db.get(engagement.educatorUserId);
@@ -27,7 +28,8 @@ async function toSummary(
     return {
         _id: engagement._id,
         revision: engagement.revision ?? 0,
-        archivedForViewer: !!ctx.user && !!engagement.archivedBy?.includes(ctx.user._id),
+        archivedForViewer: !!engagement.archivedBy?.includes(ctx.user._id),
+        partyAccess: await canAccessEngagementAsParty(ctx, ctx.user, engagement),
         needId: engagement.needId,
         proposalId: engagement.proposalId,
         educatorId: engagement.educatorId,

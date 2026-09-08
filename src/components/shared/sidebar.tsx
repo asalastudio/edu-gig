@@ -176,7 +176,7 @@ export function Sidebar() {
             </aside>
 
             {/* Mobile top bar */}
-            <header className="lg:hidden fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between gap-3 bg-[#17261F] border-b border-[#2B4338] px-4 text-white">
+            <header style={{ top: "var(--staging-offset, 0px)" }} className="lg:hidden fixed inset-x-0 z-40 flex h-14 items-center justify-between gap-3 bg-[#17261F] border-b border-[#2B4338] px-4 text-white">
                 <Link href="/" aria-label="K12Gig home" className="w-fit">
                     <BrandLogo inverse className="[&>svg]:h-7 [&>svg]:w-7 [&>span]:text-lg" />
                 </Link>
@@ -198,7 +198,7 @@ export function Sidebar() {
 
             {/* Mobile drawer + overlay */}
             {mobileOpen && (
-                <div className="lg:hidden fixed inset-0 z-50">
+                <div style={{ top: "var(--staging-offset, 0px)" }} className="lg:hidden fixed inset-0 z-50">
                     <div
                         className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
                         onClick={closeMobileMenu}

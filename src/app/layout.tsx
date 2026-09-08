@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Providers } from "@/components/providers";
@@ -52,8 +53,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={process.env.NEXT_PUBLIC_APP_ENV === "staging" ? { "--staging-offset": "56px" } as CSSProperties : undefined}
       >
-        {process.env.NEXT_PUBLIC_APP_ENV === "staging" && <div role="status" className="sticky top-0 z-[100] bg-amber-200 px-4 py-2 text-center text-sm font-bold text-slate-950">STAGING · Synthetic QA data · Email captured · No real agreements</div>}
+        {process.env.NEXT_PUBLIC_APP_ENV === "staging" && <div role="status" className="sticky top-0 z-[100] flex h-14 items-center justify-center bg-amber-200 px-4 py-2 text-center text-sm font-bold text-slate-950">STAGING · Synthetic QA data · Email captured · No real agreements</div>}
         <TooltipProvider>
           <ThemeProvider
             attribute="class"

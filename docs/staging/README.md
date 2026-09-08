@@ -74,4 +74,4 @@ The existing GitHub CI uses Node 20 and covers type/lint/unit/public Playwright;
 
 ## Investigation and remaining decisions
 
-See [the A–L ledger](INVESTIGATION.md). Staging readiness does not imply these product gaps are fixed. Highest-priority follow-up: upload ownership, authenticated-download policy, message-context authorization, contract version/share/notification semantics, and acceptance reversal rules. Recovery transport and the complete mobile/session-expiration matrix still require further evidence. No production cleanup, migration, deployment, email send or purchase occurred.
+See [the A–L ledger](INVESTIGATION.md). Staging readiness does not imply these product gaps are fixed. Highest-priority follow-up: upload ownership, authenticated-download policy, message-context authorization, contract version/share/notification semantics, and acceptance reversal rules. A 390px mobile check and live session revocation are recorded in the ledger; real recovery-email transport and the complete accessibility/session-expiration matrix still require further evidence. No production cleanup, migration, deployment, email send or purchase occurred.

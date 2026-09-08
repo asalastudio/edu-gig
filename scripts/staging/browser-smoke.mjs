@@ -49,6 +49,12 @@ try {
             const response = await fetch(url); assert.equal(response.status, 200);
             result.download = { status: response.status, contentType: response.headers.get('content-type') };
             result.bearerFileUrlWithoutSession = true; // Existing storage design, not reauthorized per download.
+            await page.setViewportSize({ width: 390, height: 844 });
+            await page.getByRole('button', { name: 'Open navigation menu', exact: true }).click();
+            await page.getByRole('button', { name: 'Close navigation menu', exact: true }).click();
+            result.mobileNavigation = 'opened and closed at 390px';
+            await page.screenshot({ path: '.qa-private/staging-mobile-contract-hub.png', fullPage: true });
+            await page.setViewportSize({ width: 1280, height: 720 });
         }
         if (alias === 'consultant-a') { assert.equal(contracts.length, 4); await page.goto(`${origin}/dashboard/educator/contract-hub`); await page.getByRole('heading', { name: 'Add a document' }).waitFor(); }
         if (['district-b','consultant-b'].includes(alias)) {

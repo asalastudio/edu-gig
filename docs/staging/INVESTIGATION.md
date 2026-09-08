@@ -82,6 +82,8 @@ The shared Input component has error IDs/aria-describedby; posting fields use ar
 
 Desktop signed-in pages are smoke-tested; a complete mobile, keyboard, assistive-technology and session-expiry matrix is still required. Do not infer full accessibility clearance from successful rendering. A sign-out automation timing failure was traced to calling the Clerk SDK before it had loaded after navigation; waiting for Clerk readiness resolved it. It was not established as an application sign-out defect.
 
+At 390px, the Contract Hub engagement selector overflows/clips within its card despite no document-level horizontal overflow. Fix its intrinsic width (`min-width: 0` / constrained select width). The staging indicator initially covered the fixed mobile navigation; this branch offsets that navigation and drawer below the indicator. A live Clerk-session revocation clears the client session, but the open Contract Hub can remain visible until another request; reloading then redirects to staging sign-in. Add an explicit expired-session UI/redirect and test operations during expiry. Previously loaded content is not evidence of fresh authorized backend access.
+
 ## L — Operational truth: **confirmed published/code posture; policy decisions remain**
 
 The September Terms/pricing/help say no K12Gig platform fee, payment processing, invoices/payouts/tax forms, or legally binding electronic signatures. Parties arrange these directly. Legacy Stripe/Checkr routes and data still exist, but launch flags disable their intended flows. They are unconfigured and blocked in staging; no production integration was changed.

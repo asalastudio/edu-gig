@@ -8,3 +8,4 @@ playwright-report
 .git
 node_modules
 .next
+.superpowers

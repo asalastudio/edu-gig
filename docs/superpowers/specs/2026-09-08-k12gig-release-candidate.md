@@ -4,7 +4,7 @@ Authority: Jordan's implementation request in this thread, September 8, 2026. Th
 
 ## Global constraints
 
-- Deploy only to https://k12gig-staging.vercel.app with Convex reminiscent-eagle-756 and the existing pinned non-production Clerk instance.
+- Stable default: https://k12gig-staging.vercel.app with Convex reminiscent-eagle-756. Controller-authorized automation exception: https://k12gig-rc-20260908.vercel.app with Convex dapper-curlew-192, selected only by explicit --automation and its exact pinned resource map. Both use the existing pinned non-production Clerk instance. Mutable automated journeys/fixture reset run only on automation; stable reviewer linkage and environment stay unchanged. No production resource is authorized.
 - Preserve the green/cream/gold brand system and working messaging, saved consultants, profiles, and need/proposal notifications.
 - Use real Clerk authentication and normal membership/role records. Never add an authorization bypass.
 - Keep all staging email captured; no production sends, purchases, production migration, or production deployment.

@@ -1,5 +1,9 @@
-import resources from './resources.json' with { type: 'json' };
+import stable from './resources.json' with { type: 'json' };
+import automation from './automation-resources.json' with { type: 'json' };
+const targets = Object.freeze([Object.freeze(stable), Object.freeze(automation)]);
 export function checkStaging(env) {
+  const resources = targets.find(r => r.convexDeployment === env.QA_CONVEX_DEPLOYMENT);
+  if (!resources) throw Error('Staging mismatch: QA_CONVEX_DEPLOYMENT');
   const expected = {
     APP_ENV: 'staging', NEXT_PUBLIC_APP_ENV: 'staging',
     NEXT_PUBLIC_APP_URL: resources.appUrl,
@@ -19,5 +23,9 @@ export function checkStaging(env) {
   if (!env.QA_ALLOWED_CLERK_IDS?.split(',').every(id => /^user_[a-zA-Z0-9]+$/.test(id))) throw Error('Explicit reviewer identities required');
   for (const key of ['RESEND_API_KEY','STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','CHECKR_API_KEY','CHECKR_WEBHOOK_SECRET','SENTRY_DSN','NEXT_PUBLIC_SENTRY_DSN','UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','ALLOW_DEMO_SEED','BETA_LAUNCH_SECRET','DEMO_SEED_SECRET','CONVEX_SELF_HOSTED_URL','CONVEX_SELF_HOSTED_ADMIN_KEY']) if (env[key]) throw Error(`Integration must be absent in capture-only staging: ${key}`);
   if (env.VERCEL_PROJECT_ID && env.VERCEL_PROJECT_ID !== resources.vercelProjectId) throw Error("Wrong Vercel project");
+  if (env.VERCEL_ORG_ID && env.VERCEL_ORG_ID !== resources.vercelTeamId) throw Error("Wrong Vercel team");
+  if (env.CONVEX_CLOUD_URL && env.CONVEX_CLOUD_URL !== resources.convexUrl) throw Error('Wrong Convex cloud URL');
+  if (env.CONVEX_SITE_URL && env.CONVEX_SITE_URL !== resources.convexSiteUrl) throw Error('Wrong Convex site URL');
+  if (env.CONVEX_DEPLOYMENT && env.CONVEX_DEPLOYMENT.split(' ')[0] !== `dev:${resources.convexDeployment}`) throw Error('Wrong Convex CLI deployment');
   return resources;
 }

@@ -1,77 +1,59 @@
-# Official isolated K12Gig staging
+# Isolated K12Gig staging
 
-Stable application URL: **https://k12gig-staging.vercel.app**. This is a separate Vercel project, not an alias of production. Reviewer access uses normal Clerk sign-in and an explicit Clerk-user allowlist, enforced by both Next middleware and Convex authentication entry points. Production `k12gig.com` was not changed.
+The stable reviewer URL is **https://k12gig-staging.vercel.app**. Task 4 adds a separately pinned automation deployment so mutable journeys do not change stable reviewer data. Current candidate implementation and local checks are distinct from deployment, migration and live acceptance. Live candidate gates remain **Blocked / pending controller evidence**; historical baseline results in INVESTIGATION.md do not verify this candidate.
 
-`staging.k12gig.com` remains a hostname follow-up: k12gig.com uses Cloudflare nameservers (lamar/uma), and no Cloudflare DNS credentials were available in this execution. No domain was purchased or nameservers changed. If that alias is later added, update the exact resource manifest, both provider environments, Clerk redirects and evidence; do not merely add an alias and assume isolation.
-
-## Resource map (non-secret)
-
-| Component | Staging | Production / exclusion |
+| Resource | Stable default | Explicit `--automation` |
 |---|---|---|
-| Frontend | Vercel `k12gig-staging`, `prj_Vpy7lyVtwojNT1wBri26KaRni59D` | `edu-gig`, `prj_IP8sPfVJTKtWDaAjpX4IUUkweZrI` |
-| Team | Asala `team_CGyACzn1BhcZitDAKUiZRzax` | Same owning team; separate project/envs |
-| Backend/database/storage/scheduler | Convex `reminiscent-eagle-756`, reference `staging-review`, type dev, no expiration | `descriptive-bass-5` (production); existing personal dev `unique-eagle-379` untouched |
-| Backend endpoint | `https://reminiscent-eagle-756.convex.cloud` | Frontend/server share this exact endpoint |
-| HTTP-actions resource | `https://reminiscent-eagle-756.convex.site` | No Convex HTTP routes in current app |
-| Authentication | Clerk development `ins_3CcGU4eLSlRRv1oQgKNzr9mGlfN`, `https://regular-wolf-65.clerk.accounts.dev` | Production issuer `https://clerk.k12gig.com` |
-| Memberships | `users.role`, `districts.adminIds`, `educators.userId` in staging Convex | No Clerk Organizations integration |
-| Email | Captured rendered payloads in staging `qaEmailCaptures`; provider test verification codes | No staging Resend key, no external delivery |
-| Jobs | Staging Convex scheduler; profile reminder cron disabled | No external queue/worker resource |
-| Stripe / Checkr | Flags false, keys absent; webhook routes remain unconfigured | No callbacks registered to production or staging |
-| Monitoring | Separate Vercel project logs and Convex deployment logs/captures | Sentry/Upstash credentials absent; no shared telemetry destination |
-| Search engines | X-Robots-Tag, metadata noindex/nofollow, robots disallow | Access protection is independent of noindex |
+| Vercel project | `prj_Vpy7lyVtwojNT1wBri26KaRni59D` | `prj_BCDKkXbjjoBhyvBOBZBn7qHpO7Wm` |
+| Application | `https://k12gig-staging.vercel.app` | `https://k12gig-rc-20260908.vercel.app` |
+| Convex | `reminiscent-eagle-756` | `dapper-curlew-192` |
+| Cloud/HTTP | corresponding `.convex.cloud` / `.convex.site` | corresponding `.convex.cloud` / `.convex.site` |
+| Private operator environment | `.env.local` | `.qa-private/automation-infra/app.env` |
 
-Clerk development already held 19 identities; they were not copied, modified or granted staging access. Ten new synthetic identities were added. Existing development identities outside the allowlist cannot access staging data. This reuses a non-production authentication instance; it is not a newly created Clerk application.
+Both projects belong to Asala `team_CGyACzn1BhcZitDAKUiZRzax` and use the pinned development Clerk instance `ins_3CcGU4eLSlRRv1oQgKNzr9mGlfN`, issuer `https://regular-wolf-65.clerk.accounts.dev`. Normal Clerk sessions and explicit allowlists protect the app and backend. The automation exception changes neither stable `.env.local` nor `.vercel/project.json`. Resource manifests are tracked, exact and nonsecret. Unknown, production and mixed resources fail closed. Production Convex `descriptive-bass-5`, production Clerk `https://clerk.k12gig.com` and production Vercel `prj_IP8sPfVJTKtWDaAjpX4IUUkweZrI` are excluded.
 
-The staging project's Vercel “production” target is its stable publishing slot. It does not target the production K12Gig project. Vercel SSO is not required for reviewers; Clerk reviewer authorization protects the application and backend. No paid plan or add-on was purchased. Builds/functions/storage use the existing Vercel Pro and Convex account allowances and metered usage; no fixed incremental billing amount was established. Real QA inbox delivery, separate Sentry telemetry and Cloudflare DNS each require their own approved configuration.
+Vercel's `--prod` selects the publishing slot of the explicitly selected **staging project**. This is not authority to deploy production K12Gig. The exact staging branch has Git deployments disabled in vercel.json; automation has no Git link. `.qa-private`, env files, auth state and `.superpowers` are excluded from hosting uploads. CI has no seed, migration or remote deployment authority.
 
-## Access and accounts
+The custom `staging.k12gig.com` alias remains blocked pending Cloudflare access. Automation requested a seven-day expiry on September 8; controller must verify actual expiry before reuse. No paid service or new plan is authorized.
 
-Use the **private** `.qa-private/ACCOUNT-ACCESS.md` and `.qa-private/accounts.json` in the implementation worktree. The Markdown roster contains aliases, starting states and access instructions; the JSON contains generated credentials. These files are mode 0600, under a mode 0700 directory, ignored by Git and excluded from Vercel upload. Do not paste them into tickets, PRs, chat or screenshots. Transfer credentials to the approved secrets manager before distributing access beyond this workstation.
+## Private access and fixtures
 
-Required aliases: district-a, consultant-a, district-b, consultant-b, fresh-district, fresh-consultant. Additional existing product roles/scenarios: district-teammate (`district_hr`), review-admin (`superadmin`), consultant-unavailable, consultant-reviewed. These are actual Clerk identities with normal Convex records, not role switches or fake authentication. Fresh accounts have onboarded=false and no district/profile record. Other profiles/memberships are synthetic starting fixtures.
+Use the private `.qa-private/accounts.json` roster and account-access instructions; never copy credentials into code, reports, screenshots or PRs. Existing baseline accounts are real Clerk development identities and normal Convex memberships. Run-specific signup actors must use the real candidate Clerk UI and be explicitly allowlisted on automation after creation; a provider API-created identity is not signup proof. Never add a role or auth bypass.
 
-Clerk's documented `+clerk_test` development identities use test verification codes and suppress code delivery. Passwords are generated randomly, never hardcoded in the application. See [Clerk test identities](https://clerk.com/docs/guides/development/testing/test-emails-and-phones). Controlled real inboxes were not supplied; real email transport/recovery delivery is not claimed verified. Google OAuth is not the QA access path.
+`human-review-v1` preserves the existing baseline identities and independent legacy records. Its seed is idempotent and does not rewrite an existing manifest. Existing plaintext records require the separate guarded migration. Fresh seed files are validated and encrypted before storage.
 
-## Repeatable commands
+The supplementary `release-candidate-v1` manifest can be added idempotently to either exact target after revision verification. It preserves the base manifest and creates two accepted engagements, one with no agreements and one with an explicit shared original/signed-copy/revision chain plus a separate private amendment draft. Superseded means earlier shared version, not completed work. All bytes are synthetic, and seeded states are not live UI/signing evidence. A synthetic historical verification flag or QA audit is not a credential-review record; no real review evidence is forged.
 
-Run from this branch/worktree with its private `.env.local`:
+Reset is explicit, namespace-specific and refuses untracked dependent work. Accounts, profiles, memberships and unrelated records survive. Source-linked outbox attempts/captures are removed and pending source jobs are canceled. Run reset/idempotence checks on automation **before** adding journey/transport dependents; later reset should refuse those dependents. Operator CLI/harness refuse stable resets and mutable automation. Internal reset remains an exact-target, commit-checked administrative operation, never a public API.
+
+## Controller commands
+
+These commands are implemented but their live execution is pending. Replace `REVIEWED_FULL_SHA` with the exact clean reviewed commit. Never paste secrets into arguments or logs.
 
 ```sh
-npm ci
 npm run staging:check
 npm run staging:status
-npm run staging:seed
-npm run staging:reset -- --confirm=RESET_IDENTIFIED_QA_FIXTURES
-npm run staging:seed
-node scripts/staging/cli.mjs capture-smoke
-node scripts/staging/cli.mjs emails
-npm test
-npm run typecheck
-npm run lint
-npm run staging:smoke
+npm run staging:deploy -- --automation
+npm run staging:check -- --automation
+npm run staging:seed -- --automation --expected-commit=REVIEWED_FULL_SHA
+node scripts/staging/cli.mjs release-seed --automation --expected-commit=REVIEWED_FULL_SHA
+node scripts/staging/cli.mjs release-status --automation
+node scripts/staging/cli.mjs delivery-fixtures --automation --expected-commit=REVIEWED_FULL_SHA --confirm=SIMULATE_CAPTURE_ONLY_DELIVERY
+node scripts/staging/cli.mjs release-reset --automation --expected-commit=REVIEWED_FULL_SHA --confirm=RESET_IDENTIFIED_QA_FIXTURES
+npm run staging:smoke -- --automation --expected-commit=REVIEWED_FULL_SHA
+node scripts/staging/release-journey.mjs --automation --expected-commit=REVIEWED_FULL_SHA --cases=.qa-private/reviewed-journey-cases.mjs
 ```
 
-Seed checks local identifiers, deploy-key target, live Clerk instance, actual provider identities, and an internal backend environment proof. The backend independently checks its built-in CONVEX_CLOUD_URL, issuer, origin, capture mode and exact resource IDs. Missing/mismatched/production identifiers fail before fixture writes. Old production/demo cleanup commands are not used or enabled.
+After automation verification, the controller deploys the same reviewed code to stable with `npm run staging:deploy`, reconciles/applies the migration, optionally adds stable supplementary examples with `release-seed --expected-commit=REVIEWED_FULL_SHA`, and runs read-only stable smoke. Stable base seed re-run must be a no-op. Fault fixtures are strictly automation-only; they induce failed/queued states without contacting Resend. Recipient retry uses the real delivery path and capture mode. No provider delivery is claimed.
 
-Seed is idempotent. Its atomic database transaction records exact fixture IDs; duplicate concurrent seed actions clean up only their own unused uploaded PDFs. Reset deletes only the recorded 32 fixture records/files. Accounts, districts, profiles, synthetic review evidence and unrelated records survive. Reset refuses to orphan reviewer-created dependents, uses bounded safety scans, cancels matching pending scheduled jobs, and invalidates delayed capture when its source no longer exists. A repeated reset returns zero deleted. It does not reset a fresh account after a reviewer completes onboarding; that state is preserved deliberately. Request a new scoped identity for another first-run review.
+The deploy command requires a clean Git tree, passes its full commit as both Vercel `qaCommit` metadata and `QA_BUILD_COMMIT`, and uses explicit project/team overrides on automation. Hosting generates a source literal before compiling Convex and Next. Internal `qa.environment` reports that compiled backend commit; staging HTML exposes the same `data-qa-commit`. `unbuilt` is the safe local fallback and cannot authorize seed/reset. An environment label alone is not revision evidence. Deploy may update an older backend; only fixture mutations require the expected deployed revision.
 
-Human-review fixtures occupy only `human-review-v1`. Automated mutation tests run in an isolated **in-memory convex-test database**, never this live namespace. `staging:smoke` uses real authentication and read-only live browsing plus rejected authorization probes; it does not create needs/messages/contracts. Do not repurpose this deployment for mutable automated end-to-end suites; provision and pin a second backend/auth roster first.
+Check frontend deployment ID/alias/metadata, backend cloud/resource/compiled commit and rendered HTML commit separately. Record tested code SHA versus any subsequent documentation-only SHA. Recheck production identity unchanged at handoff; no production action is authorized.
 
-Documents are PDFs visibly marked “SYNTHETIC QA — NOT A REAL AGREEMENT.” Private downloadable source PDFs are in `.qa-private/documents`. No client documents or real signatures were used. Draft/shared/returned/superseded are clearly labeled scenario cards; true agreement versioning is unsupported. Simulated notification failure is not presented as a real provider failure. Upload-error cases belong in the test harness (HTTP failure/oversize), not intentionally corrupt records.
+## Current implementation and verification limits
 
-## Deploy and revision discipline
+Private uploads use authenticated Convex HTTP, encrypted storage and per-request authorized streamed Next downloads. No plaintext bearer URL fallback exists. Agreement drafts, including unmigrated text-only drafts, hide metadata/history from the counterpart until sharing; district teammates retain owning-party access. See [API contract](RC-API.md), [tests](RC-TESTS.md), [migration](RC-MIGRATION.md), [rollback](RC-ROLLBACK.md) and [findings](RC-FINDINGS.md).
 
-1. Work from the isolated staging branch and commit reviewed changes. Never deploy the original checkout.
-2. `npm run staging:check`, tests/typecheck/lint, and `npm run build -- --webpack`.
-3. `npm run staging:deploy` verifies the exact linked Vercel project and clean commit, then publishes to this staging project's stable slot with `qaCommit` metadata.
-4. The remote `vercel:build` checks exact environment/resource bindings, builds Next, and deploys Convex with the staging-scoped deploy key. This intentionally differs from baseline Preview builds, which skip backend deployment.
-5. Inspect Vercel build logs and run `staging:smoke` on the stable URL. Check signed-out redirects, noindex headers, backend proof and asset downloads. Record frontend deployment ID/commit separately from Convex deployment identity.
+Transactional emails remain captured, profile reminders disabled in staging, and Checkr/Stripe callbacks unconfigured. There is no Clerk webhook/Organizations integration. Real email, physical iOS/Android devices and screen-reader speech remain unavailable/Blocked. Emulation, DOM semantics and keyboard checks must be labeled separately.
 
-Production-style local server used for initial verification: `http://localhost:3011` (`next build --webpack` + `next start`), connected to staging resources. That agent-owned local server has been stopped; local presence is not a replacement for hosted verification.
-
-The existing GitHub CI uses Node 20 and covers type/lint/unit/public Playwright; its TESTING.md claim that CI runs build was inaccurate. Hosted Vercel uses Node 24.x, the workstation Node 22.22.3/npm 10.9.8. The new manually invoked staging workflow uses Node 24, no external service secrets, and in-memory mutation tests. It is authored but has not been run on GitHub; this branch has not been pushed. No CI seed or production deploy selector is present.
-
-## Investigation and remaining decisions
-
-See [the A–L ledger](INVESTIGATION.md). Staging readiness does not imply these product gaps are fixed. Highest-priority follow-up: upload ownership, authenticated-download policy, message-context authorization, contract version/share/notification semantics, and acceptance reversal rules. A 390px mobile check and live session revocation are recorded in the ledger; real recovery-email transport and the complete accessibility/session-expiration matrix still require further evidence. No production cleanup, migration, deployment, email send or purchase occurred.
+Local runtime is Node 22.22.3/npm 10.9.8. Vercel is configured for Node 24.x, regular GitHub CI uses Node 20, and the manual staging workflow uses Node 24. Locked dependencies were retained. Local `npm run build -- --webpack` is safe compilation; **do not run `npm run vercel:build` locally for verification** because it deploys the backend. A passing compiler alone does not verify an authenticated customer journey.

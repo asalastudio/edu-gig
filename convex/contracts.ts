@@ -1,4 +1,4 @@
-import { sameParty, downloadPath, active } from "./lib/releaseDomain";
+import { canViewAgreement, sameParty, downloadPath, active } from "./lib/releaseDomain";
 import { v } from "convex/values";
 import { authedMutation, authedQuery } from "./lib/customFunctions";
 import { canAccessEngagementAsParty } from "./lib/auth";
@@ -115,7 +115,7 @@ export const listForEngagement = authedQuery({
         const out = [];
         const engagement = await requireEngagementAccess(ctx, args.engagementId);
         for (const row of rows) {
-            if (row.managed && !row.currentSharedVersionId && !await sameParty(ctx, engagement, row.uploadedByUserId)) continue;
+            if (!await canViewAgreement(ctx, engagement, row)) continue;
             const uploader = await ctx.db.get(row.uploadedByUserId);
             out.push({
                 _id: row._id,
@@ -192,7 +192,7 @@ export const listMine = authedQuery({
                 ? [educatorUser.firstName, educatorUser.lastName].filter(Boolean).join(" ").trim() || educatorUser.email
                 : "Consultant";
             for (const row of contracts) {
-                if (row.managed && !row.currentSharedVersionId && !await sameParty(ctx, engagement, row.uploadedByUserId)) continue;
+                if (!await canViewAgreement(ctx, engagement, row)) continue;
                 const uploader = await ctx.db.get(row.uploadedByUserId);
                 items.push({
                     contract: {
@@ -252,7 +252,7 @@ export const listEvents = authedQuery({
             .collect();
         const out = [];
         const engagement = await requireEngagementAccess(ctx, contract.engagementId);
-        if (contract.managed && !contract.currentSharedVersionId && !await sameParty(ctx, engagement, contract.uploadedByUserId)) throw new Error("Forbidden");
+        if (!await canViewAgreement(ctx, engagement, contract)) throw new Error("Forbidden");
         for (const event of events) {
             if (event.privateOwnerId && !await sameParty(ctx, engagement, event.privateOwnerId)) continue;
             const actor = await ctx.db.get(event.actorUserId);

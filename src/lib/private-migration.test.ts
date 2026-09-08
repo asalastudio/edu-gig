@@ -41,9 +41,9 @@ it("blocks missing/malformed originals, never deletes them during reads or faile
 it("normal qa.seed stores only encrypted fixtures and resets/reseeds without plaintext restoration", async () => {
  vi.stubEnv("PRIVATE_FILE_KEY", "11".repeat(32)); vi.stubEnv("PRIVATE_FILE_KEY_ID", "test-v1");
  const { accounts } = await import("./release-test-fixture"); const { t } = await seeded();
- await t.mutation(internal.qa.reset, { namespace: "human-review-v1", confirmation: "RESET_IDENTIFIED_QA_FIXTURES" });
+ await t.mutation(internal.qa.reset, { expectedCommit: "a".repeat(40), namespace: "human-review-v1", confirmation: "RESET_IDENTIFIED_QA_FIXTURES" });
  const bytes = new TextEncoder().encode("%PDF-1.7\nSYNTHETIC QA FILE\n%%EOF");
- const args = { namespace: "human-review-v1", accounts, files: Array.from({ length: 6 }, (_, i) => ({ name: `synthetic-${i}.pdf`, base64: Buffer.from(bytes).toString("base64") })) };
+ const args = { expectedCommit: "a".repeat(40), namespace: "human-review-v1", accounts, files: Array.from({ length: 6 }, (_, i) => ({ name: `synthetic-${i}.pdf`, base64: Buffer.from(bytes).toString("base64") })) };
  expect((await t.action(internal.qa.seed, args)).seeded).toBe(true);
  const contracts = await t.run(ctx => ctx.db.query("contracts").collect());
  expect(contracts.every(c => c.managed && !c.storageId)).toBe(true);
@@ -55,7 +55,7 @@ it("normal qa.seed stores only encrypted fixtures and resets/reseeds without pla
   expect(await decryptFile(new Uint8Array(cipher), f)).toEqual(bytes);
  }
  expect((await t.action(internal.qa.seed, args)).seeded).toBe(false);
- await t.mutation(internal.qa.reset, { namespace: "human-review-v1", confirmation: "RESET_IDENTIFIED_QA_FIXTURES" });
+ await t.mutation(internal.qa.reset, { expectedCommit: "a".repeat(40), namespace: "human-review-v1", confirmation: "RESET_IDENTIFIED_QA_FIXTURES" });
  expect(await t.run(ctx => ctx.db.query("privateFiles").collect())).toHaveLength(0);
  expect((await t.action(internal.qa.seed, args)).seeded).toBe(true);
 });

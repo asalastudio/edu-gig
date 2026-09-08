@@ -62,7 +62,7 @@ it("reset invalidates source-linked outbox and its pending watchdog without dele
   const { t, rows } = await seeded();
   const id = await t.run(ctx => ctx.db.insert("deliveryOutbox", { sourceId: rows.messages[0]._id, eventKey: "reset-test", recipientUserId: rows.users[0]._id, title: "Reset", body: "Test", actionUrl: "/dashboard/messages", state: "queued", attempts: 0, createdAt: Date.now(), updatedAt: Date.now() }));
   await t.mutation(internal.delivery.claim, { outboxId: id, token: "claim" });
-  await t.mutation(internal.qa.reset, { namespace: "human-review-v1", confirmation: "RESET_IDENTIFIED_QA_FIXTURES" });
+  await t.mutation(internal.qa.reset, { expectedCommit: "a".repeat(40), namespace: "human-review-v1", confirmation: "RESET_IDENTIFIED_QA_FIXTURES" });
   await t.mutation(internal.delivery.finish, { outboxId: id, token: "claim", outcome: "captured", payload: "{}" });
   expect(await t.run(ctx => ctx.db.get(id))).toBeNull();
   expect(await t.run(ctx => ctx.db.query("qaEmailCaptures").collect())).toHaveLength(0);

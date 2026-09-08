@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { writeFileSync } from "node:fs";
+import { buildIdentitySource } from "./staging/build-identity.mjs";
 import { spawnSync } from "node:child_process";
 import { checkStaging } from "./staging/guard.mjs";
 
@@ -34,6 +36,7 @@ const run = (command, args, options = {}) => {
 
 if (process.env.NEXT_PUBLIC_APP_ENV === "staging" || process.env.APP_ENV === "staging") {
   checkStaging(process.env);
+  writeFileSync("convex/buildIdentity.ts", buildIdentitySource(process.env));
   run("npx", ["convex", "deploy", "--cmd", "npm run build"]);
   process.exit(0);
 }

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { authedMutation, authedQuery } from "./lib/customFunctions";
-import { active, current, downloadPath, engagementAccess, receipt, sameParty, saveReceipt, type UserCtx } from "./lib/releaseDomain";
+import { canViewAgreement, active, current, downloadPath, engagementAccess, receipt, sameParty, saveReceipt, type UserCtx } from "./lib/releaseDomain";
 import { ownedFile } from "./privateFiles";
 import { enqueue } from "./lib/outbox";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -118,7 +118,7 @@ export const listForEngagement = authedQuery({ args: { engagementId: v.id("engag
    const uploader = await ctx.db.get(x.uploadedByUserId);
    versions.push({ versionId: x._id, privateFileId: x.privateFileId, number: x.number, kind: x.kind, parentVersionId: x.parentVersionId, fileName: x.fileName, uploadedByUserId: x.uploadedByUserId, uploaderName: uploader ? `${uploader.firstName} ${uploader.lastName}`.trim() : "Unknown", createdAt: x.createdAt, sharedAt: x.sharedAt, legacyStatus: x.legacyStatus, coordinationState: coordinationForVersion(x, allEvents), downloadUrl: downloadPath(x.privateFileId), isMine: mine });
   }
-  if (c.managed && !versions.length && !await sameParty(ctx, e, c.uploadedByUserId)) continue;
+  if (!await canViewAgreement(ctx, e, c)) continue;
   const events = [];
   for (const event of allEvents) {
    if (event.privateOwnerId && !await sameParty(ctx, e, event.privateOwnerId)) continue;

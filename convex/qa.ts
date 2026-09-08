@@ -1,10 +1,12 @@
+import { seedReleaseRows, RELEASE_NAMESPACE } from "./lib/releaseFixtures";
+import { BUILD_COMMIT } from "./buildIdentity";
 import { encryptFile, validateFile } from "./lib/privateCrypto";
 /** Internal-only synthetic staging fixtures. No user impersonation or auth bypass. */
 import { v } from "convex/values";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id, TableNames } from "./_generated/dataModel";
-import { assertStagingEnvironment } from "./lib/staging";
+import { assertBuildCommit, assertStagingEnvironment } from "./lib/staging";
 
 const account = v.object({ alias: v.string(), email: v.string(), clerkId: v.string() });
 const encryption = v.object({ sha256: v.string(), nonce: v.string(), keyId: v.string(), size: v.number() });
@@ -13,7 +15,7 @@ const receipt = v.object({ seeded: v.boolean(), count: v.number() });
 const ALIASES = ["district-a", "consultant-a", "district-b", "consultant-b", "fresh-district", "fresh-consultant", "district-teammate", "consultant-unavailable", "consultant-reviewed", "review-admin"];
 function namespace(value: string) {
     // Automation must use a separate deployment, not a namespace in human staging.
-    if (value !== "human-review-v1") throw new Error("Only stable human-review fixtures belong on this deployment");
+    if (!["human-review-v1", RELEASE_NAMESPACE].includes(value)) throw new Error("Unknown fixture namespace");
 }
 
 export const status = internalQuery({
@@ -26,9 +28,9 @@ export const status = internalQuery({
 });
 
 export const seed = internalAction({
-    args: { namespace: v.string(), accounts: v.array(account), files: v.array(file) }, returns: receipt,
+    args: { expectedCommit: v.optional(v.string()), namespace: v.string(), accounts: v.array(account), files: v.array(file) }, returns: receipt,
     handler: async (ctx, args): Promise<{ seeded: boolean; count: number }> => {
-        assertStagingEnvironment(); namespace(args.namespace);
+        assertStagingEnvironment(); assertBuildCommit(args.expectedCommit); namespace(args.namespace);
         const existing = await ctx.runQuery(internal.qa.status, { namespace: args.namespace });
         if (existing) return { seeded: false, count: existing.count };
         const storageIds: Id<"_storage">[] = [];
@@ -43,7 +45,7 @@ export const seed = internalAction({
                 encryptedMetadata.push({ sha256: encrypted.sha256, nonce: encrypted.nonce, keyId: encrypted.keyId, size: bytes.length });
             }
             const result = await ctx.runMutation(internal.qa.seedRows, {
-                namespace: args.namespace, accounts: args.accounts,
+                expectedCommit: args.expectedCommit, namespace: args.namespace, accounts: args.accounts,
                 files: args.files.map((f, i) => ({ name: f.name, storageId: storageIds[i], encryption: encryptedMetadata[i] })),
             });
             if (!result.seeded) for (const id of storageIds) await ctx.storage.delete(id);
@@ -56,13 +58,14 @@ export const seed = internalAction({
 });
 
 export const seedRows = internalMutation({
-    args: { namespace: v.string(), accounts: v.array(account), files: v.array(v.object({ name: v.string(), storageId: v.id("_storage"), encryption })) }, returns: receipt,
+    args: { expectedCommit: v.optional(v.string()), namespace: v.string(), accounts: v.array(account), files: v.array(v.object({ name: v.string(), storageId: v.id("_storage"), encryption })) }, returns: receipt,
     handler: async (ctx, args) => {
-        assertStagingEnvironment(); namespace(args.namespace);
+        assertStagingEnvironment(); assertBuildCommit(args.expectedCommit); namespace(args.namespace);
         const old = await ctx.db.query("qaRuns").withIndex("by_namespace", q => q.eq("namespace", args.namespace)).unique();
         if (old) return { seeded: false, count: old.records.length };
         if (args.accounts.length !== ALIASES.length || ALIASES.some(alias => args.accounts.filter(a => a.alias === alias).length !== 1)) throw new Error("Exact QA roster required");
         if (args.files.length !== 6) throw new Error("Six marked synthetic PDFs required");
+        if (args.namespace === RELEASE_NAMESPACE) return seedReleaseRows(ctx, args);
         const allowed = (process.env.QA_ALLOWED_CLERK_IDS ?? "").split(",");
         const now = Date.now();
         const users: Record<string, Id<"users">> = {};
@@ -189,9 +192,9 @@ export const captureNotification = internalMutation({
 });
 
 export const reset = internalMutation({
-    args: { namespace: v.string(), confirmation: v.literal("RESET_IDENTIFIED_QA_FIXTURES") }, returns: v.object({ deleted: v.number(), cancelledJobs: v.number() }),
+    args: { expectedCommit: v.optional(v.string()), namespace: v.string(), confirmation: v.literal("RESET_IDENTIFIED_QA_FIXTURES") }, returns: v.object({ deleted: v.number(), cancelledJobs: v.number() }),
     handler: async (ctx, args) => {
-        assertStagingEnvironment(); namespace(args.namespace);
+        assertStagingEnvironment(); assertBuildCommit(args.expectedCommit); namespace(args.namespace);
         const run = await ctx.db.query("qaRuns").withIndex("by_namespace", q => q.eq("namespace", args.namespace)).unique();
         if (!run) return { deleted: 0, cancelledJobs: 0 };
         const records = [...run.records];
@@ -229,10 +232,10 @@ export const reset = internalMutation({
 });
 
 export const environment = internalQuery({
-    args: {}, returns: v.object({ convexUrl: v.string(), clerkIssuer: v.string(), appUrl: v.string(), emailMode: v.literal("capture"), reviewers: v.number() }),
+    args: {}, returns: v.object({ convexUrl: v.string(), clerkIssuer: v.string(), appUrl: v.string(), emailMode: v.literal("capture"), reviewers: v.number(), buildCommit: v.string(), convexDeployment: v.string() }),
     handler: async () => {
         assertStagingEnvironment();
-        return { convexUrl: process.env.CONVEX_CLOUD_URL!, clerkIssuer: process.env.CLERK_JWT_ISSUER_DOMAIN!, appUrl: process.env.NEXT_PUBLIC_APP_URL!, emailMode: "capture" as const, reviewers: (process.env.QA_ALLOWED_CLERK_IDS ?? "").split(",").length };
+        return { buildCommit: BUILD_COMMIT, convexDeployment: assertStagingEnvironment().convexDeployment, convexUrl: process.env.CONVEX_CLOUD_URL!, clerkIssuer: process.env.CLERK_JWT_ISSUER_DOMAIN!, appUrl: process.env.NEXT_PUBLIC_APP_URL!, emailMode: "capture" as const, reviewers: (process.env.QA_ALLOWED_CLERK_IDS ?? "").split(",").length };
     },
 });
 
@@ -248,4 +251,30 @@ export const messageFixtureId = internalQuery({
         const run = await ctx.db.query("qaRuns").withIndex("by_namespace", q => q.eq("namespace", "human-review-v1")).unique();
         return (run?.records.find(r => r.table === "messages")?.id as Id<"messages"> | undefined) ?? null;
     },
+});
+
+/** Internal operator fixture; never an auth bypass or a real provider failure claim. */
+export const deliveryFixtures = internalMutation({
+ args: { namespace: v.literal('release-candidate-v1'), expectedCommit: v.string(), confirmation: v.literal('SIMULATE_CAPTURE_ONLY_DELIVERY') },
+ handler: async (ctx,args) => {
+  if (assertStagingEnvironment().convexDeployment !== "dapper-curlew-192") throw new Error("Delivery fault fixtures require exact automation deployment");
+  namespace(args.namespace); assertBuildCommit(args.expectedCommit);
+  const run=await ctx.db.query('qaRuns').withIndex('by_namespace',q=>q.eq('namespace',args.namespace)).unique();
+  const source=run?.records.find(r=>r.table==='contracts');
+  if (!source) throw new Error('Seed release fixtures first');
+  const contract=await ctx.db.get('contracts', source.id as Id<'contracts'>); const e=contract?await ctx.db.get("engagements", contract.engagementId):null;
+  if (!e) throw new Error('Fixture source missing');
+  const result: Id<'deliveryOutbox'>[]=[];
+  for (const state of ['failed','queued'] as const) {
+   const eventKey=`synthetic-release-fault:${state}:${source.id}`;
+   const old=await ctx.db.query('deliveryOutbox').withIndex('by_key',q=>q.eq('eventKey',eventKey).eq('recipientUserId',e.educatorUserId)).unique();
+   if (old) { result.push(old._id); continue; }
+   const now=Date.now();
+   const notificationId=await ctx.db.insert('notifications',{userId:e.educatorUserId,type:'synthetic_delivery_fixture',title:`SYNTHETIC QA - ${state} delivery`,body:'Simulated failure/queue fixture. No provider request was made.',actionUrl:`/dashboard/engagements/${e._id}`,read:false,createdAt:now});
+   const outboxId=await ctx.db.insert('deliveryOutbox',{eventKey,sourceId:source.id,recipientUserId:e.educatorUserId,notificationId,title:`SYNTHETIC QA - ${state} delivery`,body:'Induced test condition; not a real provider rejection.',actionUrl:`/dashboard/engagements/${e._id}`,state,attempts:state==='failed'?1:0,firstAttemptAt:state==='failed'?now:undefined,lastError:state==='failed'?'SIMULATED provider failure; no external request':undefined,createdAt:now,updatedAt:now});
+   if (state==='failed') await ctx.db.insert('deliveryAttempts',{outboxId,attempt:1,state:'failed',error:'SIMULATED provider failure; no external request',createdAt:now});
+   result.push(outboxId);
+  }
+  return {failedId:result[0],queuedId:result[1]};
+ },
 });

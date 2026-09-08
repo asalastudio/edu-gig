@@ -1,4 +1,9 @@
 {
-    "$schema": "https://openapi.vercel.sh/vercel.json",
-    "buildCommand": "npm run vercel:build"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run vercel:build",
+  "git": {
+    "deploymentEnabled": {
+      "codex/isolated-staging-2026-09-08": false
+    }
+  }
 }

@@ -10,9 +10,9 @@ describe("isolated staging backend (in-memory; no live fixtures touched)", () =>
     it("seeds twice without duplicates and resets only fixture records, preserving accounts/memberships", async () => {
         const { t, files, rows } = await seeded();
         const before = await t.query(internal.qa.status, { namespace });
-        expect(await t.mutation(internal.qa.seedRows, { namespace, accounts, files })).toEqual({ seeded: false, count: before!.count });
+        expect(await t.mutation(internal.qa.seedRows, { expectedCommit: "a".repeat(40), namespace, accounts, files })).toEqual({ seeded: false, count: before!.count });
         const unrelated = await t.run(ctx => ctx.db.insert("notifications", { userId: rows.users[0]._id, type: "test", title: "unrelated", body: "keep", read: false, createdAt: Date.now() }));
-        await t.mutation(internal.qa.reset, { namespace, confirmation: "RESET_IDENTIFIED_QA_FIXTURES" });
+        await t.mutation(internal.qa.reset, { expectedCommit: "a".repeat(40), namespace, confirmation: "RESET_IDENTIFIED_QA_FIXTURES" });
         expect(await t.run(ctx => ctx.db.query("users").collect())).toHaveLength(10);
         expect(await t.run(ctx => ctx.db.query("districts").collect())).toHaveLength(2);
         expect(await t.run(ctx => ctx.db.query("contracts").collect())).toHaveLength(0);
@@ -22,7 +22,7 @@ describe("isolated staging backend (in-memory; no live fixtures touched)", () =>
         const t = convexTest(schema, modules);
         for (const [key, value] of [["APP_ENV", "production"], ["CONVEX_CLOUD_URL", `https://${resources.productionConvexDeployment}.convex.cloud`], ["CLERK_JWT_ISSUER_DOMAIN", resources.productionClerkIssuer], ["RESEND_API_KEY", "unexpected"]]) {
             const old = process.env[key]; vi.stubEnv(key, value);
-            await expect(t.mutation(internal.qa.reset, { namespace, confirmation: "RESET_IDENTIFIED_QA_FIXTURES" })).rejects.toThrow("mismatch");
+            await expect(t.mutation(internal.qa.reset, { expectedCommit: "a".repeat(40), namespace, confirmation: "RESET_IDENTIFIED_QA_FIXTURES" })).rejects.toThrow("mismatch");
             vi.stubEnv(key, old);
         }
     });
@@ -50,12 +50,12 @@ describe("isolated staging backend (in-memory; no live fixtures touched)", () =>
     it("refuses reset when reviewer-created records depend on fixtures", async () => {
         const { t, rows, as } = await seeded();
         await as("district-a").mutation(api.contracts.create, { engagementId: rows.engagements[0]._id, title: "Reviewer work to preserve" });
-        await expect(t.mutation(internal.qa.reset, { namespace, confirmation: "RESET_IDENTIFIED_QA_FIXTURES" })).rejects.toThrow("unrelated contracts");
+        await expect(t.mutation(internal.qa.reset, { expectedCommit: "a".repeat(40), namespace, confirmation: "RESET_IDENTIFIED_QA_FIXTURES" })).rejects.toThrow("unrelated contracts");
         expect(await t.query(internal.qa.status, { namespace })).not.toBeNull();
     });
     it("does not capture delayed notifications whose source was reset", async () => {
         const { t, rows } = await seeded();
-        await t.mutation(internal.qa.reset, { namespace, confirmation: "RESET_IDENTIFIED_QA_FIXTURES" });
+        await t.mutation(internal.qa.reset, { expectedCommit: "a".repeat(40), namespace, confirmation: "RESET_IDENTIFIED_QA_FIXTURES" });
         await t.mutation(internal.qa.captureNotification, { sourceId: rows.messages[0]._id, kind: "sendNewMessageAlert" });
         expect(await t.run(ctx => ctx.db.query("qaEmailCaptures").collect())).toHaveLength(0);
     });
@@ -83,7 +83,7 @@ describe('staging notification and acceptance execution', () => {
         try {
             const { t, rows } = await seeded();
             const id = await t.run(ctx => ctx.scheduler.runAfter(60_000, internal.emails.sendNewMessageAlert, { messageId: rows.messages[0]._id }));
-            const result = await t.mutation(internal.qa.reset, { namespace, confirmation: 'RESET_IDENTIFIED_QA_FIXTURES' });
+            const result = await t.mutation(internal.qa.reset, { expectedCommit: "a".repeat(40), namespace, confirmation: 'RESET_IDENTIFIED_QA_FIXTURES' });
             expect(result.cancelledJobs).toBe(1);
             expect((await t.run(ctx => ctx.db.system.get(id)))?.state.kind).toBe('canceled');
         } finally { vi.useRealTimers(); }

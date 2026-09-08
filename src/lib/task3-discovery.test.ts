@@ -52,7 +52,7 @@ it('refuses QA reset when a fixture credential has reviewer-created evidence',as
  await t.run(async ctx=>{await ctx.db.patch(c!.educatorId,{stateLicenses:[]});const run=await ctx.db.query('qaRuns').first();await ctx.db.patch(run!._id,{records:[...run!.records,{table:'credentials',id:c!._id}]});});
  await as('review-admin').mutation(api.admin.recordCredentialReview,{credentialId:c!._id,reviewed:true,note:'Review recorded',evidenceReference:'Issuer reference'});
  const {internal}=await import('../../convex/_generated/api');
- await expect(t.mutation(internal.qa.reset,{namespace:'human-review-v1',confirmation:'RESET_IDENTIFIED_QA_FIXTURES'})).rejects.toThrow(/credentialReviewRecords/);
+ await expect(t.mutation(internal.qa.reset,{expectedCommit:"a".repeat(40),namespace:'human-review-v1',confirmation:'RESET_IDENTIFIED_QA_FIXTURES'})).rejects.toThrow(/credentialReviewRecords/);
 });
 it('stores a fresh consultant keynote specialization through normal onboarding',async()=>{
  const {t}=await seeded();const {TERMS_VERSION,PRIVACY_VERSION}=await import('./legal');

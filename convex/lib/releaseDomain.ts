@@ -31,3 +31,9 @@ export async function saveReceipt(ctx: MutationCtx & { user: Doc<"users"> }, req
  return result;
 }
 export function downloadPath(fileId: Id<"privateFiles">) { return `/api/private-files/${fileId}`; }
+
+/** Legacy drafts remain private even when no content exists for migration. */
+export async function canViewAgreement(ctx: UserCtx, e: Doc<"engagements">, c: Doc<"contracts">) {
+ if (await sameParty(ctx, e, c.uploadedByUserId)) return true;
+ return c.managed ? !!c.currentSharedVersionId : c.status !== "draft";
+}

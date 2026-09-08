@@ -1,3 +1,4 @@
+import { BUILD_COMMIT } from "../../convex/buildIdentity";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -50,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-qa-commit={process.env.NEXT_PUBLIC_APP_ENV === "staging" ? BUILD_COMMIT : undefined} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={process.env.NEXT_PUBLIC_APP_ENV === "staging" ? { "--staging-offset": "56px" } as CSSProperties : undefined}

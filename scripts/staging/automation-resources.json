@@ -1,0 +1,13 @@
+{
+  "environment": "staging",
+  "appUrl": "https://k12gig-rc-20260908.vercel.app",
+  "convexDeployment": "dapper-curlew-192",
+  "convexUrl": "https://dapper-curlew-192.convex.cloud",
+  "convexSiteUrl": "https://dapper-curlew-192.convex.site",
+  "clerkInstanceId": "ins_3CcGU4eLSlRRv1oQgKNzr9mGlfN",
+  "clerkIssuer": "https://regular-wolf-65.clerk.accounts.dev",
+  "productionConvexDeployment": "descriptive-bass-5",
+  "productionClerkIssuer": "https://clerk.k12gig.com",
+  "vercelProjectId": "prj_BCDKkXbjjoBhyvBOBZBn7qHpO7Wm",
+  "vercelTeamId": "team_CGyACzn1BhcZitDAKUiZRzax"
+}

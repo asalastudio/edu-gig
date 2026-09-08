@@ -1,3 +1,4 @@
+vi.mock("../../convex/buildIdentity", () => ({ BUILD_COMMIT: "a".repeat(40) }));
 import { beforeEach, afterEach, vi } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "../../convex/schema";
@@ -18,7 +19,7 @@ afterEach(() => vi.unstubAllEnvs());
 export async function seeded() {
     const t = convexTest(schema, modules);
     const files = await t.run(async ctx => Promise.all(Array.from({ length: 6 }, async (_, i) => ({ name: `synthetic-${i}.pdf`, storageId: await ctx.storage.store(new Blob(["SYNTHETIC QA — NOT A REAL AGREEMENT"])), encryption: { sha256: "ab".repeat(32), nonce: "cd".repeat(12), keyId: "synthetic-legacy-test", size: 42 } }))));
-    await t.mutation(internal.qa.seedRows, { namespace, accounts, files });
+    await t.mutation(internal.qa.seedRows, { expectedCommit: "a".repeat(40), namespace, accounts, files });
     // Shape historical records inside the test harness only. Production seedRows
     // always requires encrypted receipts; legacy-row tests do not add a production bypass.
     await t.run(async ctx => {

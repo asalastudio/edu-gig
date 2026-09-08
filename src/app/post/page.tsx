@@ -8,11 +8,11 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
-import { PrimaryButton } from "@/components/shared/button";
+import { PrimaryButton, primaryButtonClassName } from "@/components/shared/button";
 import { TAXONOMY, getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { isDistrictRole } from "@/lib/roles";
 import { authPagePath } from "@/lib/auth-intent";
-import { localCalendarDay, readPostingSession, writePostingSession, clearPostingSession } from "@/lib/discovery-state";
+import { localCalendarDay, readPostingSession, writePostingSession, promotePostingSession, clearPublishedPostingSessions } from "@/lib/discovery-state";
 import {
     getNeedPublishIssues,
     normalizeNeedInput,
@@ -44,6 +44,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
     const requestedDraftId = searchParams.get("draft");
     const context = requestedDraftId ?? 'new';
     const accountId = viewer?._id ?? null;
+    const persistenceContext=useRef(context);
     const [restored] = useState(()=>readPostingSession(accountId,context));
     const [step, setStep] = useState(restored?.step ?? 1);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -56,7 +57,16 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
     const [anonymousAvailable,setAnonymousAvailable]=useState(()=>!!accountId && !!readPostingSession(null,'new'));
     const active=useRef(true);
     useEffect(()=>{active.current=true;return ()=>{active.current=false;};},[]);
-    const [selectedEducatorId,setSelectedEducatorId]=useState(searchParams.get('educator') ?? restored?.educatorId ?? '');
+    const educatorParam=searchParams.get('educator');
+    const previousEducatorParam=useRef(educatorParam);
+    const consultantUrlChanged=useRef(false);
+    const [selectedEducatorId,setSelectedEducatorId]=useState(educatorParam ?? restored?.educatorId ?? '');
+    useEffect(()=>{
+        if(previousEducatorParam.current===educatorParam) return;
+        previousEducatorParam.current=educatorParam;
+        consultantUrlChanged.current=true;
+        setSelectedEducatorId(educatorParam ?? '');
+    },[educatorParam]);
     const postPath=(savedId?:string)=>{
         const params=new URLSearchParams(searchParams.toString());
         params.delete('name');
@@ -85,6 +95,21 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
     const [deliveryMode,setDeliveryMode]=useState(restored?.input.deliveryMode ?? '');
     // Errors
     const [errors, setErrors] = useState<Partial<Record<NeedPublishField, string>>>({});
+
+    const stepHeading=useRef<HTMLHeadingElement>(null);
+    const errorSummary=useRef<HTMLDivElement>(null);
+    const focusErrors=useRef(false);
+    const previousStep=useRef(step);
+    useEffect(()=>{
+        if(previousStep.current!==step) stepHeading.current?.focus();
+        previousStep.current=step;
+    },[step]);
+    useEffect(()=>{
+        if(focusErrors.current) {
+            errorSummary.current?.focus();
+            focusErrors.current=false;
+        }
+    },[errors]);
 
     const canPersist = !!viewer && isDistrictRole(viewer.role);
     const district = useQuery(api.districts.getMine, canPersist ? {} : "skip");
@@ -118,11 +143,11 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
         setCompensationRange(existingDraft.compensationRange ?? "");
         setDescription(existingDraft.description ?? "");
         setCompensationBasis(existingDraft.compensationBasis ?? "");setLocation(existingDraft.location ?? "");setDeliveryMode(existingDraft.deliveryMode ?? "");
-        if(existingDraft.selectedEducatorId) setSelectedEducatorId(existingDraft.selectedEducatorId);
+        if(educatorParam===null && !consultantUrlChanged.current) setSelectedEducatorId(existingDraft.selectedEducatorId ?? '');
         setDraftId(existingDraft._id);
         setHydratedDraftId(existingDraft._id);
         setDraftNotice("Draft loaded. Continue where you left off.");
-    }, [existingDraft, hydratedDraftId]);
+    }, [existingDraft, hydratedDraftId, educatorParam]);
 
     useEffect(() => {
         if (!requestedDraftId || !canPersist || !existingDraftResult) return;
@@ -163,13 +188,15 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
         if (step === 1) {
             const newErrors: Partial<Record<NeedPublishField, string>> = {};
             if (!orgName.trim()) newErrors.orgName = "Organization name is required.";
-            if (!areaId) newErrors.areaOfNeed = "Please select a support type.";
+            if (!areaId) newErrors.areaOfNeed = "Please select a primary support area.";
 
             if (Object.keys(newErrors).length > 0) {
+                focusErrors.current=true;
                 setErrors(newErrors);
                 return;
             }
         }
+        setErrors({});
         setStep(prev => Math.min(prev + 1, 4));
     };
 
@@ -194,7 +221,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
     useEffect(()=>{
         if(isSuccess || (!accountId && !previewMode) || (requestedDraftId && !hydratedDraftId)) return;
         // A new empty account never reads or copies the anonymous browser draft.
-        writePostingSession(accountId,context,JSON.parse(snapshot));
+        writePostingSession(accountId,persistenceContext.current,JSON.parse(snapshot));
     },[snapshot,accountId,context,isSuccess,requestedDraftId,hydratedDraftId,previewMode]);
 
     const saveDraftProgress = async (input: NeedInput, notice: string) => {
@@ -204,12 +231,13 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
             minimumErrors.orgName = "Organization name is required to save a draft.";
         }
         if (!normalized.areaOfNeed) {
-            minimumErrors.areaOfNeed = "Support type is required to save a draft.";
+            minimumErrors.areaOfNeed = "Primary support area is required to save a draft.";
         }
         if (Object.keys(minimumErrors).length > 0) {
+            focusErrors.current=true;
             setErrors(minimumErrors);
             setStep(1);
-            throw new Error("Add an organization name and support type before saving your draft.");
+            throw new Error("Add an organization name and primary support area before saving your draft.");
         }
 
         if (!canPersist) {
@@ -224,9 +252,10 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
         });
         if(!active.current) return null;
         const savedIdString = savedId as unknown as string;
+        promotePostingSession(accountId!,persistenceContext.current,savedIdString,{input:normalized,step,educatorId:selectedEducatorId,draftId:savedIdString});
+        persistenceContext.current=savedIdString;
         setDraftId(savedIdString);
         setDraftNotice(notice);
-        writePostingSession(accountId,savedIdString,{input:normalized,step,educatorId:selectedEducatorId,draftId:savedIdString});
         return savedId;
     };
 
@@ -250,6 +279,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
         setDraftNotice(null);
         const input = currentInput();
         const publishIssues = getNeedPublishIssues(input);
+        focusErrors.current=publishIssues.length>0;
         setErrors(
             Object.fromEntries(publishIssues.map((issue) => [issue.field, issue.message])) as Partial<
                 Record<NeedPublishField, string>
@@ -273,8 +303,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
             if(!active.current) return;
             await publishNeedDraft({ needId: savedId });
             if(!active.current) return;
-            clearPostingSession(accountId,context);
-            clearPostingSession(accountId,savedId);
+            clearPublishedPostingSessions(accountId!,savedId);
         } catch (err) {
 
             setSubmitError(
@@ -327,7 +356,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                             Sign in to post a need
                         </h1>
                         <p className="text-lg text-[var(--text-secondary)] mb-6">
-                            K12Gig saves district requests to your account so educators can respond, message you, and coordinate an engagement.
+                            K12Gig saves district requests to your account so consultants can respond, message you, and coordinate an engagement.
                             Sign in or create a district account before posting.
                         </p>
                         {(educatorName || requestedSlot) && (
@@ -337,14 +366,10 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                             </div>
                         )}
                         <div className="flex flex-col sm:flex-row gap-3">
-                            <Link href={authPagePath("/sign-in","district",postPath())}>
-                                <PrimaryButton className="w-full sm:w-auto">Sign in to post</PrimaryButton>
-                            </Link>
-                            <Link href={authPagePath("/sign-up","district",postPath())}>
-                                <button className="w-full sm:w-auto px-6 py-3 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
+                            <Link href={authPagePath("/sign-in","district",postPath())} className={primaryButtonClassName("w-full sm:w-auto")}>Sign in to post</Link>
+                            <Link href={authPagePath("/sign-up","district",postPath())} className="w-full sm:w-auto px-6 py-3 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2">
                                     Create district account
-                                </button>
-                            </Link>
+                                </Link>
                             <button
                                 type="button"
                                 onClick={() => setPreviewMode(true)}
@@ -360,11 +385,9 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                     <div className="bg-white p-8 md:p-10 rounded-lg shadow-sm border border-[var(--border-subtle)]">
                         <h1 className="font-heading text-3xl font-bold text-[var(--text-primary)] mb-3">Use a district account to post</h1>
                         <p className="text-[var(--text-secondary)] mb-6">
-                            Educator accounts can browse open needs and manage gigs. Posting new district demand requires a district hiring account.
+                            Consultant accounts can browse open needs and manage gigs. Posting new district demand requires a district hiring account.
                         </p>
-                        <Link href="/login">
-                            <PrimaryButton>Choose another account</PrimaryButton>
-                        </Link>
+                        <Link href="/login" className={primaryButtonClassName()}>Choose another account</Link>
                     </div>
                 )}
 
@@ -379,9 +402,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                             <p className="text-[var(--text-secondary)] mb-6">
                                 This link is invalid, the draft was already published, or it belongs to another district account.
                             </p>
-                            <Link href="/dashboard/board">
-                                <PrimaryButton>Return to Posted Needs</PrimaryButton>
-                            </Link>
+                            <Link href="/dashboard/board" className={primaryButtonClassName()}>Return to Posted Needs</Link>
                         </div>
                     ) : (
                     <div className="animate-in fade-in duration-500">
@@ -394,7 +415,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                         : "Tell us what your district is looking for."}
                                 </p>
                             </div>
-                            <span className="text-sm font-bold text-[var(--text-tertiary)] bg-[var(--bg-subtle)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">Step {step} of 4</span>
+                            <span className="text-sm font-bold text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">Step {step} of 4</span>
                         </div>
 
                         {/* Progress Bar */}
@@ -420,6 +441,10 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                             </p>
                         )}
 
+                        {Object.values(errors).some(Boolean) && <div ref={errorSummary} tabIndex={-1} role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+                            <p className="font-bold">Check these fields before continuing:</p>
+                            <ul className="list-disc pl-5">{Object.entries(errors).filter(([,message])=>message).map(([field,message])=><li key={field}>{message}</li>)}</ul>
+                        </div>}
                         <form onSubmit={handleSubmit} className="bg-white p-8 md:p-10 rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-[var(--border-subtle)] flex flex-col gap-6 relative overflow-hidden">
 
                             {step === 1 && (
@@ -428,7 +453,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                         <div className="p-2 bg-[var(--accent-primary)]/10 rounded-lg">
                                             <Briefcase className="w-5 h-5" />
                                         </div>
-                                        <h2 className="text-xl font-bold">The Role</h2>
+                                        <h2 ref={stepHeading} tabIndex={-1} className="text-xl font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4">The Role</h2>
                                     </div>
 
                                     <div className="flex flex-col gap-2">
@@ -449,11 +474,11 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                             aria-invalid={!!errors.orgName}
                                                 aria-describedby={errors.orgName ? "orgName-error" : undefined}
                                         />
-                                        {errors.orgName && <span id="orgName-error" className="text-sm text-red-500 font-medium">{errors.orgName}</span>}
+                                        {errors.orgName && <span id="orgName-error" className="text-sm text-red-700 font-medium">{errors.orgName}</span>}
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="areaId" className="text-sm font-semibold text-[var(--text-primary)]">Support Type *</label>
+                                        <label htmlFor="areaId" className="text-sm font-semibold text-[var(--text-primary)]">Primary support area *</label>
                                         <select
                                             id="areaId"
                                             className={cn(
@@ -469,16 +494,16 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                             aria-invalid={!!errors.areaOfNeed}
                                                 aria-describedby={errors.areaOfNeed ? "areaOfNeed-error" : undefined}
                                         >
-                                            <option value="">Select Support Type</option>
+                                            <option value="">Select primary support area</option>
                                             {TAXONOMY.areasOfNeed.map(a => (
                                                 <option key={a.id} value={a.id}>{a.label}</option>
                                             ))}
                                         </select>
-                                        {errors.areaOfNeed && <span id="areaOfNeed-error" className="text-sm text-red-500 font-medium">{errors.areaOfNeed}</span>}
+                                        {errors.areaOfNeed && <span id="areaOfNeed-error" className="text-sm text-red-700 font-medium">{errors.areaOfNeed}</span>}
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="specId" className="text-sm font-semibold text-[var(--text-primary)]">Area of Expertise <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
+                                        <label htmlFor="specId" className="text-sm font-semibold text-[var(--text-primary)]">Specific expertise needed <span className="text-[var(--text-secondary)]">(required to publish)</span></label>
                                         <select
                                             id="specId"
                                             className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all disabled:opacity-50"
@@ -491,16 +516,16 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                             aria-invalid={!!errors.subCategory}
                                                 aria-describedby={errors.subCategory ? "subCategory-error" : undefined}
                                         >
-                                            <option value="">Select Area of Expertise</option>
+                                            <option value="">Select specific expertise</option>
                                             {specs.map(s => (
                                                 <option key={s.id} value={s.id}>{s.label}</option>
                                             ))}
                                         </select>
-                                        {errors.subCategory && <span id="subCategory-error" className="text-sm text-red-500 font-medium">{errors.subCategory}</span>}
+                                        {errors.subCategory && <span id="subCategory-error" className="text-sm text-red-700 font-medium">{errors.subCategory}</span>}
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="grade" className="text-sm font-semibold text-[var(--text-primary)]">Grade Level Band <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
+                                        <label htmlFor="grade" className="text-sm font-semibold text-[var(--text-primary)]">Grade levels <span className="text-[var(--text-secondary)]">(required to publish)</span></label>
                                         <select
                                             id="grade"
                                             value={gradeLevel}
@@ -517,7 +542,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                                 <option key={g.id} value={g.id}>{g.label}</option>
                                             ))}
                                         </select>
-                                        {errors.gradeLevel && <span id="gradeLevel-error" className="text-sm text-red-500 font-medium">{errors.gradeLevel}</span>}
+                                        {errors.gradeLevel && <span id="gradeLevel-error" className="text-sm text-red-700 font-medium">{errors.gradeLevel}</span>}
                                     </div>
                                 </div>
                             )}
@@ -528,14 +553,14 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                         <div className="p-2 bg-[var(--accent-primary)]/10 rounded-lg">
                                             <Calendar className="w-5 h-5" />
                                         </div>
-                                        <h2 className="text-xl font-bold">The Logistics</h2>
+                                        <h2 ref={stepHeading} tabIndex={-1} className="text-xl font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4">The Logistics</h2>
                                     </div>
 
                                     <label className="flex flex-col gap-2 font-semibold">Delivery expectations<select value={deliveryMode} onChange={e=>setDeliveryMode(e.target.value)} className="field-control"><option value="">Choose delivery expectations</option><option value="onsite">On site</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="discuss">Discuss with consultant</option></select></label>
                                     <label className="flex flex-col gap-2 font-semibold">Location or remote expectations<input value={location} onChange={e=>setLocation(e.target.value)} placeholder="Example: Lansing, MI; remote meetings in Eastern time" className="field-control" /></label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                                         <div className="flex flex-col gap-2">
-                                            <label htmlFor="startDate" className="text-sm font-semibold text-[var(--text-primary)]">Desired Start Date <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
+                                            <label htmlFor="startDate" className="text-sm font-semibold text-[var(--text-primary)]">Desired Start Date <span className="text-[var(--text-secondary)]">(required to publish)</span></label>
                                             <input
                                                 type="date"
                                                 id="startDate"
@@ -549,10 +574,10 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                                 aria-describedby={errors.startDate ? "startDate-error" : undefined}
                                                 className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
                                             />
-                                            {errors.startDate && <span id="startDate-error" className="text-sm text-red-500 font-medium">{errors.startDate}</span>}
+                                            {errors.startDate && <span id="startDate-error" className="text-sm text-red-700 font-medium">{errors.startDate}</span>}
                                         </div>
                                         <div className="flex flex-col gap-2">
-                                            <label htmlFor="duration" className="text-sm font-semibold text-[var(--text-primary)]">Duration <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
+                                            <label htmlFor="duration" className="text-sm font-semibold text-[var(--text-primary)]">Duration <span className="text-[var(--text-secondary)]">(required to publish)</span></label>
                                             <input
                                                 type="text"
                                                 id="duration"
@@ -566,7 +591,7 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                                 placeholder="e.g. 1 semester, Ongoing"
                                                 className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
                                             />
-                                            {errors.duration && <span id="duration-error" className="text-sm text-red-500 font-medium">{errors.duration}</span>}
+                                            {errors.duration && <span id="duration-error" className="text-sm text-red-700 font-medium">{errors.duration}</span>}
                                         </div>
                                     </div>
                                 </div>
@@ -578,12 +603,12 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                         <div className="p-2 bg-[var(--accent-primary)]/10 rounded-lg">
                                             <FileText className="w-5 h-5" />
                                         </div>
-                                        <h2 className="text-xl font-bold">The Details</h2>
+                                        <h2 ref={stepHeading} tabIndex={-1} className="text-xl font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4">The Details</h2>
                                     </div>
 
                                     <label className="flex flex-col gap-2 font-semibold">Compensation basis<select value={compensationBasis} onChange={e=>setCompensationBasis(e.target.value)} className="field-control"><option value="">Choose a basis</option><option value="hour">Per hour</option><option value="day">Per day</option><option value="project">Project total</option><option value="discuss">To be discussed</option></select></label>
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="compRange" className="text-sm font-semibold text-[var(--text-primary)]">Compensation Range <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
+                                        <label htmlFor="compRange" className="text-sm font-semibold text-[var(--text-primary)]">Compensation Range <span className="text-[var(--text-secondary)]">(required to publish)</span></label>
                                         <input
                                             type="text"
                                             id="compRange"
@@ -597,11 +622,11 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                             placeholder="e.g. $80–$100/hr or Per salary schedule"
                                             className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all"
                                         />
-                                        {errors.compensationRange && <span id="compensationRange-error" className="text-sm text-red-500 font-medium">{errors.compensationRange}</span>}
+                                        {errors.compensationRange && <span id="compensationRange-error" className="text-sm text-red-700 font-medium">{errors.compensationRange}</span>}
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="description" className="text-sm font-semibold text-[var(--text-primary)]">Description <span className="text-[var(--text-tertiary)]">(50 characters to publish)</span></label>
+                                        <label htmlFor="description" className="text-sm font-semibold text-[var(--text-primary)]">Description <span className="text-[var(--text-secondary)]">(50 characters to publish)</span></label>
                                         <textarea
                                             id="description"
                                             value={description}
@@ -612,18 +637,18 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                                             aria-invalid={!!errors.description}
                                                 aria-describedby={errors.description ? "description-error" : undefined}
                                             rows={5}
-                                            placeholder="Describe the role, requirements, and any context that will help educators understand the opportunity."
+                                            placeholder="Describe the role, requirements, and any context that will help consultants understand the opportunity."
                                             className="w-full p-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
                                         ></textarea>
-                                        {errors.description && <span id="description-error" className="text-sm text-red-500 font-medium">{errors.description}</span>}
+                                        {errors.description && <span id="description-error" className="text-sm text-red-700 font-medium">{errors.description}</span>}
                                     </div>
                                 </div>
                             )}
 
                             {step === 4 && <section aria-label="Review need" className="space-y-4">
-                                <h2 className="text-xl font-bold">Review your need</h2>
+                                <h2 ref={stepHeading} tabIndex={-1} className="text-xl font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4">Review your need</h2>
                                 <p>{canPersist ? 'Check the scope before publishing. Use Back to edit details.' : 'Sign in to a district account to import this preview and publish after review.'}</p>
-                                <dl className="space-y-3">{Object.entries({Organization:orgName,Support:TAXONOMY.areasOfNeed.find(a=>a.id===areaId)?.label ?? areaId,Specialization:getAreaOfNeedLabel(specId),Grades:TAXONOMY.gradeLevelBands.find(g=>g.id===gradeLevel)?.label ?? gradeLevel,'Start date':startDate,Duration:duration,Delivery:deliveryMode,Location:location,Compensation:`${compensationRange} ${compensationBasis}`,Description:description}).map(([label,value])=><div key={label}><dt className="font-bold">{label}</dt><dd className="whitespace-pre-wrap break-words">{value || 'Not specified'}</dd></div>)}</dl>
+                                <dl className="space-y-3">{Object.entries({Organization:orgName,'Primary support area':TAXONOMY.areasOfNeed.find(a=>a.id===areaId)?.label ?? areaId,'Specific expertise needed':getAreaOfNeedLabel(specId),'Grade levels':TAXONOMY.gradeLevelBands.find(g=>g.id===gradeLevel)?.label ?? gradeLevel,'Start date':startDate,Duration:duration,Delivery:deliveryMode,Location:location,Compensation:`${compensationRange} ${compensationBasis}`,Description:description}).map(([label,value])=><div key={label}><dt className="font-bold">{label}</dt><dd className="whitespace-pre-wrap break-words">{value || 'Not specified'}</dd></div>)}</dl>
                                 <p>Payment and signing are arranged outside K12Gig. Publication invites proposals; it does not create an agreement.</p>
                                 <button type="button" className="underline" onClick={()=>setStep(1)}>Edit organization and support</button>
                                 <button type="button" className="underline ml-4" onClick={()=>setStep(2)}>Edit logistics</button>
@@ -670,19 +695,15 @@ function PostNeedEditor({viewer}:{viewer:Pick<Doc<"users">,"_id"|"role">|null}) 
                         </div>
                         <h2 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-4">Your need has been posted!</h2>
                         <p className="text-lg text-[var(--text-secondary)] max-w-lg mb-10">
-                            Matched educators can now review the opportunity and respond from the Gig Board.
+                            Matched consultants can now review the opportunity and respond from the Gig Board.
                         </p>
                         <div className="flex flex-wrap gap-4 justify-center">
-                            <Link href="/">
-                                <button className="px-6 py-3 rounded-lg border border-[var(--border-strong)] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-surface)] transition-colors shadow-sm">
+                            <Link href="/" className="px-6 py-3 rounded-lg border border-[var(--border-strong)] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-surface)] transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2">
                                     Return Home
-                                </button>
-                            </Link>
-                            <Link href="/dashboard/district">
-                                <PrimaryButton className="px-6 py-3">
+                                </Link>
+                            <Link href="/dashboard/district" className={primaryButtonClassName("px-6 py-3")}>
                                     View Dashboard
-                                </PrimaryButton>
-                            </Link>
+                                </Link>
                         </div>
                     </div>
                 )}

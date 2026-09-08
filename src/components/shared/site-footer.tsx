@@ -13,7 +13,7 @@ export function SiteFooter() {
                 </div>
                 
                 <div className="flex flex-col gap-4">
-                    <h4 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Explore</h4>
+                    <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Explore</h2>
                     <Link href="/browse" className="text-sm text-white/70 hover:text-white">Browse consultants</Link>
                     <Link href="/post" className="text-sm text-white/70 hover:text-white">Post a need</Link>
                     <Link href="/#for-districts" className="text-sm text-white/70 hover:text-white">How Districts Hire</Link>
@@ -22,7 +22,7 @@ export function SiteFooter() {
                 </div>
                 
                 <div className="flex flex-col gap-4">
-                    <h4 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Company</h4>
+                    <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Company</h2>
                     <Link href="/about" className="text-sm text-white/70 hover:text-white">About</Link>
                     <Link href="/pricing" className="text-sm text-white/70 hover:text-white">Pricing</Link>
                     <Link href="/help" className="text-sm text-white/70 hover:text-white">Help</Link>

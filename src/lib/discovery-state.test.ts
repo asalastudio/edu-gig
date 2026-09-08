@@ -33,3 +33,9 @@ it('accepts established homepage spec and legacy support aliases without droppin
 it('formats the same local calendar date under the active timezone and locale',()=>{
  expect(localCalendarDay(new Date(2026,8,9,0,5))).toBe('2026-09-09');
 });
+
+it('preserves safe unknown support and specialization identifiers without broadening their URLs',()=>{
+ const state=readDirectoryState(new URLSearchParams('area=legacy_unique&area=legacy_unique&specialization=legacy_special&area=%3Cscript%3E&spec=ignored'));
+ expect(state.selectedAreas).toEqual(['legacy_unique']);expect(state.selectedSpecializations).toEqual(['legacy_special']);
+ expect(readDirectoryState(new URLSearchParams(writeDirectoryState(state)))).toEqual(state);
+});

@@ -141,11 +141,9 @@ export function EducatorCard({
                     </div>
                 ) : <span />}
                 
-                <Link href={`/browse/${educator.id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`}>
-                    <button className="px-4 py-2 text-sm font-bold text-[var(--text-primary)] bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-lg hover:bg-[var(--accent-primary)] hover:text-white hover:border-[var(--accent-primary)] transition-all shadow-sm cursor-pointer">
+                <Link href={`/browse/${educator.id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`} className="px-4 py-2 text-sm font-bold text-[var(--text-primary)] bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-lg hover:bg-[var(--accent-primary)] hover:text-white hover:border-[var(--accent-primary)] transition-all shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2">
                         View Profile
-                    </button>
-                </Link>
+                    </Link>
             </div>
         </Card>
     )

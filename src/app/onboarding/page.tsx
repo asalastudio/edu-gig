@@ -218,7 +218,7 @@ function OnboardingAccount() {
             if (bio.trim().length < 40) return "Add a short bio so districts know what outcomes you support.";
         }
         if (targetStep === 1) {
-            if (areasOfNeed.length === 0) return "Choose at least one support type.";
+            if (areasOfNeed.length === 0) return "Choose at least one primary support area.";
             if (gradeLevelBands.length === 0) return "Choose at least one grade band.";
             if (engagementTypes.length === 0) return "Choose at least one engagement type.";
         }
@@ -420,7 +420,7 @@ function OnboardingAccount() {
                     <section className="rounded-lg border border-[var(--border-default)] bg-white shadow-[var(--shadow-soft)] overflow-hidden">
                         <div className="px-6 md:px-8 py-7 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
                             <div className="education-rule mb-4" />
-                            <p className="eyebrow mb-3">{isEducator ? "Educator setup" : "District setup"}</p>
+                            <p className="eyebrow mb-3">{isEducator ? "Consultant setup" : "District setup"}</p>
                             <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tight">
                                 {isEducator
                                     ? `${welcome} Build a profile districts can trust.`
@@ -576,7 +576,7 @@ function RoleChoice({ welcome }: { welcome: string }) {
                         {welcome} Where should we start?
                     </h1>
                     <p className="text-lg font-medium text-[var(--text-secondary)]">
-                        K12Gig separates district hiring tools from educator profile tools so each account path starts with the right defaults.
+                        K12Gig separates district hiring tools from consultant profile tools so each account path starts with the right defaults.
                     </p>
                 </div>
                 <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -587,7 +587,7 @@ function RoleChoice({ welcome }: { welcome: string }) {
                         <Buildings weight="duotone" className="h-11 w-11 text-[var(--accent-primary)] mb-5" />
                         <h2 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-2">I represent a school or district</h2>
                         <p className="text-sm font-medium leading-6 text-[var(--text-secondary)]">
-                            For superintendents, HR teams, principals, and school leaders posting needs or comparing educators.
+                            For superintendents, HR teams, principals, and school leaders posting needs or comparing consultants.
                         </p>
                         <span className="mt-6 inline-flex text-sm font-bold text-[var(--accent-primary)] group-hover:underline">
                             Set up district account
@@ -603,7 +603,7 @@ function RoleChoice({ welcome }: { welcome: string }) {
                             For teachers, coaches, specialists, facilitators, and consultants creating a district-facing profile.
                         </p>
                         <span className="mt-6 inline-flex text-sm font-bold text-[var(--accent-primary)] group-hover:underline">
-                            Build educator profile
+                            Build consultant profile
                         </span>
                     </Link>
                 </div>
@@ -692,7 +692,7 @@ function DistrictStep(props: {
                 <SectionIntro
                     icon={Buildings}
                     title="Identify the district or school."
-                    description="Educators need a real organization name and service region before they trust a request."
+                    description="Consultants need a real organization name and service region before they trust a request."
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field label="District, school, or organization name" className="md:col-span-2">
@@ -887,14 +887,14 @@ function EducatorStep(props: {
                     description="These choices power search, profile chips, and the first filtering pass for hiring teams."
                 />
                 <MultiSelectGroup
-                    label="Support types"
+                    label="Primary support areas"
                     values={TAXONOMY.areasOfNeed}
                     selected={props.areasOfNeed}
                     onChange={props.onAreasOfNeedChange}
                 />
-                <MultiSelectGroup label="Specializations" values={TAXONOMY.areasOfNeed.filter(a=>props.areasOfNeed.includes(a.id)).flatMap(a=>a.subCategories.map(s=>({id:s.id,label:s.label})))} selected={props.subCategories} onChange={props.onSubCategoriesChange} />
+                <MultiSelectGroup label="Specific expertise offered" values={TAXONOMY.areasOfNeed.filter(a=>props.areasOfNeed.includes(a.id)).flatMap(a=>a.subCategories.map(s=>({id:s.id,label:s.label})))} selected={props.subCategories} onChange={props.onSubCategoriesChange} />
                 <MultiSelectGroup
-                    label="Grade bands"
+                    label="Grade levels"
                     values={TAXONOMY.gradeLevelBands.filter((grade) => grade.id !== "other")}
                     selected={props.gradeLevelBands}
                     onChange={props.onGradeLevelBandsChange}
@@ -909,12 +909,12 @@ function EducatorStep(props: {
             <div className="space-y-7">
                 <SectionIntro
                     icon={SealCheck}
-                    title="Set availability, coverage, and rate."
+                    title="Set availability, service area, and rates."
                     description="Transparent availability and pricing reduce back-and-forth for district teams."
                 />
                 <div className="space-y-2">
                     <MultiSelectGroup
-                        label="Coverage areas"
+                        label="Service areas"
                         values={TAXONOMY.coverageRegions}
                         selected={props.coverageRegions}
                         onChange={props.onCoverageRegionsChange}
@@ -948,7 +948,7 @@ function EducatorStep(props: {
             <SectionIntro
                 icon={CheckCircle}
                 title="Review your launch profile."
-                description="This is enough to create a credible profile and keep polishing from educator settings."
+                description="This is enough to create a credible profile and keep polishing from consultant settings."
             />
             <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
                 <div className="flex items-center justify-between gap-4 mb-4">
@@ -968,15 +968,15 @@ function EducatorStep(props: {
                     ["Headline", props.headline],
                     ["Experience", `${Number(props.yearsExperience) || 0} years`],
                     ["Areas", props.areasOfNeed.length ? `${props.areasOfNeed.length} selected` : "None selected"],
-                    ["Specializations", props.subCategories.map(getAreaOfNeedLabel).join(", ") || "None selected"],
-                    ["Grades", props.gradeLevelBands.length ? `${props.gradeLevelBands.length} selected` : "None selected"],
+                    ["Specific expertise offered", props.subCategories.map(getAreaOfNeedLabel).join(", ") || "None selected"],
+                    ["Grade levels", props.gradeLevelBands.length ? `${props.gradeLevelBands.length} selected` : "None selected"],
                     [
                         "Engagement types",
                         props.engagementTypes
                             .map((id) => TAXONOMY.engagementTypes.find((type) => type.id === id)?.label ?? id)
                             .join(", ") || "None selected",
                     ],
-                    ["Coverage", props.coverageRegions.length ? `${props.coverageRegions.length} selected` : "None selected"],
+                    ["Service areas", props.coverageRegions.length ? `${props.coverageRegions.length} selected` : "None selected"],
                     [
                         "Rate",
                         formatEducatorRateSummary({
@@ -987,7 +987,7 @@ function EducatorStep(props: {
                 ]}
             />
             <p className="text-sm font-medium text-[var(--text-tertiary)]">
-                You can add your business logo from Educator settings after setup.
+                You can add your business logo from consultant settings after setup.
             </p>
         </div>
     );
@@ -1028,7 +1028,7 @@ function OnboardingAside({
                 <UsersThree weight="duotone" className="h-9 w-9 text-[var(--accent-secondary)] mb-4" />
                 <h2 className="font-heading text-lg font-bold mb-2">Built for school decision cycles</h2>
                 <p className="text-sm leading-6 text-white/75">
-                    The setup favors clear roles, real district identity, visible educator qualifications, and practical next steps over generic marketplace signup.
+                    The setup favors clear roles, real district identity, visible consultant qualifications, and practical next steps over generic marketplace signup.
                 </p>
             </div>
         </aside>

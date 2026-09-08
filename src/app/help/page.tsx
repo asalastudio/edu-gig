@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
-import { PrimaryButton } from "@/components/shared/button";
+import { primaryButtonClassName } from "@/components/shared/button";
 import { SUPPORT_EMAIL, supportMailto } from "@/lib/legal";
 import { isCardCheckoutEnabled } from "@/lib/launch-flags";
 import { getActiveBetaCopy } from "@/lib/active-beta-copy";
@@ -53,7 +53,7 @@ export default function HelpPage() {
                         .
                     </p>
                     <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <Link href="/login"><PrimaryButton>Open your dashboard</PrimaryButton></Link>
+                        <Link href="/login" className={primaryButtonClassName()}>Open your dashboard</Link>
                         <Link href="/privacy" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border-strong)] px-4 text-sm font-bold">
                             Privacy details
                         </Link>

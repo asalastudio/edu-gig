@@ -500,7 +500,7 @@ function EducatorProfile() {
                                                             <td className="py-5 px-6">
                                                                 {lic.status === "Credentials reviewed" ? (
                                                                     <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg text-sm">
-                                                                        <CheckCircle weight="fill" className="w-4 h-4" /> Verified
+                                                                        <CheckCircle weight="fill" className="w-4 h-4" /> Credentials reviewed
                                                                     </span>
                                                                 ) : (
                                                                     <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] font-bold bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-3 py-1.5 rounded-lg text-sm">

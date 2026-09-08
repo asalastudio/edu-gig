@@ -8,9 +8,10 @@ export type DirectoryState = {
 };
 export function readDirectoryState(params: URLSearchParams): DirectoryState {
     const list = (key: string, ids: string[]) => [...new Set(params.getAll(key).flatMap(v => v.split(',')).filter(v => ids.includes(v)))];
+    const legacyList = (key: string) => [...new Set(params.getAll(key).flatMap(v => v.split(',')).filter(v => /^[a-z0-9_-]{1,80}$/.test(v)))];
     return {
-        selectedAreas: list('area', TAXONOMY.areasOfNeed.flatMap(v=>[v.id,...('aliases' in v?v.aliases:[])])),
-        selectedSpecializations: list(params.has('specialization') ? 'specialization' : 'spec', TAXONOMY.areasOfNeed.flatMap(v=>v.subCategories.map(s=>s.id))),
+        selectedAreas: legacyList('area'),
+        selectedSpecializations: legacyList(params.has('specialization') ? 'specialization' : 'spec'),
         selectedGrades: list('grade', TAXONOMY.gradeLevelBands.map(v=>v.id)),
         selectedRegions: list(params.has('region') ? 'region' : 'location', TAXONOMY.coverageRegions.map(v=>v.id)),
         // Preserve distinct legacy engagement identifiers without coercing to consulting.
@@ -52,3 +53,21 @@ export function writePostingSession(accountId:string|null,context:string,value:P
     try {sessionStorage.setItem(postKey(accountId,context),JSON.stringify(value));}catch{/* Form remains usable if browser storage is unavailable. */}
 }
 export function clearPostingSession(accountId:string|null,context:string):void {try{sessionStorage.removeItem(postKey(accountId,context));}catch{}}
+
+// Write the saved identity first; only retire the source when that write succeeds.
+export function promotePostingSession(accountId:string,source:string,draftId:string,value:PostingSession):void {
+    try {
+        sessionStorage.setItem(postKey(accountId,draftId),JSON.stringify({...value,draftId}));
+        if(source!==draftId) sessionStorage.removeItem(postKey(accountId,source));
+    }catch{/* Keep the source if storage cannot accept the promoted draft. */}
+}
+export function clearPublishedPostingSessions(accountId:string,draftId:string):void {
+    try {
+        const prefix=postKey(accountId,'');
+        const keys=Object.keys(sessionStorage).filter(key=>key.startsWith(prefix));
+        for(const key of keys) {
+            const context=key.slice(prefix.length);
+            if(context===draftId || readPostingSession(accountId,context)?.draftId===draftId) sessionStorage.removeItem(key);
+        }
+    }catch{/* Browser storage availability must not change publication success. */}
+}

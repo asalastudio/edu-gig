@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SiteHeader } from "./site-header";
 
@@ -53,12 +53,17 @@ describe("SiteHeader", () => {
     });
 
     it("does not render dark-mode toggle controls", async () => {
-        render(<SiteHeader />);
+        const {container}=render(<SiteHeader />);
 
         await act(async () => {
             await Promise.resolve();
         });
 
+        expect(container.querySelector("a button")).toBeNull();
+        expect(screen.getByRole("link",{name:/Get started/})).toHaveClass("focus-visible:ring-2");
+        fireEvent.click(screen.getByRole("button",{name:"Open menu"}));
+        expect(container.querySelector("a button")).toBeNull();
+        expect(screen.getAllByRole("link",{name:/Get started/})).toHaveLength(2);
         expect(screen.queryAllByRole("button", { name: /toggle theme/i })).toHaveLength(0);
     });
 });

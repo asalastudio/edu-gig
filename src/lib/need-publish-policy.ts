@@ -111,17 +111,17 @@ export function getNeedPublishIssues(input: NeedInput): NeedPublishIssue[] {
         issues.push({ field: "orgName", message: "Organization name is required to publish." });
     }
     if (!need.areaOfNeed) {
-        issues.push({ field: "areaOfNeed", message: "Select a support type to publish." });
+        issues.push({ field: "areaOfNeed", message: "Select a primary support area to publish." });
     }
     if (
         need.areaOfNeed &&
         supportTypeRequiresSubcategory(need.areaOfNeed) &&
         !need.subCategory
     ) {
-        issues.push({ field: "subCategory", message: "Select an area of expertise to publish." });
+        issues.push({ field: "subCategory", message: "Select specific expertise needed to publish." });
     }
     if (!need.gradeLevel) {
-        issues.push({ field: "gradeLevel", message: "Select a grade level band to publish." });
+        issues.push({ field: "gradeLevel", message: "Select grade levels to publish." });
     }
     if (!need.startDate) {
         issues.push({ field: "startDate", message: "Add a desired start date to publish." });

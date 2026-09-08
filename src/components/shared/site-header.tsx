@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { UserButton, useUser } from "@clerk/nextjs";
-import { PrimaryButton } from "./button";
+import { primaryButtonClassName } from "./button";
 import { ArrowRight, List, X } from "@phosphor-icons/react";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { isDistrictRole } from "@/lib/roles";
@@ -73,7 +73,7 @@ function SiteHeaderView({
                 </Link>
                 
                 <nav className="hidden lg:flex items-center gap-6 text-sm font-semibold text-[var(--text-secondary)]">
-                    <Link href="/browse" className="hover:text-[var(--accent-primary)] transition-colors">Browse Educators</Link>
+                    <Link href="/browse" className="hover:text-[var(--accent-primary)] transition-colors">Browse Consultants</Link>
                     <Link href="/post" className="hover:text-[var(--accent-primary)] transition-colors">Post a need</Link>
                     <Link href="/pricing" className="hover:text-[var(--accent-primary)] transition-colors">Pricing</Link>
                     <Link href="/#for-districts" className="hover:text-[var(--accent-primary)] transition-colors">How It Works</Link>
@@ -82,11 +82,9 @@ function SiteHeaderView({
                 <div className="hidden md:flex items-center gap-4 justify-end">
                     {!loading && signedIn && (
                         <div className="flex items-center gap-4">
-                            <Link href={dashboardHref}>
-                                <PrimaryButton className="text-sm px-4 min-h-9 h-9">
+                            <Link href={dashboardHref} className={primaryButtonClassName("text-sm px-4 min-h-9 h-9")}>
                                     {dashboardLabel}
-                                </PrimaryButton>
-                            </Link>
+                                </Link>
                             <div className="flex items-center shrink-0 border-l border-[var(--border-default)] pl-4">
                                 <UserButton />
                             </div>
@@ -101,11 +99,9 @@ function SiteHeaderView({
                             >
                                 Sign in
                             </Link>
-                            <Link href="/login">
-                                <PrimaryButton className="text-sm px-4 min-h-9 h-9">
+                            <Link href="/login" className={primaryButtonClassName("text-sm px-4 min-h-9 h-9")}>
                                     Get started <ArrowRight weight="bold" className="h-3.5 w-3.5" />
-                                </PrimaryButton>
-                            </Link>
+                                </Link>
                         </>
                     )}
 
@@ -127,7 +123,7 @@ function SiteHeaderView({
 
             {mobileMenuOpen && (
                 <div className="lg:hidden absolute top-16 left-0 w-full bg-[var(--bg-surface)] border-b border-[var(--border-default)] shadow-[var(--shadow-soft)] flex flex-col p-6 gap-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <Link href="/browse" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Browse Educators</Link>
+                    <Link href="/browse" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Browse Consultants</Link>
                     <Link href="/post" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Post a need</Link>
                     <Link href="/pricing" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
                     <Link href="/#for-districts" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>How It Works</Link>
@@ -136,9 +132,7 @@ function SiteHeaderView({
 
                     {!loading && signedIn && (
                         <div className="flex items-center justify-between gap-4 py-2">
-                            <Link href={dashboardHref} className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                                <PrimaryButton className="w-full">{dashboardLabel}</PrimaryButton>
-                            </Link>
+                            <Link href={dashboardHref} className={primaryButtonClassName("flex-1 w-full")} onClick={() => setMobileMenuOpen(false)}>{dashboardLabel}</Link>
                              <div className="border border-[var(--border-default)] p-1 rounded-full flex items-center justify-center">
                                 <UserButton />
                             </div>
@@ -150,9 +144,7 @@ function SiteHeaderView({
                             <Link href="/login" className="text-[var(--text-primary)] font-bold text-center py-2" onClick={() => setMobileMenuOpen(false)}>
                                 Sign in
                             </Link>
-                            <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                                <PrimaryButton className="w-full">Get started</PrimaryButton>
-                            </Link>
+                            <Link href="/login" className={primaryButtonClassName("w-full")} onClick={() => setMobileMenuOpen(false)}>Get started</Link>
                         </>
                     )}
                 </div>

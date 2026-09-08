@@ -12,7 +12,7 @@ import { TAXONOMY, getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxo
 import {
     filterEducatorRoster,
 } from "@/lib/filter-educators";
-import { PrimaryButton } from "@/components/shared/button";
+import { PrimaryButton, primaryButtonClassName } from "@/components/shared/button";
 import { ArrowLeft, FadersHorizontal, Funnel } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
@@ -117,24 +117,20 @@ function BrowseDirectory() {
         if (sessionChecking) {
             return {
                 title: "Preparing the directory",
-                body: "We’re checking your session before loading district-ready educator profiles.",
+                body: "We’re checking your session before loading district-ready consultant profiles.",
                 action: null,
             };
         }
         if (needsDistrictSignIn) {
             return {
                 title: "Sign in to view the live directory",
-                body: "The educator directory is available to district hiring teams. Sign in or create a district account to browse profiles, save favorites, and discuss a need.",
+                body: "The consultant directory is available to district hiring teams. Sign in or create a district account to browse profiles, save favorites, and discuss a need.",
                 action: (
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <Link href={authPagePath("/sign-in", "district", directoryPath)}>
-                            <PrimaryButton>Sign in to browse</PrimaryButton>
-                        </Link>
-                        <Link href={authPagePath("/sign-up", "district", directoryPath)}>
-                            <button className="w-full sm:w-auto px-6 py-3 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
+                        <Link href={authPagePath("/sign-in", "district", directoryPath)} className={primaryButtonClassName()}>Sign in to browse</Link>
+                        <Link href={authPagePath("/sign-up", "district", directoryPath)} className="w-full sm:w-auto px-6 py-3 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2">
                                 Create district account
-                            </button>
-                        </Link>
+                            </Link>
                     </div>
                 ),
             };
@@ -142,11 +138,9 @@ function BrowseDirectory() {
         if (wrongAccountType) {
             return {
                 title: "Use a district account",
-                body: "Educator accounts can manage profiles and gigs. Browse access is reserved for district hiring teams.",
+                body: "Consultant accounts can manage profiles and gigs. Browse access is reserved for district hiring teams.",
                 action: (
-                    <Link href={authPagePath("/sign-in", "district", directoryPath)}>
-                        <PrimaryButton>Choose another account</PrimaryButton>
-                    </Link>
+                    <Link href={authPagePath("/sign-in", "district", directoryPath)} className={primaryButtonClassName()}>Choose another account</Link>
                 ),
             };
         }
@@ -202,7 +196,7 @@ function BrowseDirectory() {
                     >
                         {convexLoading && "Loading district directory…"}
                         {!convexLoading && convexLive && "Showing the district directory."}
-                        {!convexLoading && !convexLive && viewer === null && "Sign in with a district account to save educators and use the live roster."}
+                        {!convexLoading && !convexLive && viewer === null && "Sign in with a district account to save consultants and use the live roster."}
                         {!convexLoading && !convexLive && viewer && !districtOK && "Use a district account to access live district hiring tools."}
                         {!convexLoading && !convexLive && viewer === undefined && "Checking session…"}
                     </div>
@@ -227,10 +221,10 @@ function BrowseDirectory() {
 
                             <div className="flex flex-col gap-3">
                                 <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                                    Support Type
+                                    Primary support area
                                 </span>
                                 <TaxonomyFilter
-                                    label="Select Support"
+                                    label="Select primary support area"
                                     options={TAXONOMY.areasOfNeed}
                                     selected={selectedAreas}
                                     onChange={(id) => toggleFilter(setSelectedAreas, id)}
@@ -238,8 +232,8 @@ function BrowseDirectory() {
                             </div>
 
                             <div className="flex flex-col gap-3">
-                                <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Specialization</span>
-                                <TaxonomyFilter label="Select Specializations" options={TAXONOMY.areasOfNeed.filter(a=>selectedAreas.length===0 || selectedAreas.includes(a.id)).flatMap(a=>a.subCategories.map(s=>({id:s.id,label:s.label})))} selected={selectedSpecializations} onChange={id=>toggleFilter(setSelectedSpecializations,id)} />
+                                <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Specific expertise needed</span>
+                                <TaxonomyFilter label="Select specific expertise" options={TAXONOMY.areasOfNeed.filter(a=>selectedAreas.length===0 || selectedAreas.includes(a.id)).flatMap(a=>a.subCategories.map(s=>({id:s.id,label:s.label})))} selected={selectedSpecializations} onChange={id=>toggleFilter(setSelectedSpecializations,id)} />
                             </div>
                             {/* Hidden while the platform is consulting-only (PRD v3
                                 Issue #6) — a single-option filter is noise. Restore
@@ -272,10 +266,10 @@ function BrowseDirectory() {
 
                             <div className="flex flex-col gap-3">
                                 <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                                    Coverage Area
+                                    Service area
                                 </span>
                                 <TaxonomyFilter
-                                    label="Select Areas"
+                                    label="Select service areas"
                                     options={TAXONOMY.coverageRegions}
                                     selected={selectedRegions}
                                     onChange={(id) => toggleFilter(setSelectedRegions, id)}
@@ -338,7 +332,7 @@ function BrowseDirectory() {
                                 {canUseDirectory
                                     ? `Showing ${filteredEducators.length} result${filteredEducators.length !== 1 ? "s" : ""}`
                                     : needsDistrictSignIn
-                                      ? "Sign in to see educator results"
+                                      ? "Sign in to see consultant results"
                                       : sessionChecking
                                         ? "Checking your session…"
                                         : `Showing ${filteredEducators.length} result${filteredEducators.length !== 1 ? "s" : ""}`}

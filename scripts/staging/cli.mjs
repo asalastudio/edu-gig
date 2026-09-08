@@ -8,7 +8,7 @@ import { verifyBuildIdentity } from './build-identity.mjs';
 
 const { resources, automated, privateDirectory } = loadTarget();
 const action = process.argv[2] ?? 'check';
-const allowed = ['check', 'seed', 'reset', 'status', 'configure-backend', 'emails', 'capture-smoke', 'release-seed', 'release-reset', 'release-status', 'delivery-fixtures'];
+const allowed = ['check', 'seed', 'reset', 'status', 'configure-backend', 'emails', 'capture-smoke', 'release-seed', 'release-reset', 'release-status', 'delivery-fixtures', 'legacy-seed', 'legacy-status', 'legacy-reset'];
 if (!allowed.includes(action)) throw Error('Unknown staging command');
 // Live Clerk identity proof is required on every operation; a label is insufficient.
 const response = await fetch('https://api.clerk.com/v1/instance', { headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` } });
@@ -25,10 +25,10 @@ const client = new ConvexHttpClient(resources.convexUrl);
 client.setAdminAuth(process.env.CONVEX_DEPLOY_KEY);
 const proof = await client.query(anyApi.qa.environment, {});
 if (proof.convexUrl !== resources.convexUrl || proof.clerkIssuer !== resources.clerkIssuer || proof.appUrl !== resources.appUrl) throw Error('Backend isolation proof mismatch');
-const mutating = ['seed','reset','release-seed','release-reset','delivery-fixtures','capture-smoke'].includes(action);
+const mutating = ['seed','reset','release-seed','release-reset','delivery-fixtures','capture-smoke','legacy-seed','legacy-reset'].includes(action);
 const commit = mutating ? expectedCommit() : undefined;
 if (mutating) verifyBuildIdentity(commit, proof);
-if (['reset','release-reset','delivery-fixtures','capture-smoke'].includes(action) && !automated) throw Error('Mutable automation requires --automation');
+if (['reset','release-reset','delivery-fixtures','capture-smoke','legacy-seed','legacy-reset'].includes(action) && !automated) throw Error('Mutable automation requires --automation');
 if (action === 'check') { console.log(JSON.stringify(proof, null, 2)); process.exit(0); }
 if (action === 'capture-smoke') {
   const messageId = await client.query(anyApi.qa.messageFixtureId, {});
@@ -44,14 +44,18 @@ if (action === 'emails') {
   console.log(`${captures.length} captures saved privately to ${privateDirectory}/emails.json`);
   process.exit(0);
 }
-const namespace = action.startsWith('release-') || action === 'delivery-fixtures' ? 'release-candidate-v1' : 'human-review-v1';
+const namespace = action.startsWith('legacy-') ? 'legacy-migration-rehearsal-v1' : action.startsWith('release-') || action === 'delivery-fixtures' ? 'release-candidate-v1' : 'human-review-v1';
+if (action === 'legacy-seed') {
+ if (!process.argv.includes('--confirm=CREATE_SYNTHETIC_LEGACY_REHEARSAL')) throw Error('Require --confirm=CREATE_SYNTHETIC_LEGACY_REHEARSAL');
+ console.log(await client.action(anyApi.qa.seedLegacyRehearsal,{namespace,expectedCommit:commit,confirmation:'CREATE_SYNTHETIC_LEGACY_REHEARSAL'}));
+}
 if (action === 'delivery-fixtures') {
  if (!process.argv.includes('--confirm=SIMULATE_CAPTURE_ONLY_DELIVERY')) throw Error('Require --confirm=SIMULATE_CAPTURE_ONLY_DELIVERY');
  console.log(await client.mutation(anyApi.qa.deliveryFixtures, {namespace,expectedCommit:commit,confirmation:'SIMULATE_CAPTURE_ONLY_DELIVERY'}));
 }
 
-if (['status','release-status'].includes(action)) console.log(await client.query(anyApi.qa.status, { namespace }));
-if (['reset','release-reset'].includes(action)) {
+if (['status','release-status','legacy-status'].includes(action)) console.log(await client.query(anyApi.qa.status, { namespace }));
+if (['reset','release-reset','legacy-reset'].includes(action)) {
   if (!process.argv.includes('--confirm=RESET_IDENTIFIED_QA_FIXTURES')) throw Error('Reset requires --confirm=RESET_IDENTIFIED_QA_FIXTURES');
   console.log(await client.mutation(anyApi.qa.reset, { expectedCommit: commit, namespace, confirmation: 'RESET_IDENTIFIED_QA_FIXTURES' }));
 }

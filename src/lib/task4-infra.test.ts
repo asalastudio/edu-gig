@@ -65,8 +65,9 @@ it('sanitizes credential-step errors and never presents missing live cases as pa
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'k12gig-harness-test-'));
  try {
   const output=path.join(directory,'results.json');
-  const result=await runJourney({resources:automation,cases:{[journeyCases[0]]:async()=>{throw Error(secret);}},output,browser:undefined,accounts:[]});
+  const result=await runJourney({resources:automation,verifiedCommit:'a'.repeat(40),cases:{[journeyCases[0]]:async()=>{throw Error(secret);}},output,browser:undefined,accounts:[]});
   expect(result[0].status).toBe('Fail'); expect(result.slice(1).every(r=>r.status==='Blocked')).toBe(true);
   expect(fs.readFileSync(output,'utf8')).not.toContain(secret);
+  expect(JSON.parse(fs.readFileSync(output,'utf8')).commit).toBe('a'.repeat(40));
  } finally {fs.rmSync(directory,{recursive:true});}
 });

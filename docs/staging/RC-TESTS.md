@@ -5,7 +5,7 @@ Local implementation/checks and hosted behavior are separate. Task 4's exact loc
 | Gate | State | Evidence required |
 |---|---|---|
 | Local resource/build/legacy draft/fixture regressions | Pass locally | 11 new tests plus existing regression coverage; Task 4 RED/GREEN report |
-| Whole branch unit/type/lint/production compiler | Pass locally | 70 files / 362 tests; typecheck pass; lint 0 errors / 395 existing warnings; env-free Webpack build pass (Node 22.22.3), not hosted journey proof |
+| Whole branch unit/type/lint/production compiler | Pass locally | At commit 415908b: 70 files / 362 tests; typecheck pass; lint 0 errors / 395 existing warnings; env-free Webpack build pass (Node 22.22.3), not hosted journey proof |
 | Stable + automation deployed same reviewed source | Blocked | Vercel IDs/alias/qaCommit, compiled backend commit, HTML commit |
 | Stable migration / encrypted hash / retirement | Blocked | Private source census, dry-run/apply/checkpoints, old URL denial |
 | Fourteen-step normal two-party journey | Blocked | Independent real Clerk sessions, case assertions and sanitized receipts |
@@ -25,3 +25,5 @@ Local implementation/checks and hosted behavior are separate. Task 4's exact loc
 `release-journey.mjs` supplies normal sign-in, isolated browser sessions, refreshed Clerk JWT calls, private byte-hash probes and a fourteen-case runner. The controller provides reviewed case adapters inside `.qa-private` using the actual live selectors. Exports: `journeyCases`, `signIn`, `openSession`, `verifyPrivateDownload`, `assertMutableTarget`, `runJourney`. Case callback receives `{browser,resources,accounts,openSession,verifyPrivateDownload}` and must throw on a failed assertion. Missing adapters are Blocked; exceptions produce sanitized Fail records. The runner refuses stable and mixed targets. This helper is not itself completed UI journey evidence.
 
 Never enable raw Playwright auth/network traces or storageState for live runs. No login/password/OTP/cookie/JWT/file-key screenshots. Record safe post-login UI, aliases, case IDs and timings only; raw errors are sanitized because Playwright credential-fill diagnostics can echo input. Private HTTP hashes and IDs stay in private evidence. Existing public/local Playwright configuration is not the live-auth harness.
+
+Legacy rehearsal amendment: focused regression command covers resource/compiled-commit/confirmation gates, fixed-byte identity, shared-source migration without contract merging, draft visibility, repeat apply/seed/reset, and preservation of base/supplementary/unrelated data. Live rehearsal is pending the controller. Exact final amendment counts are in the Task 4 handoff appendix; the earlier whole-suite result is not relabeled as an amendment run.

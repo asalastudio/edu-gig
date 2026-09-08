@@ -55,8 +55,9 @@ export async function verifyPrivateDownload(actor,resources,privateFileId) {
  return {authenticatedStatus:200,sha256Matched:true,anonymousDenied:true};
 }
 /** Adapters assert actual behavior. Missing cases remain Blocked. Never persist raw errors. */
-export async function runJourney({resources,cases,output,browser,accounts}) {
+export async function runJourney({resources,verifiedCommit,cases,output,browser,accounts}) {
  assertMutableTarget(resources);
+ verifyBuildIdentity(verifiedCommit,{buildCommit:verifiedCommit});
  const results=[];
  for (const id of journeyCases) {
   if (!cases[id]) {results.push({id,status:'Blocked',reason:'Live case adapter not supplied'});continue;}
@@ -64,7 +65,7 @@ export async function runJourney({resources,cases,output,browser,accounts}) {
   try {await cases[id]({browser,resources,accounts,openSession,verifyPrivateDownload});results.push({id,status:'Pass',durationMs:Math.round(performance.now()-start)});}
   catch {results.push({id,status:'Fail',reason:'Live assertion failed; inspect privately without auth traces',durationMs:Math.round(performance.now()-start)});}
  }
- fs.writeFileSync(output,JSON.stringify({target:resources.convexDeployment,measuredAt:new Date().toISOString(),conditions:'Desktop Chromium; no throttling unless case adapter explicitly configures it. Not physical-device or screen-reader proof.',results},null,2),{mode:0o600});
+ fs.writeFileSync(output,JSON.stringify({target:resources.convexDeployment,commit:verifiedCommit,measuredAt:new Date().toISOString(),conditions:'Desktop Chromium; no throttling unless case adapter explicitly configures it. Not physical-device or screen-reader proof.',results},null,2),{mode:0o600});
  return results;
 }
 async function main() {
@@ -80,7 +81,7 @@ async function main() {
  if (roster.instanceId!==resources.clerkInstanceId) throw Error('Private roster issuer mismatch');
  fs.mkdirSync(privateDirectory,{recursive:true,mode:0o700}); const browser=await chromium.launch();
  try {
-  const results=await runJourney({resources,cases,output:`${privateDirectory}/journey-results.json`,browser,accounts:roster.accounts});
+  const results=await runJourney({resources,verifiedCommit:commit,cases,output:`${privateDirectory}/journey-results.json`,browser,accounts:roster.accounts});
   console.log(JSON.stringify(results)); if (results.some(r=>r.status!=='Pass')) process.exitCode=1;
  } finally {await browser.close();}
 }

@@ -1,3 +1,5 @@
+import { LEGACY_FIXTURE_PDF_BASE64 } from "./lib/legacyFixturePdf";
+import { LEGACY_NAMESPACE, LEGACY_CONFIRMATION, assertLegacyRehearsal, legacyActors, insertLegacyRows } from "./lib/legacyFixtures";
 import { seedReleaseRows, RELEASE_NAMESPACE } from "./lib/releaseFixtures";
 import { BUILD_COMMIT } from "./buildIdentity";
 import { encryptFile, validateFile } from "./lib/privateCrypto";
@@ -13,7 +15,11 @@ const encryption = v.object({ sha256: v.string(), nonce: v.string(), keyId: v.st
 const file = v.object({ name: v.string(), base64: v.string() });
 const receipt = v.object({ seeded: v.boolean(), count: v.number() });
 const ALIASES = ["district-a", "consultant-a", "district-b", "consultant-b", "fresh-district", "fresh-consultant", "district-teammate", "consultant-unavailable", "consultant-reviewed", "review-admin"];
-function namespace(value: string) {
+function namespace(value: string, allowLegacy = false) {
+    if (value === LEGACY_NAMESPACE && allowLegacy) {
+        if (assertStagingEnvironment().convexDeployment !== "dapper-curlew-192") throw new Error("Legacy rehearsal requires exact automation deployment");
+        return;
+    }
     // Automation must use a separate deployment, not a namespace in human staging.
     if (!["human-review-v1", RELEASE_NAMESPACE].includes(value)) throw new Error("Unknown fixture namespace");
 }
@@ -21,7 +27,7 @@ function namespace(value: string) {
 export const status = internalQuery({
     args: { namespace: v.string() }, returns: v.union(v.null(), v.object({ count: v.number(), createdAt: v.number() })),
     handler: async (ctx, args) => {
-        assertStagingEnvironment(); namespace(args.namespace);
+        assertStagingEnvironment(); namespace(args.namespace, true);
         const run = await ctx.db.query("qaRuns").withIndex("by_namespace", q => q.eq("namespace", args.namespace)).unique();
         return run ? { count: run.records.length, createdAt: run.createdAt } : null;
     },
@@ -194,7 +200,7 @@ export const captureNotification = internalMutation({
 export const reset = internalMutation({
     args: { expectedCommit: v.optional(v.string()), namespace: v.string(), confirmation: v.literal("RESET_IDENTIFIED_QA_FIXTURES") }, returns: v.object({ deleted: v.number(), cancelledJobs: v.number() }),
     handler: async (ctx, args) => {
-        assertStagingEnvironment(); assertBuildCommit(args.expectedCommit); namespace(args.namespace);
+        assertStagingEnvironment(); assertBuildCommit(args.expectedCommit); namespace(args.namespace, true);
         const run = await ctx.db.query("qaRuns").withIndex("by_namespace", q => q.eq("namespace", args.namespace)).unique();
         if (!run) return { deleted: 0, cancelledJobs: 0 };
         const records = [...run.records];
@@ -276,5 +282,42 @@ export const deliveryFixtures = internalMutation({
    result.push(outboxId);
   }
   return {failedId:result[0],queuedId:result[1]};
+ },
+});
+
+
+const legacyRehearsalArgs = { namespace: v.literal(LEGACY_NAMESPACE), expectedCommit: v.string(), confirmation: v.literal(LEGACY_CONFIRMATION) };
+/** Fixed synthetic plaintext exists only to rehearse guarded legacy migration on automation. */
+export const legacyRehearsalState = internalQuery({
+ args: legacyRehearsalArgs,
+ handler: async (ctx,args) => {
+  assertLegacyRehearsal(args); await legacyActors(ctx);
+  const run=await ctx.db.query('qaRuns').withIndex('by_namespace',q=>q.eq('namespace',args.namespace)).unique();
+  return run?{seeded:false,count:run.records.length}:null;
+ },
+});
+export const seedLegacyRehearsal = internalAction({
+ args: legacyRehearsalArgs, returns: receipt,
+ handler: async(ctx,args):Promise<{seeded:boolean;count:number}> => {
+  assertLegacyRehearsal(args);
+  const existing=await ctx.runQuery(internal.qa.legacyRehearsalState,args);if(existing)return existing;
+  const bytes=Uint8Array.from(atob(LEGACY_FIXTURE_PDF_BASE64),c=>c.charCodeAt(0));
+  validateFile(bytes,{fileName:'synthetic-legacy-shared-source.pdf',mimeType:'application/pdf',size:bytes.length,purpose:'agreement'});
+  const storageId=await ctx.storage.store(new Blob([bytes],{type:'application/pdf'}));
+  try {
+   const result=await ctx.runMutation(internal.qa.seedLegacyRehearsalRows,{...args,storageId});
+   if(!result.seeded)await ctx.storage.delete(storageId);
+   return result;
+  }catch(error){await ctx.storage.delete(storageId);throw error;}
+ },
+});
+/** Internal finalizer for this action's newly stored fixed PDF, never an import API. */
+export const seedLegacyRehearsalRows = internalMutation({
+ args: {...legacyRehearsalArgs,storageId:v.id('_storage')}, returns: receipt,
+ handler: async(ctx,args) => {
+  assertLegacyRehearsal(args);await legacyActors(ctx);
+  const existing=await ctx.db.query('qaRuns').withIndex('by_namespace',q=>q.eq('namespace',args.namespace)).unique();
+  if(existing)return{seeded:false,count:existing.records.length};
+  return insertLegacyRows(ctx,args.storageId);
  },
 });

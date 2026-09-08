@@ -9,7 +9,7 @@ export function isAuthIntent(v: string | null | undefined): v is AuthIntent {
 }
 
 export function safeInternalPath(v: string | null | undefined): string | null {
-    if (!v || !v.startsWith("/") || v.startsWith("//")) return null;
+    if (!v || !v.startsWith("/") || v.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(v)) return null;
     return v;
 }
 

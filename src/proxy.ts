@@ -10,6 +10,13 @@ const isProtectedRoute = createRouteMatcher([
 
 export default hasClerk
     ? clerkMiddleware(async (auth, req) => {
+          if (process.env.APP_ENV === "staging" && !req.nextUrl.pathname.startsWith("/sign-in") && !req.nextUrl.pathname.startsWith("/sign-up")) {
+              const session = await auth();
+              if (!session.userId) return session.redirectToSignIn({ returnBackUrl: req.url });
+              if (!(process.env.QA_ALLOWED_CLERK_IDS ?? "").split(",").includes(session.userId)) {
+                  return new NextResponse("Staging reviewer access required", { status: 403 });
+              }
+          }
           if (isProtectedRoute(req)) {
               await auth.protect();
           }

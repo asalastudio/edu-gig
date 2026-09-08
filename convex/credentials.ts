@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./lib/staging";
 /**
  * Educator credential CRUD backed by Convex file storage.
  *
@@ -33,7 +34,7 @@ async function getUserByClerkId(
 }
 
 async function requireEducatorViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || user.role !== "educator") throw new Error("Forbidden");
@@ -148,7 +149,7 @@ export const remove = mutation({
 export const listMine = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return [];
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user || user.role !== "educator") return [];
@@ -170,7 +171,7 @@ export const listMine = query({
 export const getCredentialFileUrl = query({
     args: { credentialId: v.id("credentials") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) return null;
@@ -200,7 +201,7 @@ export const getCredentialFileUrl = query({
 export const listForEducatorProfile = query({
     args: { educatorId: v.id("educators") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) return null;

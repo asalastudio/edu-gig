@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -26,7 +27,7 @@ type AdminCtx = QueryCtx | MutationCtx;
 type Viewer = Doc<"users">;
 
 async function getViewer(ctx: AdminCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) return null;
     return await ctx.db
         .query("users")

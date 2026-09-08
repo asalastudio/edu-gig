@@ -20,7 +20,13 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "staging:check": "node scripts/staging/cli.mjs check",
+    "staging:seed": "node scripts/staging/cli.mjs seed",
+    "staging:reset": "node scripts/staging/cli.mjs reset",
+    "staging:status": "node scripts/staging/cli.mjs status",
+    "staging:deploy": "node scripts/staging/deploy.mjs",
+    "staging:smoke": "node scripts/staging/browser-smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.1",
@@ -63,6 +69,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.1",
+    "convex-test": "^0.0.56",
     "eslint": "^9",
     "eslint-config-next": "^16.3.4",
     "jsdom": "^29.0.1",

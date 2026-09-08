@@ -2,6 +2,9 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+    qaRuns: defineTable({ namespace: v.string(), records: v.array(v.object({ table: v.string(), id: v.string() })), createdAt: v.number() }).index("by_namespace", ["namespace"]),
+    qaEmailCaptures: defineTable({ payload: v.optional(v.string()), sourceId: v.string(), kind: v.string(), status: v.string(), subject: v.string(), appUrl: v.string(), createdAt: v.number() }).index("by_source", ["sourceId"]),
+
 
     // ─── Users ───────────────────────────────────────────────
     users: defineTable({

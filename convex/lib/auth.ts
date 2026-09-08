@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./staging";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 
@@ -16,7 +17,7 @@ export async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: str
 }
 
 export async function getCurrentUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Not authenticated");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user) throw new Error("User not found");
@@ -24,7 +25,7 @@ export async function getCurrentUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"
 }
 
 export async function getCurrentUserOrNull(ctx: QueryCtx | MutationCtx): Promise<Doc<"users"> | null> {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) return null;
     return await getUserByClerkId(ctx, identity.subject);
 }

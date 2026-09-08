@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
@@ -17,7 +18,7 @@ async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
 }
 
 async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || !DISTRICT_ROLES.includes(user.role as (typeof DISTRICT_ROLES)[number])) {
@@ -27,7 +28,7 @@ async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
 }
 
 async function requireEducatorViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || user.role !== "educator") throw new Error("Forbidden");
@@ -238,7 +239,7 @@ export const getAttachmentUrl = query({
     args: { proposalId: v.id("proposals") },
     returns: v.union(v.string(), v.null()),
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) return null;

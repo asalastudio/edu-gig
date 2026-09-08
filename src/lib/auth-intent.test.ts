@@ -11,6 +11,8 @@ describe("safeInternalPath", () => {
         expect(safeInternalPath(null)).toBeNull();
         expect(safeInternalPath("https://example.com")).toBeNull();
         expect(safeInternalPath("//example.com")).toBeNull();
+        expect(safeInternalPath("/\\example.com")).toBeNull();
+        expect(safeInternalPath("/\n/example.com")).toBeNull();
     });
 });
 

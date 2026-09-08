@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
@@ -19,7 +20,7 @@ async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
 }
 
 async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || !isDistrictRole(user.role)) throw new Error("Forbidden");
@@ -27,7 +28,7 @@ async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
 }
 
 async function requireEducatorViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || user.role !== "educator") throw new Error("Forbidden");
@@ -142,7 +143,7 @@ export const listForBrowse = query({
 export const getProfileForDistrict = query({
     args: { educatorId: v.id("educators") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Unauthorized");
         const viewer = await getUserByClerkId(ctx, identity.subject);
         if (!viewer) throw new Error("Unauthorized");
@@ -160,7 +161,7 @@ export const getProfileForDistrict = query({
 export const getMine = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user || user.role !== "educator") return null;
@@ -295,7 +296,7 @@ export const getResumeUrl = query({
         v.null()
     ),
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const viewer = await getUserByClerkId(ctx, identity.subject);
         if (!viewer) return null;

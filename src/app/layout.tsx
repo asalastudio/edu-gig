@@ -22,6 +22,7 @@ const SITE_DESCRIPTION =
   "Connect school districts with credential-reviewed K-12 consultants. Post a need, review proposals, and coordinate contracts. Payment stays off-platform.";
 
 export const metadata: Metadata = {
+  ...(process.env.NEXT_PUBLIC_APP_ENV === "staging" ? { robots: { index: false, follow: false } } : {}),
   metadataBase: new URL(APP_URL),
     title: {
     default: "K12Gig - The K-12 Consultant Marketplace",
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {process.env.NEXT_PUBLIC_APP_ENV === "staging" && <div role="status" className="sticky top-0 z-[100] bg-amber-200 px-4 py-2 text-center text-sm font-bold text-slate-950">STAGING · Synthetic QA data · Email captured · No real agreements</div>}
         <TooltipProvider>
           <ThemeProvider
             attribute="class"

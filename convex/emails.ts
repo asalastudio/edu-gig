@@ -1,3 +1,6 @@
+import type { ActionCtx } from "./_generated/server";
+import { assertStagingEnvironment } from "./lib/staging";
+import { internal } from "./_generated/api";
 /**
  * Transactional email dispatchers — implemented as Convex internal actions
  * so they can be scheduled from mutations via `ctx.scheduler.runAfter`.
@@ -40,7 +43,13 @@ type ResendPayload = {
     attachments?: ResendAttachment[];
 };
 
-async function sendViaResend(payload: ResendPayload): Promise<void> {
+async function sendViaResend(payload: ResendPayload, capture?: { ctx: ActionCtx; kind: string; sourceId: string }): Promise<void> {
+    if (process.env.APP_ENV === "staging") {
+        assertStagingEnvironment();
+        if (!capture) throw new Error("Staging email capture context required");
+        await capture.ctx.runMutation(internal.qa.captureNotification, { kind: capture.kind, sourceId: capture.sourceId, payload: JSON.stringify(payload) });
+        return;
+    }
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
         console.log("[emails] RESEND_API_KEY not set — skipping send", {
@@ -97,7 +106,7 @@ function uint8ToBase64(bytes: Uint8Array): string {
 export const sendBookingConfirmation = internalAction({
     args: { orderId: v.id("orders") },
     handler: async (ctx, args) => {
-        if (!process.env.RESEND_API_KEY) {
+        if (!process.env.RESEND_API_KEY && process.env.APP_ENV !== "staging") {
             console.log("[emails] sendBookingConfirmation — RESEND_API_KEY missing, skipping.");
             return;
         }
@@ -167,7 +176,7 @@ export const sendBookingConfirmation = internalAction({
                 html: payload.html,
                 text: payload.text,
                 attachments: attachments.length ? attachments : undefined,
-            });
+            }, { ctx: ctx, kind: "sendBookingConfirmation", sourceId: args.orderId });
         } catch (err) {
             console.error("[emails] sendBookingConfirmation failed", err);
         }
@@ -179,7 +188,7 @@ export const sendBookingConfirmation = internalAction({
 export const sendNewMessageAlert = internalAction({
     args: { messageId: v.id("messages") },
     handler: async (ctx, args) => {
-        if (!process.env.RESEND_API_KEY) {
+        if (!process.env.RESEND_API_KEY && process.env.APP_ENV !== "staging") {
             console.log("[emails] sendNewMessageAlert — RESEND_API_KEY missing, skipping.");
             return;
         }
@@ -212,7 +221,7 @@ export const sendNewMessageAlert = internalAction({
                 subject: payload.subject,
                 html: payload.html,
                 text: payload.text,
-            });
+            }, { ctx: ctx, kind: "sendNewMessageAlert", sourceId: args.messageId });
         } catch (err) {
             console.error("[emails] sendNewMessageAlert failed", err);
         }
@@ -224,7 +233,7 @@ export const sendNewMessageAlert = internalAction({
 export const sendNewProposalAlert = internalAction({
     args: { proposalId: v.id("proposals") },
     handler: async (ctx, args) => {
-        if (!process.env.RESEND_API_KEY) {
+        if (!process.env.RESEND_API_KEY && process.env.APP_ENV !== "staging") {
             console.log("[emails] sendNewProposalAlert — RESEND_API_KEY missing, skipping.");
             return;
         }
@@ -259,7 +268,7 @@ export const sendNewProposalAlert = internalAction({
                 subject: payload.subject,
                 html: payload.html,
                 text: payload.text,
-            });
+            }, { ctx: ctx, kind: "sendNewProposalAlert", sourceId: args.proposalId });
         } catch (err) {
             console.error("[emails] sendNewProposalAlert failed", err);
         }
@@ -271,7 +280,7 @@ export const sendNewProposalAlert = internalAction({
 export const sendProposalAcceptedAlert = internalAction({
     args: { proposalId: v.id("proposals") },
     handler: async (ctx, args) => {
-        if (!process.env.RESEND_API_KEY) {
+        if (!process.env.RESEND_API_KEY && process.env.APP_ENV !== "staging") {
             console.log("[emails] sendProposalAcceptedAlert — RESEND_API_KEY missing, skipping.");
             return;
         }
@@ -301,7 +310,7 @@ export const sendProposalAcceptedAlert = internalAction({
                 subject: payload.subject,
                 html: payload.html,
                 text: payload.text,
-            });
+            }, { ctx: ctx, kind: "sendProposalAcceptedAlert", sourceId: args.proposalId });
         } catch (err) {
             console.error("[emails] sendProposalAcceptedAlert failed", err);
         }
@@ -327,7 +336,7 @@ export const sendRefundIssued = internalAction({
             subject: payload.subject,
             html: payload.html,
             text: payload.text,
-        });
+        }, { ctx: ctx, kind: "sendRefundIssued", sourceId: args.orderId });
     },
 });
 
@@ -353,7 +362,7 @@ export const sendDisputeCreatedAlert = internalAction({
             subject: payload.subject,
             html: payload.html,
             text: payload.text,
-        });
+        }, { ctx: _ctx, kind: "sendDisputeCreatedAlert", sourceId: args.orderId });
     },
 });
 
@@ -362,7 +371,7 @@ export const sendDisputeCreatedAlert = internalAction({
 export const sendNewNeedAlert = internalAction({
     args: { needId: v.id("needs"), recipientUserId: v.id("users") },
     handler: async (ctx, args) => {
-        if (!process.env.RESEND_API_KEY) {
+        if (!process.env.RESEND_API_KEY && process.env.APP_ENV !== "staging") {
             console.log("[emails] sendNewNeedAlert — RESEND_API_KEY missing, skipping.");
             return;
         }
@@ -396,7 +405,7 @@ export const sendNewNeedAlert = internalAction({
                 subject: payload.subject,
                 html: payload.html,
                 text: payload.text,
-            });
+            }, { ctx: ctx, kind: "sendNewNeedAlert", sourceId: args.needId });
         } catch (err) {
             console.error("[emails] sendNewNeedAlert failed", err);
         }
@@ -447,7 +456,8 @@ export const selectAndStampReminderRecipients = internalMutation({
 export const sendProfileCompletionReminders = internalAction({
     args: {},
     handler: async (ctx) => {
-        if (!process.env.RESEND_API_KEY) {
+        if (process.env.APP_ENV === "staging") return;
+        if (!process.env.RESEND_API_KEY && process.env.APP_ENV !== "staging") {
             console.log("[emails] sendProfileCompletionReminders — RESEND_API_KEY missing, skipping.");
             return;
         }

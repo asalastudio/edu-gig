@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./lib/staging";
 import { query, mutation, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
@@ -123,7 +124,7 @@ export const viewer = query({
         v.null()
     ),
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await ctx.db
             .query("users")
@@ -150,7 +151,7 @@ export const viewer = query({
 export const claimSeededDemoAccount = mutation({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Not authenticated");
 
         const existing = await ctx.db
@@ -194,7 +195,7 @@ export const claimSeededDemoAccount = mutation({
 export const claimManualSuperadmin = mutation({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Not authenticated");
 
         const email = normalizeEmail(identity.email as string | undefined);
@@ -257,7 +258,7 @@ function isDistrictRole(role: string): role is DistrictRole {
 }
 
 async function requireViewerRow(ctx: MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Not authenticated");
     const user = await ctx.db
         .query("users")
@@ -400,7 +401,7 @@ export const completeOnboarding = mutation({
         alreadyOnboarded: v.boolean(),
     }),
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Not authenticated");
 
         const existing = await ctx.db
@@ -559,7 +560,7 @@ export const generateOnboardingResumeUploadUrl = mutation({
     args: {},
     returns: v.string(),
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Not authenticated");
         return await ctx.storage.generateUploadUrl();
     },

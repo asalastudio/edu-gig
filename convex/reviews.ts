@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
@@ -13,7 +14,7 @@ async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
 }
 
 async function requireViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user) throw new Error("Unauthorized");
@@ -124,7 +125,7 @@ export const listForEducator = query({
         const educator = await ctx.db.get(args.educatorId);
         if (!educator) return [];
 
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return [];
         const viewer = await getUserByClerkId(ctx, identity.subject);
         if (!viewer) return [];
@@ -191,7 +192,7 @@ export const getForOrder = query({
         reviewerRole: v.union(v.literal("buyer"), v.literal("seller")),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) return null;
@@ -231,7 +232,7 @@ export const getSummaryForEducator = query({
     args: { educatorId: v.id("educators") },
     returns: v.object({ averageRating: v.number(), count: v.number() }),
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return { averageRating: 0, count: 0 };
         const viewer = await getUserByClerkId(ctx, identity.subject);
         if (!viewer) return { averageRating: 0, count: 0 };

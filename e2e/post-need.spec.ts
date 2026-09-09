@@ -35,11 +35,13 @@ test.describe("Post a Need", () => {
         await expect(page.getByText(/your need has been posted/i)).toHaveCount(0);
 
         const savedDraft = await page.evaluate(() =>
-            JSON.parse(window.localStorage.getItem("k12gig_post_need_draft") ?? "null")
+            JSON.parse(window.sessionStorage.getItem("k12gig:post:anonymous:new") ?? "null")
         );
         expect(savedDraft).toMatchObject({
-            orgName: "Ann Arbor Public Schools",
-            areaOfNeed: "instruction_curriculum",
+            input: {
+                orgName: "Ann Arbor Public Schools",
+                areaOfNeed: "instruction_curriculum",
+            },
         });
     });
 });

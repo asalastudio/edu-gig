@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -19,30 +19,26 @@ import { mapConvexEducatorToProfileView } from "@/lib/map-convex-educator-profil
 import { CopyButton } from "@/components/shared/copy-button";
 import { CredentialFileLink } from "@/components/shared/credential-file-link";
 import { isDistrictRole } from "@/lib/roles";
-import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
+import { useSavedConsultants } from "@/lib/use-saved-consultants";
+import { AUTH_INTENT_PARAM, safeInternalPath, authPagePath } from "@/lib/auth-intent";
 import { formatPrice } from "@/lib/map-review";
 
 const USE_CONVEX = process.env.NEXT_PUBLIC_USE_CONVEX_BROWSE === "true";
 
-function isSavedEducator(educatorId: string): boolean {
-    if (typeof window === "undefined" || !educatorId) return false;
-    try {
-        const raw = window.localStorage.getItem("k12gig_saved_educators");
-        const ids: string[] = raw ? JSON.parse(raw) : [];
-        return ids.includes(educatorId);
-    } catch {
-        return false;
-    }
-}
-
-export default function EducatorProfilePage() {
+export default function EducatorProfilePage() {return <Suspense fallback={null}><EducatorProfile /></Suspense>;}
+function EducatorProfile() {
     const params = useParams();
     const router = useRouter();
     const educatorId = typeof params.educatorId === "string" ? params.educatorId : params.educatorId?.[0] ?? "";
-    const [saved, setSaved] = useState(() => isSavedEducator(educatorId));
+    const searchParams=useSearchParams();
+    const suppliedReturn=safeInternalPath(searchParams.get("returnTo"));
+    const returnTo=suppliedReturn && (suppliedReturn === "/browse" || suppliedReturn.startsWith("/browse?")) ? suppliedReturn : "/browse";
+    const profilePath=`/browse/${educatorId}?returnTo=${encodeURIComponent(returnTo)}`;
     const [messageError, setMessageError] = useState<string | null>(null);
 
     const viewer = useQuery(api.users.viewer, {});
+    const {ids:savedIds,toggle:toggleSaved}=useSavedConsultants(viewer?._id ?? null);
+    const saved=savedIds.includes(educatorId);
     const districtOK = !!viewer && isDistrictRole(viewer.role);
     // The viewer's own educator row, so they can preview their public profile.
     const mine = useQuery(
@@ -104,7 +100,7 @@ export default function EducatorProfilePage() {
                 <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
                     <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Educator not found</h1>
                     <p className="text-[var(--text-secondary)] mb-8">This profile isn’t available or the link is invalid.</p>
-                    <PrimaryButton onClick={() => router.push("/browse")}>Back to directory</PrimaryButton>
+                    <PrimaryButton onClick={() => router.push(returnTo)}>Back to directory</PrimaryButton>
                 </main>
                 <SiteFooter />
             </div>
@@ -140,7 +136,8 @@ export default function EducatorProfilePage() {
                 <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
                     <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">{headline}</h1>
                     <p className="text-[var(--text-secondary)] mb-8">{body}</p>
-                    <PrimaryButton onClick={() => router.push("/browse")}>Back to directory</PrimaryButton>
+                    {!viewer && <Link href={authPagePath("/sign-in","district",profilePath)} className="inline-flex font-bold underline mb-4">Sign in to view this consultant</Link>}
+                    <PrimaryButton onClick={() => router.push(returnTo)}>Back to directory</PrimaryButton>
                 </main>
                 <SiteFooter />
             </div>
@@ -185,19 +182,10 @@ export default function EducatorProfilePage() {
         router.push(`/dashboard/messages?${query}`);
     };
 
-    const saveEducator = () => {
-        if (typeof window === "undefined") return;
-        const raw = window.localStorage.getItem("k12gig_saved_educators");
-        const ids: string[] = raw ? JSON.parse(raw) : [];
-        const next = ids.includes(educatorId) ? ids.filter((id) => id !== educatorId) : [...ids, educatorId];
-        window.localStorage.setItem("k12gig_saved_educators", JSON.stringify(next));
-        setSaved(next.includes(educatorId));
-    };
-
     const handleSaveEducator = () => {
-        saveEducator();
+        try { toggleSaved(educatorId); } catch { setMessageError("Your browser could not save this consultant. Please retry."); }
         if (!viewer) {
-            const next = `/browse/${educatorId}`;
+            const next = profilePath;
             router.push(`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent(next)}`);
         }
     };
@@ -222,7 +210,7 @@ export default function EducatorProfilePage() {
                 <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
                     <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Educator not found</h1>
                     <p className="text-[var(--text-secondary)] mb-8">No demo profile matches this link. Try another educator from the directory.</p>
-                    <PrimaryButton onClick={() => router.push("/browse")}>Back to directory</PrimaryButton>
+                    <PrimaryButton onClick={() => router.push(returnTo)}>Back to directory</PrimaryButton>
                 </main>
                 <SiteFooter />
             </div>
@@ -265,9 +253,9 @@ export default function EducatorProfilePage() {
                         &larr; Back to settings
                     </Link>
                 ) : (
-                    <button onClick={() => router.back()} className="text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8 inline-flex items-center gap-2 transition-colors">
+                    <Link href={returnTo} className="text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8 inline-flex items-center gap-2 transition-colors">
                         &larr; Back to Browse
-                    </button>
+                    </Link>
                 )}
 
                 {messageError && (
@@ -337,10 +325,11 @@ export default function EducatorProfilePage() {
                                     </p>
                                 </div>
                                 <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-tertiary)]">
-                                    Minimum engagement: 2 hours
+                                    Confirm engagement length directly
                                 </span>
                             </div>
 
+                            <p className="text-sm text-[var(--text-secondary)]">Availability: {profile.availabilityStatus === 'open' ? 'Accepting new clients' : profile.availabilityStatus === 'limited' ? 'Limited availability — accepting new clients' : 'Not accepting new clients'}. On-site and remote delivery arrangements should be confirmed directly.</p>
                             {isOwnProfile ? (
                                 <div className="hidden md:flex flex-row gap-3 w-full sm:w-auto mt-2">
                                     <Link href="/dashboard/educator/settings" className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
@@ -509,9 +498,9 @@ export default function EducatorProfilePage() {
                                                             <td className="py-5 px-6 font-bold text-[var(--text-primary)] text-base">{lic.type}</td>
                                                             <td className="py-5 px-6 text-[var(--text-secondary)] font-medium text-base">{lic.issuer}</td>
                                                             <td className="py-5 px-6">
-                                                                {lic.status === "Verified" ? (
+                                                                {lic.status === "Credentials reviewed" ? (
                                                                     <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg text-sm">
-                                                                        <CheckCircle weight="fill" className="w-4 h-4" /> Verified
+                                                                        <CheckCircle weight="fill" className="w-4 h-4" /> Credentials reviewed
                                                                     </span>
                                                                 ) : (
                                                                     <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] font-bold bg-[var(--bg-subtle)] border border-[var(--border-subtle)] px-3 py-1.5 rounded-lg text-sm">
@@ -657,7 +646,7 @@ export default function EducatorProfilePage() {
                     <button onClick={handleSaveEducator} aria-label={savedLabel} className="h-11 w-11 rounded-lg border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)]">
                         <BookmarkSimple weight={saved ? "fill" : "bold"} className="w-5 h-5" />
                     </button>
-                    <button onClick={handleMessageEducator} aria-label="Message educator" className="h-11 w-11 rounded-lg border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)]">
+                    <button onClick={handleMessageEducator} aria-label="Message consultant" className="h-11 w-11 rounded-lg border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)]">
                         <ChatCircle weight="bold" className="w-5 h-5" />
                     </button>
                     <PrimaryButton onClick={() => handleRequestEducator()} className="px-4 py-3 text-sm">

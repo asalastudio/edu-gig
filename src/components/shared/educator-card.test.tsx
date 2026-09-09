@@ -20,13 +20,15 @@ const educator: EducatorCardProps = {
 
 describe("EducatorCard", () => {
     it("shows the support area responsible for an active filter match first", () => {
-        render(
+        const {container}=render(
             <EducatorCard
                 educator={educator}
                 highlightedAreaIds={["instruction_curriculum"]}
             />
         );
 
+        expect(container.querySelector("a button")).toBeNull();
+        expect(screen.getByRole("link", {name:"View Profile"})).toHaveClass("focus-visible:ring-2");
         expect(screen.getByText("Instruction & Curriculum")).toBeInTheDocument();
         expect(screen.getByText("+2 more")).toBeInTheDocument();
         expect(screen.getByText(/Grades: All Grades/)).toBeInTheDocument();

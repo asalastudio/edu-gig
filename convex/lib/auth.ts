@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./staging";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 
@@ -16,7 +17,7 @@ export async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: str
 }
 
 export async function getCurrentUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Not authenticated");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user) throw new Error("User not found");
@@ -24,7 +25,7 @@ export async function getCurrentUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"
 }
 
 export async function getCurrentUserOrNull(ctx: QueryCtx | MutationCtx): Promise<Doc<"users"> | null> {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) return null;
     return await getUserByClerkId(ctx, identity.subject);
 }
@@ -82,4 +83,16 @@ export async function canAccessEngagement(
 ) {
     const district = engagement.districtId ? await ctx.db.get(engagement.districtId) : null;
     return userCanAccessEngagement(user, engagement, district?.adminIds ?? null);
+}
+
+/** Private documents and party lifecycle actions do not inherit global admin powers. */
+export async function canManageNeedAsParty(ctx: QueryCtx | MutationCtx, user: Doc<"users">, need: Doc<"needs">) {
+    if (need.postedByUserId === user._id) return true;
+    const district = need.districtId ? await ctx.db.get(need.districtId) : null;
+    return !!district?.adminIds.includes(user._id);
+}
+export async function canAccessEngagementAsParty(ctx: QueryCtx | MutationCtx, user: Doc<"users">, engagement: Doc<"engagements">) {
+    if (engagement.educatorUserId === user._id || engagement.buyerUserId === user._id) return true;
+    const district = engagement.districtId ? await ctx.db.get(engagement.districtId) : null;
+    return !!district?.adminIds.includes(user._id);
 }

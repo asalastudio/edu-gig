@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
@@ -12,7 +13,7 @@ const procurementStatusValidator = v.union(
 );
 
 async function getViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) return null;
     return await ctx.db
         .query("users")
@@ -73,6 +74,7 @@ export const createRequest = mutation({
     },
     handler: async (ctx, args) => {
         const viewer = await getViewer(ctx);
+        if (process.env.APP_ENV === "staging" && !viewer) throw new Error("Staging reviewer access required");
         const district = viewer ? await findDistrictForUser(ctx, viewer._id) : null;
         const requesterEmail = normalizeEmail(args.requesterEmail);
         assertEmail(requesterEmail);
@@ -122,6 +124,7 @@ export const listMine = query({
     args: {},
     handler: async (ctx) => {
         const viewer = await getViewer(ctx);
+        if (process.env.APP_ENV === "staging" && !viewer) throw new Error("Staging reviewer access required");
         if (!viewer) return [];
 
         const district = await findDistrictForUser(ctx, viewer._id);
@@ -149,6 +152,7 @@ export const listAllForAdmin = query({
     args: {},
     handler: async (ctx) => {
         const viewer = await getViewer(ctx);
+        if (process.env.APP_ENV === "staging" && !viewer) throw new Error("Staging reviewer access required");
         requireSuperadminRole(viewer);
         const rows = await ctx.db.query("procurementRequests").collect();
         return rows.sort((a, b) => b.updatedAt - a.updatedAt);
@@ -163,6 +167,7 @@ export const updateStatus = mutation({
     },
     handler: async (ctx, args) => {
         const viewer = await getViewer(ctx);
+        if (process.env.APP_ENV === "staging" && !viewer) throw new Error("Staging reviewer access required");
         requireSuperadminRole(viewer);
         const request = await ctx.db.get(args.requestId);
         if (!request) throw new Error("Not found");

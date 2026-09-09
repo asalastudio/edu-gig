@@ -1,6 +1,8 @@
 "use client";
 
+import {NeedLogistics} from "@/components/shared/need-logistics";
 import React, { useMemo, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
@@ -10,6 +12,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
+import { privateFileMime, uploadPrivateFile } from "@/lib/private-upload";
 import { getAreaOfNeedLabel, TAXONOMY } from "@/lib/taxonomy";
 import {
     ArrowLeft,
@@ -28,12 +31,14 @@ type OpenNeed = {
     gradeLevel?: string;
     engagementType?: string;
     compensationRange?: string;
+    location?:string;deliveryMode?:string;compensationBasis?:string;
     description?: string;
     status: string;
     createdAt: number;
 };
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 function gradeLabel(gradeId: string | undefined): string | null {
     if (!gradeId) return null;
@@ -97,6 +102,16 @@ function EmptyCard({ title, body }: { title: string; body: string }) {
 }
 
 export default function ProposePage() {
+    if (!hasClerk) return <ProposePageView getToken={async () => null} />;
+    return <ProposePageWithClerk />;
+}
+
+function ProposePageWithClerk() {
+    const { getToken } = useAuth();
+    return <ProposePageView getToken={() => getToken({ template: "convex" })} />;
+}
+
+function ProposePageView({ getToken }: { getToken: () => Promise<string | null> }) {
     const params = useParams<{ needId: string }>();
     const needId = (typeof params.needId === "string" ? params.needId : "") as Id<"needs">;
     const router = useRouter();
@@ -111,11 +126,11 @@ export default function ProposePage() {
     const myProposals = useQuery(api.proposals.listMine, isEducator ? {} : "skip");
     const mine = useQuery(api.educators.getMine, isEducator ? {} : "skip");
 
-    const generateAttachmentUploadUrl = useMutation(api.proposals.generateAttachmentUploadUrl);
+    const requestUpload = useMutation(api.privateFiles.requestUpload);
     const submitProposal = useMutation(api.proposals.submit);
 
     const [message, setMessage] = useState("");
-    const [file, setFile] = useState<File | null>(null);
+    const [file, setFile] = useState<{ value: File; requestId: string } | null>(null);
     const [proposedRate, setProposedRate] = useState("");
     const [proposedRateUnit, setProposedRateUnit] = useState<"hourly" | "daily" | "fixed">("hourly");
     const [submitting, setSubmitting] = useState(false);
@@ -130,7 +145,7 @@ export default function ProposePage() {
         for (const p of myProposals ?? []) {
             if (
                 (p.needId as unknown as string) === (needId as unknown as string) &&
-                (p.status === "pending" || p.status === "accepted")
+                p.status === "pending"
             ) {
                 return true;
             }
@@ -147,9 +162,7 @@ export default function ProposePage() {
                     title="Sign in as an educator to submit a proposal"
                     body="Open needs appear here once you're signed in with an educator account."
                 />
-                <Link href="/login?intent=educator" className="w-fit">
-                    <PrimaryButton>Sign in</PrimaryButton>
-                </Link>
+                <Link href="/login?intent=educator" className="inline-flex min-h-10 w-fit items-center rounded-lg bg-[var(--accent-primary)] px-4 py-2.5 text-sm font-bold text-white">Sign in</Link>
             </Shell>
         );
     }
@@ -188,9 +201,7 @@ export default function ProposePage() {
                     title="This need is no longer open"
                     body="It may have been filled or removed. Browse the Gig Board for other open needs."
                 />
-                <Link href="/dashboard/board" className="w-fit">
-                    <PrimaryButton>Back to Gig Board</PrimaryButton>
-                </Link>
+                <Link href="/dashboard/board" className="inline-flex min-h-10 w-fit items-center rounded-lg bg-[var(--accent-primary)] px-4 py-2.5 text-sm font-bold text-white">Back to Gig Board</Link>
             </Shell>
         );
     }
@@ -209,9 +220,7 @@ export default function ProposePage() {
                         The district can see your proposal and will reach out if it&apos;s a match.
                         You can only have one active proposal per need.
                     </p>
-                    <Link href="/dashboard/board" className="w-fit">
-                        <PrimaryButton>Back to Gig Board</PrimaryButton>
-                    </Link>
+                    <Link href="/dashboard/board" className="inline-flex min-h-10 w-fit items-center rounded-lg bg-[var(--accent-primary)] px-4 py-2.5 text-sm font-bold text-white">Back to Gig Board</Link>
                 </div>
             </Shell>
         );
@@ -227,7 +236,12 @@ export default function ProposePage() {
             e.target.value = "";
             return;
         }
-        setFile(chosen);
+        if (chosen && !/\.(pdf|doc|docx)$/i.test(chosen.name)) {
+            setFormError("Attach a PDF or Word document.");
+            e.target.value = "";
+            return;
+        }
+        setFile(chosen ? { value: chosen, requestId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}` } : null);
     }
 
     async function handleSubmit(e: React.FormEvent) {
@@ -238,7 +252,7 @@ export default function ProposePage() {
             setFormError("Your proposal message is required.");
             return;
         }
-        if (!file && !mine?.resumeStorageId) {
+        if (!file && !mine?.resumePrivateFileId) {
             setFormError("Attach a resume/CV or upload one in Settings before submitting a proposal.");
             return;
         }
@@ -250,25 +264,28 @@ export default function ProposePage() {
 
         setSubmitting(true);
         try {
-            let attachmentStorageId: Id<"_storage"> | undefined;
+            let attachmentPrivateFileId: Id<"privateFiles"> | undefined;
             let attachmentName: string | undefined;
             if (file) {
-                const uploadUrl = await generateAttachmentUploadUrl({});
-                const res = await fetch(uploadUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": file.type || "application/octet-stream" },
-                    body: file,
+                const ticket = await requestUpload({
+                    purpose: "proposal",
+                    needId: need._id,
+                    fileName: file.value.name,
+                    mimeType: privateFileMime(file.value),
+                    size: file.value.size,
+                    requestId: file.requestId,
                 });
-                if (!res.ok) throw new Error("Upload failed");
-                const json = (await res.json()) as { storageId: Id<"_storage"> };
-                attachmentStorageId = json.storageId;
-                attachmentName = file.name;
+                const token = await getToken();
+                if (!token) throw new Error("Your session expired. Sign in again, then retry your proposal.");
+                const receipt = await uploadPrivateFile({ file: file.value, ticketId: ticket.ticketId, token });
+                attachmentPrivateFileId = receipt.privateFileId;
+                attachmentName = file.value.name;
             }
 
             await submitProposal({
                 needId: need._id,
                 message: message.trim(),
-                attachmentStorageId,
+                attachmentPrivateFileId,
                 attachmentName,
                 proposedRate: rateNum,
                 proposedRateUnit: rateNum !== undefined ? proposedRateUnit : undefined,
@@ -289,6 +306,16 @@ export default function ProposePage() {
                 title="Submit a proposal"
                 description="Respond to this district-posted need. Share how you can help and attach your resume or a proposal doc."
             />
+
+            <div
+                role="status"
+                className="rounded-lg border border-[var(--accent-primary)]/20 bg-[var(--accent-primary)]/5 px-5 py-4 text-sm text-[var(--text-secondary)]"
+            >
+                <p className="font-bold text-[var(--text-primary)]">Review before sending</p>
+                <p className="mt-1">
+                    Opening this need or its notification does not submit a proposal. Your proposal is sent only when you choose <strong>Send proposal</strong>; the district must accept it separately.
+                </p>
+            </div>
 
             {/* ── RFP summary — the need you're responding to ── */}
             <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col gap-4">
@@ -319,6 +346,7 @@ export default function ProposePage() {
                         </span>
                     )}
                 </div>
+                <NeedLogistics need={need} />
                 {need.description && (
                     <p className="text-base text-[var(--text-primary)] whitespace-pre-wrap">
                         {need.description}
@@ -353,7 +381,7 @@ export default function ProposePage() {
                     <span className="text-sm font-semibold text-[var(--text-primary)]">
                         Attach your resume or proposal{" "}
                         <span className="font-normal text-[var(--text-tertiary)]">
-                            {mine?.resumeStorageId ? "(optional — your profile resume will be used)" : "(required unless a resume is on your profile)"}
+                            {mine?.resumePrivateFileId ? "(optional — your profile resume will be used)" : "(required unless a resume is on your profile)"}
                         </span>
                     </span>
                     {mine?.resumeFileName && !file && (
@@ -369,7 +397,7 @@ export default function ProposePage() {
                                     className="w-5 h-5 text-[var(--accent-primary)] shrink-0"
                                 />
                                 <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                                    {file.name}
+                                    {file.value.name}
                                 </span>
                             </span>
                             <button
@@ -390,13 +418,13 @@ export default function ProposePage() {
                                 Click to attach a file
                             </span>
                             <span className="text-xs text-[var(--text-tertiary)]">
-                                PDF, DOC, DOCX, PNG, or JPG — up to 10 MB.
+                                PDF, DOC, or DOCX — up to 10 MB.
                             </span>
                             <input
                                 type="file"
                                 onChange={onFileChange}
                                 className="hidden"
-                                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                                accept=".pdf,.doc,.docx"
                             />
                         </label>
                     )}
@@ -432,7 +460,8 @@ export default function ProposePage() {
                     </div>
                 </div>
 
-                {formError && <p className="text-sm text-red-600 font-semibold">{formError}</p>}
+                {submitting && <p role="status" aria-live="polite" className="text-sm text-[var(--text-secondary)]">Uploading and sending proposal…</p>}
+                {formError && <p role="alert" className="text-sm text-red-600 font-semibold">{formError}</p>}
 
                 <div className="flex items-center gap-3 pt-1">
                     <PrimaryButton type="submit" disabled={submitting}>

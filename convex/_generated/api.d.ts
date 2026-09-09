@@ -8,6 +8,10 @@
  * @module
  */
 
+import type * as agreementVersions from "../agreementVersions.js";
+import type * as privateFiles from "../privateFiles.js";
+import type * as delivery from "../delivery.js";
+import type * as privateMigration from "../privateMigration.js";
 import type * as admin from "../admin.js";
 import type * as beta_founding_profiles from "../beta_founding_profiles.js";
 import type * as beta_launch from "../beta_launch.js";
@@ -24,6 +28,9 @@ import type * as gigs from "../gigs.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_createEngagement from "../lib/createEngagement.js";
 import type * as lib_customFunctions from "../lib/customFunctions.js";
+import type * as lib_onboardingPolicy from "../lib/onboardingPolicy.js";
+import type * as lib_proposalAcceptance from "../lib/proposalAcceptance.js";
+import type * as lib_staging from "../lib/staging.js";
 import type * as lib_time from "../lib/time.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as messages from "../messages.js";
@@ -33,6 +40,7 @@ import type * as orders from "../orders.js";
 import type * as pricing from "../pricing.js";
 import type * as procurement from "../procurement.js";
 import type * as proposals from "../proposals.js";
+import type * as qa from "../qa.js";
 import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
 import type * as users from "../users.js";
@@ -44,6 +52,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agreementVersions: typeof agreementVersions;
+  privateFiles: typeof privateFiles;
+  delivery: typeof delivery;
+  privateMigration: typeof privateMigration;
   admin: typeof admin;
   beta_founding_profiles: typeof beta_founding_profiles;
   beta_launch: typeof beta_launch;
@@ -60,6 +72,9 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/createEngagement": typeof lib_createEngagement;
   "lib/customFunctions": typeof lib_customFunctions;
+  "lib/onboardingPolicy": typeof lib_onboardingPolicy;
+  "lib/proposalAcceptance": typeof lib_proposalAcceptance;
+  "lib/staging": typeof lib_staging;
   "lib/time": typeof lib_time;
   "lib/validators": typeof lib_validators;
   messages: typeof messages;
@@ -69,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   pricing: typeof pricing;
   procurement: typeof procurement;
   proposals: typeof proposals;
+  qa: typeof qa;
   reviews: typeof reviews;
   seed: typeof seed;
   users: typeof users;

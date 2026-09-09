@@ -54,7 +54,7 @@ export const DISTRICT_FIRST_ACTIONS: Array<{
     },
     {
         id: "browse_educators",
-        label: "Browse vetted educators",
+        label: "Browse consultants",
         description: "Compare experience, rates, coverage, and availability before messaging.",
         href: "/browse",
     },

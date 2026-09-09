@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./lib/staging";
 import { internalQuery, query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
@@ -15,7 +16,7 @@ async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
 }
 
 async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || !DISTRICT_ROLES.includes(user.role as (typeof DISTRICT_ROLES)[number])) {
@@ -25,7 +26,7 @@ async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
 }
 
 async function requireEducatorViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || user.role !== "educator") throw new Error("Forbidden");
@@ -108,7 +109,7 @@ export const listForEducator = query({
 export const getById = query({
     args: { orderId: v.id("orders") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) return null;
@@ -153,7 +154,7 @@ export const accept = mutation({
 export const markCompleted = mutation({
     args: { orderId: v.id("orders") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Unauthorized");
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) throw new Error("Unauthorized");
@@ -181,7 +182,7 @@ export const markCompleted = mutation({
 export const cancel = mutation({
     args: { orderId: v.id("orders") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Unauthorized");
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) throw new Error("Unauthorized");
@@ -224,7 +225,7 @@ export const cancel = mutation({
 export const markDisputed = mutation({
     args: { orderId: v.id("orders") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Unauthorized");
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) throw new Error("Unauthorized");
@@ -253,7 +254,7 @@ export const markDisputed = mutation({
 export const listCompletedAwaitingReview = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return [];
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) return [];
@@ -511,7 +512,7 @@ export const recordStripePaymentEvent = mutation({
 export const getInvoiceContext = query({
     args: { orderId: v.id("orders") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) return null;

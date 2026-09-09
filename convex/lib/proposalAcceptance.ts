@@ -18,9 +18,9 @@ export const REJECT_ERRORS = {
 /**
  * Transactional invariants for `proposals.accept`.
  *
- * Exactly one proposal may be accepted per need, and exactly one engagement
- * may exist per need. Callers must load `siblings` (every proposal on the
- * need) and `existingEngagement` (any engagement on the need) inside the same
+ * Exactly one non-canceled hire may exist per need. Callers must load
+ * `siblings` excluding proposals linked to historical canceled engagements,
+ * and `existingEngagement` (any non-canceled engagement) inside the same
  * mutation so the check and the write happen in one Convex transaction.
  */
 export function assertProposalAcceptable(args: {

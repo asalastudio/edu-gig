@@ -34,13 +34,12 @@ export default function PrivacyPage() {
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Information we collect</h2>
                     <p>
                         We collect account information, role and organization details, educator profile information, credentials submitted
-                        for review, messages, marketplace activity, billing records, support requests, device data, and security logs needed
+                        for review, messages, marketplace activity, support requests, device data, and security logs needed
                         to provide K12Gig.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">How we use data</h2>
                     <p>
-                        We use information to create accounts, match districts with educators, support messaging and bookings, process
-                        payments, verify credentials, prevent abuse, provide customer support, improve the service, and meet legal,
+                        We use information to create accounts, match districts with educators, support messaging and engagement coordination, review submitted credentials, prevent abuse, provide customer support, improve the service, and meet legal,
                         contractual, and security obligations.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Student data and school privacy laws</h2>
@@ -53,18 +52,18 @@ export default function PrivacyPage() {
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Service providers and subprocessors</h2>
                     <p>
-                        We use vetted service providers for hosting, authentication, database infrastructure, payments, email delivery,
-                        background-check workflows, analytics, and support operations. These providers may process information only as
+                        We use service providers for hosting, authentication, database infrastructure, email delivery,
+                        analytics, and support operations. These providers may process information only as
                         needed to deliver their services to K12Gig and must protect it under appropriate confidentiality and security terms.
                     </p>
                     <p>
                         Current operational categories include application hosting, identity and authentication, managed database,
-                        payment processing, email delivery, background-check workflow support, rate limiting, monitoring, and customer
+                        email delivery, rate limiting, monitoring, and customer
                         support tooling. Districts can request a current subprocessor list during procurement review.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Retention and deletion</h2>
                     <p>
-                        We retain account, marketplace, payment, and security records for as long as needed to provide K12Gig, comply with
+                        We retain account, marketplace, and security records for as long as needed to provide K12Gig, comply with
                         law, resolve disputes, enforce agreements, and support district audit requirements. Districts and educators can
                         request deletion or correction of account information by contacting support, subject to legal and contractual
                         retention obligations.

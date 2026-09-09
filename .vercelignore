@@ -1,0 +1,11 @@
+.qa-private
+.env*
+!.env.local.example
+playwright/.auth
+coverage
+test-results
+playwright-report
+.git
+node_modules
+.next
+.superpowers

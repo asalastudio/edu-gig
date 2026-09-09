@@ -11,7 +11,7 @@ const crons = cronJobs();
 // Daily profile-completion nudge to educators with thin profiles. 15:00 UTC
 // lands in the US morning, and the send is capped + cooldown-gated inside the
 // action so a single run never blasts the roster or re-nudges too soon.
-crons.daily(
+if (process.env.APP_ENV !== "staging") crons.daily(
     "profile completion reminders",
     { hourUTC: 15, minuteUTC: 0 },
     internal.emails.sendProfileCompletionReminders

@@ -1,3 +1,7 @@
+import { credentialWasReviewed } from "./lib/credentialReview";
+import { ownedFile } from "./privateFiles";
+import { downloadPath } from "./lib/releaseDomain";
+import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
@@ -19,7 +23,7 @@ async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
 }
 
 async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || !isDistrictRole(user.role)) throw new Error("Forbidden");
@@ -27,7 +31,7 @@ async function requireDistrictViewer(ctx: QueryCtx | MutationCtx) {
 }
 
 async function requireEducatorViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || user.role !== "educator") throw new Error("Forbidden");
@@ -81,6 +85,7 @@ export const listForBrowse = query({
             reviewCount: number;
             gradeLevels: string[];
             areasOfNeed: string[];
+            subCategories: string[];
             engagementTypes: string[];
             coverageRegions: string[];
             startingRate?: number;
@@ -101,25 +106,22 @@ export const listForBrowse = query({
                 .query("credentials")
                 .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
                 .collect();
-            const hasReviewedCredential = credentials.some((credential) => credential.verified);
-            const hasBackgroundCheck =
-                !!educator.backgroundCheckId &&
-                (educator.verificationStatus === "verified" || educator.verificationStatus === "premier");
+            const hasReviewedCredential = (await Promise.all(credentials.map((credential) => credentialWasReviewed(ctx, credential._id)))).some(Boolean);
             const badges: string[] = [];
             if (hasReviewedCredential) badges.push("Credentials reviewed");
-            if (hasBackgroundCheck) badges.push("Background check complete");
-            if (badges.length === 0) badges.push("Profile in progress");
+            if (badges.length === 0) badges.push(educator.profileCompletePct === 100 ? "Profile complete" : "Profile in progress");
             out.push({
                 id: educator._id,
                 name: businessName || personalName,
                 ...(businessName && personalName ? { secondaryName: personalName } : {}),
                 headline: educator.headline,
                 avatarUrl: user.avatarUrl,
-                verificationTier: verificationToTier(educator.verificationStatus),
+                verificationTier: hasReviewedCredential ? "verified" : "basic",
                 overallRating: 0,
                 reviewCount: 0,
                 gradeLevels: educator.gradeLevelBands,
                 areasOfNeed: educator.areasOfNeed,
+                subCategories: educator.subCategories,
                 engagementTypes: educator.engagementTypes,
                 coverageRegions: educator.coverageRegions,
                 startingRate: educator.hourlyRate ?? educator.dailyRate,
@@ -142,7 +144,7 @@ export const listForBrowse = query({
 export const getProfileForDistrict = query({
     args: { educatorId: v.id("educators") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Unauthorized");
         const viewer = await getUserByClerkId(ctx, identity.subject);
         if (!viewer) throw new Error("Unauthorized");
@@ -160,7 +162,7 @@ export const getProfileForDistrict = query({
 export const getMine = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user || user.role !== "educator") return null;
@@ -241,13 +243,14 @@ export const generateResumeUploadUrl = mutation({
     returns: v.string(),
     handler: async (ctx) => {
         await requireEducatorViewer(ctx);
-        return await ctx.storage.generateUploadUrl();
+        throw new Error("Private upload required; refresh the application");
     },
 });
 
 export const setResume = mutation({
     args: {
-        storageId: v.id("_storage"),
+        storageId: v.optional(v.id("_storage")),
+        privateFileId: v.optional(v.id("privateFiles")),
         fileName: v.string(),
     },
     returns: v.id("educators"),
@@ -258,13 +261,9 @@ export const setResume = mutation({
             .withIndex("by_user_id", (q) => q.eq("userId", user._id))
             .first();
         if (!edu) throw new Error("No educator profile");
-        if (edu.resumeStorageId && edu.resumeStorageId !== args.storageId) {
-            await ctx.storage.delete(edu.resumeStorageId);
-        }
-        await ctx.db.patch(edu._id, {
-            resumeStorageId: args.storageId,
-            resumeFileName: args.fileName.trim() || "Resume.pdf",
-        });
+        if (args.storageId || !args.privateFileId) throw new Error("Owned private resume required");
+        const file = await ownedFile({ ...ctx, user }, args.privateFileId, "resume");
+        await ctx.db.patch(edu._id, { resumePrivateFileId: file._id, resumeStorageId: undefined, resumeFileName: file.fileName });
         return edu._id;
     },
 });
@@ -279,8 +278,8 @@ export const clearResume = mutation({
             .withIndex("by_user_id", (q) => q.eq("userId", user._id))
             .first();
         if (!edu) throw new Error("No educator profile");
-        if (edu.resumeStorageId) await ctx.storage.delete(edu.resumeStorageId);
         await ctx.db.patch(edu._id, {
+            resumePrivateFileId: undefined,
             resumeStorageId: undefined,
             resumeFileName: undefined,
         });
@@ -295,15 +294,15 @@ export const getResumeUrl = query({
         v.null()
     ),
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const viewer = await getUserByClerkId(ctx, identity.subject);
         if (!viewer) return null;
         const educator = await ctx.db.get(args.educatorId);
-        if (!educator || !educator.resumeStorageId) return null;
+        if (!educator || !educator.resumePrivateFileId) return null;
         const isOwner = educator.userId === viewer._id;
         if (!isOwner && !isDistrictRole(viewer.role)) return null;
-        const url = await ctx.storage.getUrl(educator.resumeStorageId);
+        const url = downloadPath(educator.resumePrivateFileId);
         if (!url) return null;
         return { url, fileName: educator.resumeFileName ?? "Resume.pdf" };
     },
@@ -372,5 +371,18 @@ export const updateVerificationFromWebhook = mutation({
         }
         await ctx.db.patch(educator._id, patch);
         return educator._id;
+    },
+});
+
+/** Validates a posting handoff without trusting a display name or casting a URL id. */
+export const getSelectedForPosting = query({
+    args: { educatorId: v.string() },
+    handler: async (ctx, args) => {
+        await requireDistrictViewer(ctx);
+        const id=ctx.db.normalizeId("educators",args.educatorId);
+        const educator=id ? await ctx.db.get(id) : null;
+        if(!educator?.isActive) return null;
+        const user=await ctx.db.get(educator.userId);
+        return user ? {educatorId:educator._id,name:educator.businessName?.trim() || `${user.firstName} ${user.lastName}`.trim()} : null;
     },
 });

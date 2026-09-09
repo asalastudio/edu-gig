@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./lib/staging";
 import { query, mutation, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
@@ -45,6 +46,7 @@ function profileCompletion(args: {
     dailyRate?: number;
     gradeLevelBands?: string[];
     areasOfNeed?: string[];
+    subCategories?: string[];
     engagementTypes?: string[];
     coverageRegions?: string[];
 }) {
@@ -71,6 +73,7 @@ function educatorProfileFromArgs(args: {
     dailyRate?: number;
     gradeLevelBands?: string[];
     areasOfNeed?: string[];
+    subCategories?: string[];
     engagementTypes?: string[];
     coverageRegions?: string[];
     availabilityStatus?: "open" | "limited" | "closed";
@@ -85,7 +88,7 @@ function educatorProfileFromArgs(args: {
         yearsExperience: Math.max(0, args.yearsExperience ?? 0),
         gradeLevelBands: args.gradeLevelBands ?? [],
         areasOfNeed: args.areasOfNeed ?? [],
-        subCategories: [],
+        subCategories: args.subCategories ?? [],
         engagementTypes: args.engagementTypes ?? ["consulting"],
         coverageRegions: args.coverageRegions ?? [],
         stateLicenses: [],
@@ -123,7 +126,7 @@ export const viewer = query({
         v.null()
     ),
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await ctx.db
             .query("users")
@@ -144,13 +147,13 @@ export const viewer = query({
 });
 
 /**
- * Links a pre-seeded demo Convex user (clerkId `seed:<email>`) to the signed-in Clerk account.
- * Safe no-op when no seed row exists for the current email.
+ * Compatibility no-op for retired automatic demo linking.
+ * Existing linked users and unattributed seed rows are preserved.
  */
 export const claimSeededDemoAccount = mutation({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Not authenticated");
 
         const existing = await ctx.db
@@ -161,32 +164,9 @@ export const claimSeededDemoAccount = mutation({
             return { claimed: false as const, userId: existing._id };
         }
 
-        const email = normalizeEmail(identity.email as string | undefined);
-        if (!email) {
-            return { claimed: false as const, reason: "no_email" as const };
-        }
-
-        const seeded = await ctx.db
-            .query("users")
-            .withIndex("by_clerk_id", (q) => q.eq("clerkId", `seed:${email}`))
-            .first();
-        if (!seeded) {
-            return { claimed: false as const, reason: "no_seed_row" as const };
-        }
-
-        const name = (identity.name as string | undefined) ?? "";
-        const parts = name.trim().split(/\s+/).filter(Boolean);
-        const firstName = parts[0] || seeded.firstName;
-        const lastName = parts.length > 1 ? parts.slice(1).join(" ") : seeded.lastName;
-
-        await ctx.db.patch(seeded._id, {
-            clerkId: identity.subject,
-            email,
-            firstName,
-            lastName,
-        });
-
-        return { claimed: true as const, userId: seeded._id };
+        // Email equality is not authorization to adopt an existing demo account.
+        // Preserve old rows and already-linked users; new users onboard normally.
+        return { claimed: false as const, reason: "automatic_linking_retired" as const };
     },
 });
 
@@ -194,7 +174,7 @@ export const claimSeededDemoAccount = mutation({
 export const claimManualSuperadmin = mutation({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Not authenticated");
 
         const email = normalizeEmail(identity.email as string | undefined);
@@ -257,7 +237,7 @@ function isDistrictRole(role: string): role is DistrictRole {
 }
 
 async function requireViewerRow(ctx: MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Not authenticated");
     const user = await ctx.db
         .query("users")
@@ -281,6 +261,9 @@ export const setAvatar = mutation({
     args: { storageId: v.id("_storage") },
     handler: async (ctx, args) => {
         const user = await requireViewerRow(ctx);
+        if (await ctx.db.query("privateFiles").withIndex("by_storage", q => q.eq("storageId", args.storageId)).first()) throw new Error("Private files cannot be avatars");
+        const stored = await ctx.db.system.get(args.storageId);
+        if (!stored?.contentType?.startsWith("image/")) throw new Error("Avatar image required");
         const url = await ctx.storage.getUrl(args.storageId);
         if (!url) throw new Error("Uploaded file not found");
         if (user.avatarStorageId && user.avatarStorageId !== args.storageId) {
@@ -380,6 +363,7 @@ export const completeOnboarding = mutation({
         dailyRate: v.optional(v.number()),
         gradeLevelBands: v.optional(v.array(v.string())),
         areasOfNeed: v.optional(v.array(v.string())),
+        subCategories: v.optional(v.array(v.string())),
         engagementTypes: v.optional(v.array(v.string())),
         coverageRegions: v.optional(v.array(v.string())),
         availabilityStatus: v.optional(availabilityValidator),
@@ -400,7 +384,7 @@ export const completeOnboarding = mutation({
         alreadyOnboarded: v.boolean(),
     }),
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Not authenticated");
 
         const existing = await ctx.db
@@ -422,6 +406,7 @@ export const completeOnboarding = mutation({
         const firstName = cleanText(args.firstName) || parts[0] || email.split("@")[0] || "User";
         const lastName = cleanText(args.lastName) || (parts.length > 1 ? parts.slice(1).join(" ") : "");
 
+        if (args.resumeStorageId) throw new Error("Private resume upload required after onboarding");
         const educatorProfile = educatorProfileFromArgs(args);
         const isDistrict = isDistrictRole(args.role);
         const districtName = cleanText(args.organizationName);
@@ -559,8 +544,8 @@ export const generateOnboardingResumeUploadUrl = mutation({
     args: {},
     returns: v.string(),
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) throw new Error("Not authenticated");
-        return await ctx.storage.generateUploadUrl();
+        throw new Error("Private resume upload required after onboarding");
     },
 });

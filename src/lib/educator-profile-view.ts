@@ -27,7 +27,7 @@ export type EducatorProfileView = {
     licenses: {
         type: string;
         issuer: string;
-        status: "Verified" | "Submitted";
+        status: "Verified" | "Credentials reviewed" | "Submitted";
         expiry: string;
         /** Present only for real credential rows (not tier placeholders). */
         credentialId?: string;

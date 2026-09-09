@@ -27,6 +27,9 @@ export const notificationPreferencesValidator = v.object({
 });
 
 export const engagementSummaryValidator = v.object({
+    revision: v.optional(v.number()),
+    archivedForViewer: v.optional(v.boolean()),
+    partyAccess: v.boolean(),
     _id: v.id("engagements"),
     needId: v.id("needs"),
     proposalId: v.id("proposals"),

@@ -1,3 +1,4 @@
+import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -26,7 +27,7 @@ type AdminCtx = QueryCtx | MutationCtx;
 type Viewer = Doc<"users">;
 
 async function getViewer(ctx: AdminCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) return null;
     return await ctx.db
         .query("users")
@@ -507,9 +508,9 @@ export const updateEducatorVerification = mutation({
 
         const statusCopy =
             args.status === "premier"
-                ? "Your profile is now marked as Premier Verified."
+                ? "Your legacy profile status is now premier. Credential reviews are recorded separately."
                 : args.status === "verified"
-                  ? "Your educator verification has been approved."
+                  ? "Your profile status has been updated. Credential reviews are recorded separately."
                   : args.status === "pending"
                     ? "Your educator verification is under review."
                     : "Your educator verification needs more information before it can be approved.";
@@ -533,5 +534,22 @@ export const updateEducatorVerification = mutation({
             `${educator.verificationStatus} -> ${args.status}`
         );
         return args.educatorId;
+    },
+});
+
+/** Records only the stated credential review; never asserts a background check. */
+export const recordCredentialReview = mutation({
+    args: { credentialId: v.id("credentials"), reviewed: v.boolean(), note: v.string(), evidenceReference: v.string() },
+    handler: async (ctx, args) => {
+        const reviewer = await requireSuperadmin(ctx);
+        const credential = await ctx.db.get(args.credentialId);
+        if (!credential) throw new Error("Credential not found");
+        if (!args.note.trim() || !args.evidenceReference.trim()) throw new Error("Describe the review and its supporting evidence");
+        const recordId = await ctx.db.insert("credentialReviewRecords", {
+            ...args, note: args.note.trim(), evidenceReference: args.evidenceReference.trim(),
+            educatorId: credential.educatorId, reviewerId: reviewer._id, reviewedAt: Date.now(),
+        });
+        await writeAuditEvent(ctx, reviewer, "credential.review_recorded", "credential", args.credentialId, args.reviewed ? "Credentials reviewed" : "Review withdrawn");
+        return recordId;
     },
 });

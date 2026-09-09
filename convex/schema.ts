@@ -2,6 +2,9 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+    qaRuns: defineTable({ namespace: v.string(), records: v.array(v.object({ table: v.string(), id: v.string() })), createdAt: v.number() }).index("by_namespace", ["namespace"]),
+    qaEmailCaptures: defineTable({ payload: v.optional(v.string()), sourceId: v.string(), kind: v.string(), status: v.string(), subject: v.string(), appUrl: v.string(), createdAt: v.number() }).index("by_source", ["sourceId"]),
+
 
     // ─── Users ───────────────────────────────────────────────
     users: defineTable({
@@ -20,7 +23,7 @@ export default defineSchema({
         emailRemindersOptOut: v.optional(v.boolean()),
         lastReminderEmailAt: v.optional(v.number()),
         createdAt: v.number(),
-    }).index("by_clerk_id", ["clerkId"]),
+    }).index("by_clerk_id", ["clerkId"]).index("by_email", ["email"]),
 
     // ─── Educator Profiles ────────────────────────────────────
     educators: defineTable({
@@ -58,6 +61,7 @@ export default defineSchema({
         backgroundCheckId: v.optional(v.string()),   // Checkr report ID
         profileType: v.optional(v.union(v.literal("individual"), v.literal("firm"))),
         resumeStorageId: v.optional(v.id("_storage")),
+        resumePrivateFileId: v.optional(v.id("privateFiles")),
         resumeFileName: v.optional(v.string()),
         isActive: v.boolean(),
         profileCompletePct: v.number(),
@@ -70,6 +74,12 @@ export default defineSchema({
         }),
 
     // ─── Credentials ─────────────────────────────────────────
+    credentialReviewRecords: defineTable({
+        credentialId: v.id("credentials"), educatorId: v.id("educators"),
+        reviewerId: v.id("users"), reviewed: v.boolean(),
+        note: v.string(), evidenceReference: v.string(), reviewedAt: v.number(),
+    }).index("by_credential", ["credentialId"]),
+
     credentials: defineTable({
         educatorId: v.id("educators"),
         type: v.union(
@@ -85,6 +95,7 @@ export default defineSchema({
         expiryDate: v.optional(v.string()),
         documentUrl: v.optional(v.string()),     // legacy: raw storage id stored as string (pre-storageId rows)
         storageId: v.optional(v.id("_storage")),
+        privateFileId: v.optional(v.id("privateFiles")),
         verified: v.boolean(),
     }).index("by_educator", ["educatorId"]),
 
@@ -194,6 +205,10 @@ export default defineSchema({
         duration: v.optional(v.string()),
         compensationRange: v.optional(v.string()),
         description: v.optional(v.string()),
+        location: v.optional(v.string()),
+        deliveryMode: v.optional(v.string()),
+        compensationBasis: v.optional(v.string()),
+        selectedEducatorId: v.optional(v.string()),
         status: v.union(
             v.literal("draft"),
             v.literal("open"),
@@ -291,7 +306,8 @@ export default defineSchema({
         educatorId: v.id("educators"),
         educatorUserId: v.id("users"), // denormalized for display
         message: v.string(),
-        attachmentStorageId: v.optional(v.id("_storage")),   // resume / proposal doc
+        attachmentStorageId: v.optional(v.id("_storage")),
+        attachmentPrivateFileId: v.optional(v.id("privateFiles")),   // resume / proposal doc
         attachmentName: v.optional(v.string()),
         proposedRate: v.optional(v.number()),
         proposedRateUnit: v.optional(v.union(v.literal("hourly"), v.literal("daily"), v.literal("fixed"))),
@@ -308,6 +324,8 @@ export default defineSchema({
 
     // ─── Engagements (accepted proposal → active work) ────────
     engagements: defineTable({
+        revision: v.optional(v.number()),
+        archivedBy: v.optional(v.array(v.id("users"))),
         needId: v.id("needs"),
         proposalId: v.id("proposals"),
         educatorId: v.id("educators"),
@@ -345,6 +363,9 @@ export default defineSchema({
 
     // ─── Contracts (document coordination, not legal e-sign) ──
     contracts: defineTable({
+        managed: v.optional(v.boolean()),
+        revision: v.optional(v.number()),
+        currentSharedVersionId: v.optional(v.id("agreementVersions")),
         engagementId: v.id("engagements"),
         uploadedByUserId: v.id("users"),
         title: v.string(),
@@ -356,12 +377,15 @@ export default defineSchema({
             v.literal("completed")
         ),
         storageId: v.optional(v.id("_storage")),
+        privateFileId: v.optional(v.id("privateFiles")),
         fileName: v.optional(v.string()),
         createdAt: v.number(),
         updatedAt: v.number(),
     }).index("by_engagement", ["engagementId"]),
 
     contractEvents: defineTable({
+        versionId: v.optional(v.id("agreementVersions")),
+        privateOwnerId: v.optional(v.id("users")),
         contractId: v.id("contracts"),
         actorUserId: v.id("users"),
         action: v.string(),
@@ -369,4 +393,49 @@ export default defineSchema({
         createdAt: v.number(),
     }).index("by_contract", ["contractId"]),
 
+    agreementVersions: defineTable({
+        contractId: v.id("contracts"), privateFileId: v.id("privateFiles"),
+        number: v.number(), kind: v.union(v.literal("original"), v.literal("revision"), v.literal("signed_copy")),
+        parentVersionId: v.optional(v.id("agreementVersions")),
+        uploadedByUserId: v.id("users"), fileName: v.string(), createdAt: v.number(),
+        sharedAt: v.optional(v.number()), sharedByUserId: v.optional(v.id("users")),
+        legacyStatus: v.optional(v.string()), legacyStorageId: v.optional(v.id("_storage")),
+    }).index("by_contract", ["contractId"]).index("by_file", ["privateFileId"]),
+    privateFiles: defineTable({
+        ownerUserId: v.id("users"), purpose: v.union(v.literal("agreement"), v.literal("resume"), v.literal("credential"), v.literal("proposal")),
+        engagementId: v.optional(v.id("engagements")), needId: v.optional(v.id("needs")),
+        storageId: v.id("_storage"), fileName: v.string(), mimeType: v.string(), size: v.number(),
+        sha256: v.string(), nonce: v.string(), keyId: v.string(), createdAt: v.number(),
+        legacyStorageId: v.optional(v.id("_storage")), legacySourceId: v.optional(v.string()),
+    }).index("by_owner", ["ownerUserId"]).index("by_legacy_source", ["legacySourceId"]).index("by_storage", ["storageId"]),
+    uploadTickets: defineTable({
+        ownerUserId: v.id("users"), purpose: v.union(v.literal("agreement"), v.literal("resume"), v.literal("credential"), v.literal("proposal")),
+        engagementId: v.optional(v.id("engagements")), needId: v.optional(v.id("needs")),
+        fileName: v.string(), mimeType: v.string(), size: v.number(), expiresAt: v.number(),
+        requestId: v.string(), fingerprint: v.string(), privateFileId: v.optional(v.id("privateFiles")),
+    }).index("by_request", ["ownerUserId", "requestId"]),
+    operationReceipts: defineTable({
+        actorUserId: v.id("users"), requestId: v.string(), fingerprint: v.string(),
+        result: v.string(), sourceId: v.string(), createdAt: v.number(),
+    }).index("by_request", ["actorUserId", "requestId"]),
+    engagementEvents: defineTable({
+        engagementId: v.id("engagements"), actorUserId: v.id("users"), action: v.string(),
+        note: v.optional(v.string()), createdAt: v.number(),
+    }).index("by_engagement", ["engagementId"]),
+    deliveryOutbox: defineTable({
+        eventKey: v.string(), sourceId: v.string(), recipientUserId: v.id("users"),
+        notificationId: v.optional(v.id("notifications")), title: v.string(), body: v.string(), actionUrl: v.string(),
+        state: v.union(v.literal("queued"), v.literal("sending"), v.literal("captured"), v.literal("provider_accepted"), v.literal("failed"), v.literal("invalidated"), v.literal("suppressed")),
+        payload: v.optional(v.string()), firstAttemptAt: v.optional(v.number()),
+        attempts: v.number(), leaseUntil: v.optional(v.number()), leaseToken: v.optional(v.string()),
+        lastError: v.optional(v.string()), providerId: v.optional(v.string()), createdAt: v.number(), updatedAt: v.number(),
+    }).index("by_key", ["eventKey", "recipientUserId"]).index("by_source", ["sourceId"]).index("by_recipient", ["recipientUserId"]),
+    deliveryAttempts: defineTable({
+        outboxId: v.id("deliveryOutbox"), attempt: v.number(), state: v.string(),
+        error: v.optional(v.string()), createdAt: v.number(),
+    }).index("by_outbox", ["outboxId"]),
+    privateMigration: defineTable({
+        sourceId: v.string(), legacyStorageId: v.id("_storage"), privateFileId: v.id("privateFiles"),
+        sha256: v.string(), verifiedAt: v.number(), retiredAt: v.optional(v.number()),
+    }).index("by_source", ["sourceId"]),
 });

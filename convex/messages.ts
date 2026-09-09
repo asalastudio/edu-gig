@@ -1,7 +1,10 @@
+import { enqueue } from "./lib/outbox";
+import { canAccessEngagement, canManageNeed } from "./lib/auth";
+import { getAppIdentity } from "./lib/staging";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import { canSendMessage } from "../src/lib/messaging-policy";
 
 async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
@@ -12,7 +15,7 @@ async function getUserByClerkId(ctx: QueryCtx | MutationCtx, clerkId: string) {
 }
 
 async function requireViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user) throw new Error("Unauthorized");
@@ -40,6 +43,19 @@ export const send = mutation({
         const recipient = await ctx.db.get(args.recipientUserId);
         if (!recipient) throw new Error("Recipient not found");
 
+        if (args.engagementId) {
+            const e = await ctx.db.get(args.engagementId);
+            if (!e || !await canAccessEngagement(ctx, sender, e) || !await canAccessEngagement(ctx, recipient, e) ||
+                (sender._id !== e.educatorUserId && recipient._id !== e.educatorUserId) || (args.needId && args.needId !== e.needId)) throw new Error("Forbidden context");
+        }
+        if (args.needId) {
+            const need = await ctx.db.get(args.needId);
+            if (!need) throw new Error("Forbidden context");
+            const consultant = sender.role === "educator" ? sender : recipient.role === "educator" ? recipient : null;
+            const district = consultant?._id === sender._id ? recipient : sender;
+            const proposals = await ctx.db.query("proposals").withIndex("by_need", q => q.eq("needId", need._id)).collect();
+            if (!consultant || !await canManageNeed(ctx, district, need) || !proposals.some(p => p.educatorUserId === consultant._id)) throw new Error("Forbidden context");
+        }
         const conversationId = conversationKey(sender._id, args.recipientUserId);
 
         // One-way initiation: only districts start conversations. An educator may
@@ -65,21 +81,7 @@ export const send = mutation({
             createdAt: Date.now(),
         });
 
-        await ctx.db.insert("notifications", {
-            userId: args.recipientUserId,
-            type: "message",
-            title: `New message from ${sender.firstName}`,
-            body: args.content.slice(0, 140),
-            read: false,
-            actionUrl: "/dashboard/messages",
-            createdAt: Date.now(),
-        });
-
-        try {
-            await ctx.scheduler.runAfter(0, internal.emails.sendNewMessageAlert, { messageId });
-        } catch (err) {
-            console.log("[messages.send] email schedule skipped:", err);
-        }
+        await enqueue(ctx, { eventKey: `message:${messageId}`, sourceId: messageId, recipientUserId: args.recipientUserId, type: "message", title: `New message from ${sender.firstName}`, body: args.content.slice(0, 140), actionUrl: `/dashboard/messages?to=${sender._id}` });
 
         return messageId;
     },
@@ -102,7 +104,8 @@ export const listMyConversations = query({
 
         type Conversation = {
             conversationId: string;
-            counterpartId: string;
+            counterpartId: Id<"users">;
+            counterpartEducatorId?: Id<"educators">;
             counterpartName: string;
             lastMessage: string;
             lastAt: number;
@@ -114,12 +117,16 @@ export const listMyConversations = query({
             const prev = byConv.get(m.conversationId);
             if (!prev || m.createdAt > prev.lastAt) {
                 const counterpart = await ctx.db.get(counterpartId);
+                const counterpartEducator = counterpart?.role === "educator"
+                    ? await ctx.db.query("educators").withIndex("by_user_id", (q) => q.eq("userId", counterpart._id)).unique()
+                    : null;
                 byConv.set(m.conversationId, {
                     conversationId: m.conversationId,
                     counterpartId,
                     counterpartName: counterpart
                         ? `${counterpart.firstName} ${counterpart.lastName}`.trim()
                         : "Unknown",
+                    counterpartEducatorId: counterpartEducator?._id,
                     lastMessage: m.content,
                     lastAt: m.createdAt,
                     unread: prev?.unread ?? 0,

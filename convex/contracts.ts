@@ -1,6 +1,7 @@
+import { canViewAgreement, sameParty, downloadPath, active } from "./lib/releaseDomain";
 import { v } from "convex/values";
 import { authedMutation, authedQuery } from "./lib/customFunctions";
-import { canAccessEngagement } from "./lib/auth";
+import { canAccessEngagementAsParty } from "./lib/auth";
 import { contractStatusValidator } from "./lib/validators";
 
 const contractRowValidator = v.object({
@@ -26,12 +27,12 @@ const contractEventValidator = v.object({
 });
 
 async function requireEngagementAccess(
-    ctx: Parameters<typeof canAccessEngagement>[0] & { user: Parameters<typeof canAccessEngagement>[1]; db: Parameters<typeof canAccessEngagement>[0]["db"] },
-    engagementId: Parameters<typeof canAccessEngagement>[2]["_id"]
+    ctx: Parameters<typeof canAccessEngagementAsParty>[0] & { user: Parameters<typeof canAccessEngagementAsParty>[1]; db: Parameters<typeof canAccessEngagementAsParty>[0]["db"] },
+    engagementId: Parameters<typeof canAccessEngagementAsParty>[2]["_id"]
 ) {
     const engagement = await ctx.db.get(engagementId);
     if (!engagement) throw new Error("Not found");
-    if (!(await canAccessEngagement(ctx, ctx.user, engagement))) {
+    if (!(await canAccessEngagementAsParty(ctx, ctx.user, engagement))) {
         throw new Error("Forbidden");
     }
     return engagement;
@@ -42,7 +43,7 @@ export const generateUploadUrl = authedMutation({
     returns: v.string(),
     handler: async (ctx, args) => {
         await requireEngagementAccess(ctx, args.engagementId);
-        return await ctx.storage.generateUploadUrl();
+        throw new Error("Private upload required; refresh the application");
     },
 });
 
@@ -57,11 +58,14 @@ export const create = authedMutation({
     },
     returns: v.id("contracts"),
     handler: async (ctx, args) => {
-        await requireEngagementAccess(ctx, args.engagementId);
+        active(await requireEngagementAccess(ctx, args.engagementId));
+        if (args.status && args.status !== "draft") throw new Error("Use explicit sharing/signing operations");
+        if (args.storageId) throw new Error("Use owned private upload; raw storage IDs are forbidden");
         const title = args.title.trim();
         if (!title) throw new Error("Title is required");
         const now = Date.now();
         const contractId = await ctx.db.insert("contracts", {
+            managed: true, revision: 0,
             engagementId: args.engagementId,
             uploadedByUserId: ctx.user._id,
             title,
@@ -94,16 +98,7 @@ export const updateStatus = authedMutation({
         const contract = await ctx.db.get(args.contractId);
         if (!contract) throw new Error("Not found");
         await requireEngagementAccess(ctx, contract.engagementId);
-        const now = Date.now();
-        await ctx.db.patch(args.contractId, { status: args.status, updatedAt: now });
-        await ctx.db.insert("contractEvents", {
-            contractId: args.contractId,
-            actorUserId: ctx.user._id,
-            action: `status:${args.status}`,
-            note: args.note?.trim() || undefined,
-            createdAt: now,
-        });
-        return args.contractId;
+        throw new Error("Use explicit agreement share/signing operations; refresh the application");
     },
 });
 
@@ -118,7 +113,9 @@ export const listForEngagement = authedQuery({
             .order("desc")
             .collect();
         const out = [];
+        const engagement = await requireEngagementAccess(ctx, args.engagementId);
         for (const row of rows) {
+            if (!await canViewAgreement(ctx, engagement, row)) continue;
             const uploader = await ctx.db.get(row.uploadedByUserId);
             out.push({
                 _id: row._id,
@@ -195,6 +192,7 @@ export const listMine = authedQuery({
                 ? [educatorUser.firstName, educatorUser.lastName].filter(Boolean).join(" ").trim() || educatorUser.email
                 : "Consultant";
             for (const row of contracts) {
+                if (!await canViewAgreement(ctx, engagement, row)) continue;
                 const uploader = await ctx.db.get(row.uploadedByUserId);
                 items.push({
                     contract: {
@@ -232,9 +230,11 @@ export const getFileUrl = authedQuery({
     returns: v.union(v.string(), v.null()),
     handler: async (ctx, args) => {
         const contract = await ctx.db.get(args.contractId);
-        if (!contract || !contract.storageId) return null;
-        await requireEngagementAccess(ctx, contract.engagementId);
-        return await ctx.storage.getUrl(contract.storageId);
+        if (!contract) throw new Error("Forbidden");
+        const e = await requireEngagementAccess(ctx, contract.engagementId);
+        const versions = await ctx.db.query("agreementVersions").withIndex("by_contract", q => q.eq("contractId", contract._id)).collect();
+        for (const x of versions.sort((a,b) => b.number-a.number)) if (x.sharedAt !== undefined || await sameParty(ctx, e, x.uploadedByUserId)) return downloadPath(x.privateFileId);
+        return null;
     },
 });
 
@@ -251,7 +251,10 @@ export const listEvents = authedQuery({
             .order("desc")
             .collect();
         const out = [];
+        const engagement = await requireEngagementAccess(ctx, contract.engagementId);
+        if (!await canViewAgreement(ctx, engagement, contract)) throw new Error("Forbidden");
         for (const event of events) {
+            if (event.privateOwnerId && !await sameParty(ctx, engagement, event.privateOwnerId)) continue;
             const actor = await ctx.db.get(event.actorUserId);
             out.push({
                 _id: event._id,

@@ -26,11 +26,16 @@ function MessagesPageInner() {
     const searchParams = useSearchParams();
     const pendingRecipientId = searchParams.get("to") ?? null;
     const pendingRecipientName = searchParams.get("name") ?? null;
-    const returnTo = `/dashboard/messages${pendingRecipientId ? `?to=${encodeURIComponent(pendingRecipientId)}${pendingRecipientName ? `&name=${encodeURIComponent(pendingRecipientName)}` : ""}` : ""}`;
+    const pendingEngagementId = searchParams.get("engagement") ?? null;
+    const pendingNeedId = searchParams.get("need") ?? null;
+    const pendingEducatorId = searchParams.get("educator") ?? null;
+    const contextQuery = `${pendingRecipientId ? `to=${encodeURIComponent(pendingRecipientId)}` : ""}${pendingRecipientName ? `&name=${encodeURIComponent(pendingRecipientName)}` : ""}${pendingEngagementId ? `&engagement=${encodeURIComponent(pendingEngagementId)}` : ""}${pendingNeedId ? `&need=${encodeURIComponent(pendingNeedId)}` : ""}${pendingEducatorId ? `&educator=${encodeURIComponent(pendingEducatorId)}` : ""}`;
+    const returnTo = `/dashboard/messages${contextQuery ? `?${contextQuery.replace(/^&/, "")}` : ""}`;
 
     const viewer = useQuery(api.users.viewer, {});
     const isEducator = !!viewer && viewer.role === "educator";
     const conversations = useQuery(api.messages.listMyConversations, viewer ? {} : "skip");
+    const engagements = useQuery(api.engagements.listMine, viewer ? { includeArchived: true } : "skip");
     const markRead = useMutation(api.messages.markConversationRead);
     const sendMessage = useMutation(api.messages.send);
 
@@ -101,6 +106,14 @@ function MessagesPageInner() {
         : null;
     const activeThreadName = pendingRecipientLabel ?? activeConversationRow?.counterpartName ?? "Messages";
     const hasMessages = (activeConversation?.length ?? 0) > 0;
+    const storedContext = activeConversation?.slice().reverse().find((message) => message.engagementId || message.needId);
+    const matchingEngagements = (engagements ?? []).filter((engagement) => activeCounterpartId && (
+        isEducator ? engagement.buyerUserId === activeCounterpartId : engagement.educatorUserId === activeCounterpartId
+    ));
+    const urlContextMatchesCounterpart = !!activeCounterpartId && pendingRecipientId === activeCounterpartId;
+    const activeEngagementId = (urlContextMatchesCounterpart ? pendingEngagementId : null) ?? storedContext?.engagementId ?? (matchingEngagements.length === 1 ? matchingEngagements[0]._id : null);
+    const activeNeedId = (urlContextMatchesCounterpart ? pendingNeedId : null) ?? storedContext?.needId ?? null;
+    const activeEducatorId = (urlContextMatchesCounterpart ? pendingEducatorId : null) ?? (!isEducator ? activeConversationRow?.counterpartEducatorId ?? matchingEngagements[0]?.educatorId ?? null : null);
 
     useEffect(() => {
         messageEndRef.current?.scrollIntoView({ block: "end" });
@@ -125,7 +138,12 @@ function MessagesPageInner() {
         setSending(true);
         setSendError(null);
         try {
-            await sendMessage({ recipientUserId: activeCounterpartId, content });
+            await sendMessage({
+                recipientUserId: activeCounterpartId,
+                content,
+                engagementId: activeEngagementId ? activeEngagementId as Id<"engagements"> : undefined,
+                needId: activeNeedId ? activeNeedId as Id<"needs"> : undefined,
+            });
             setComposerValue("");
             // When the first message lands, switch from the pending placeholder to the real thread.
             if (selectedPendingRecipientId && viewer?._id) {
@@ -157,18 +175,14 @@ function MessagesPageInner() {
                         }
                         actions={
                             isEducator ? (
-                                <Link href="/dashboard/board">
-                                    <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
+                                <Link href="/dashboard/board" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
                                         <Briefcase className="h-4 w-4" />
                                         Gig Board
-                                    </button>
                                 </Link>
                             ) : (
-                                <Link href="/browse">
-                                    <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
+                                <Link href="/browse" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
                                         <MagnifyingGlass className="h-4 w-4" />
                                         Find educators
-                                    </button>
                                 </Link>
                             )
                         }
@@ -183,13 +197,9 @@ function MessagesPageInner() {
                                 Your conversations are tied to your K12Gig account. Sign in and we’ll bring you back here.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3">
-                                <Link href={`/sign-in?next=${encodeURIComponent(returnTo)}`}>
-                                    <PrimaryButton className="w-full sm:w-auto">Sign in</PrimaryButton>
-                                </Link>
+                                <Link href={`/sign-in?next=${encodeURIComponent(returnTo)}`} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--accent-primary)] px-4 py-2.5 text-sm font-bold text-white">Sign in</Link>
                                 <Link href={`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent(returnTo)}`}>
-                                    <button className="w-full sm:w-auto px-6 py-3 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
-                                        Create account
-                                    </button>
+                                    <span className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--border-strong)] px-6 py-3 font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] sm:w-auto">Create account</span>
                                 </Link>
                             </div>
                         </div>
@@ -294,6 +304,27 @@ function MessagesPageInner() {
                                 </div>
 
                                 <div className="flex-1 p-5">
+                                {activeEngagementId ? (
+                                    <div className="mb-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-3 text-sm">
+                                        <p className="font-semibold">This conversation is connected to an accepted engagement.</p>
+                                        <Link href={`/dashboard/engagements/${activeEngagementId}`} className="mt-1 inline-flex font-bold text-[var(--accent-primary)]">Open engagement and Contract Hub</Link>
+                                    </div>
+                                ) : matchingEngagements.length > 1 ? (
+                                    <div className="mb-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-3 text-sm">
+                                        <p className="font-semibold">Choose the engagement for this conversation.</p>
+                                        <ul className="mt-2 space-y-1">{matchingEngagements.map((engagement) => <li key={engagement._id}><Link href={`/dashboard/engagements/${engagement._id}`} className="font-bold text-[var(--accent-primary)]">{engagement.orgName} · {engagement.title}</Link></li>)}</ul>
+                                    </div>
+                                ) : activeNeedId ? (
+                                    <div className="mb-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-3 text-sm">
+                                        <p className="font-semibold">This conversation is connected to a posted need and proposal.</p>
+                                        <Link href={isEducator ? `/dashboard/board/${activeNeedId}/propose` : `/dashboard/district/needs/${activeNeedId}`} className="mt-1 inline-flex font-bold text-[var(--accent-primary)]">Open need context</Link>
+                                    </div>
+                                ) : !isEducator && activeCounterpartId ? (
+                                    <div className="mb-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-3 text-sm">
+                                        <p>Post a need and receive a proposal before accepting work and creating a Contract Hub engagement.</p>
+                                        {activeEducatorId && <Link href={`/post?educator=${encodeURIComponent(activeEducatorId)}&name=${encodeURIComponent(activeThreadName)}`} className="mt-1 inline-flex font-bold text-[var(--accent-primary)]">Post a need for {activeThreadName}</Link>}
+                                    </div>
+                                ) : null}
                                 {selectedPendingRecipientId ? (
                                     <div className="flex h-full flex-col items-center justify-center text-center gap-3 text-sm text-[var(--text-secondary)]">
                                         <ChatCircleText className="h-10 w-10 text-[var(--accent-primary)]" />

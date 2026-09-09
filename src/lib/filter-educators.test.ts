@@ -145,3 +145,10 @@ describe("orderAreasForDisplay", () => {
         ).toEqual(["instruction_curriculum", "data_accountability", "ai_edtech"]);
     });
 });
+
+it('matches unknown legacy support and specialization exactly, excluding unrelated consultants',()=>{
+ const filters={...noFilters,selectedAreas:['legacy_unique'],selectedSpecializations:['legacy_special']};
+ expect(educatorMatchesDirectoryFilters(educator,filters)).toBe(false);
+ expect(educatorMatchesDirectoryFilters({...educator,areasOfNeed:['legacy_unique'],subCategories:['legacy_special']},filters)).toBe(true);
+ expect(educatorMatchesDirectoryFilters({...educator,areasOfNeed:['legacy_unique'],subCategories:['different']},filters)).toBe(false);
+});

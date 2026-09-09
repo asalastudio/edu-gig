@@ -1,3 +1,7 @@
+import { credentialWasReviewed } from "./lib/credentialReview";
+import { ownedFile } from "./privateFiles";
+import { downloadPath } from "./lib/releaseDomain";
+import { getAppIdentity } from "./lib/staging";
 /**
  * Educator credential CRUD backed by Convex file storage.
  *
@@ -6,8 +10,8 @@
  *   Rows written before that field existed hold the raw storage ID (a string)
  *   in `documentUrl` — readers must fall back via `credentialStorageId()` and
  *   must NEVER treat that string as a public URL. To display a file, call the
- *   `getCredentialFileUrl` query — it resolves a signed URL via
- *   `ctx.storage.getUrl(storageId)`.
+ *   `getCredentialFileUrl` query — it resolves
+ *   the authenticated private-file application route after migration.
  */
 
 import { query, mutation } from "./_generated/server";
@@ -33,7 +37,7 @@ async function getUserByClerkId(
 }
 
 async function requireEducatorViewer(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getAppIdentity(ctx);
     if (!identity) throw new Error("Unauthorized");
     const user = await getUserByClerkId(ctx, identity.subject);
     if (!user || user.role !== "educator") throw new Error("Forbidden");
@@ -74,7 +78,7 @@ export const generateUploadUrl = mutation({
     args: {},
     handler: async (ctx) => {
         await requireEducatorViewer(ctx);
-        return await ctx.storage.generateUploadUrl();
+        throw new Error("Private upload required; refresh the application");
     },
 });
 
@@ -90,6 +94,7 @@ export const generateUploadUrl = mutation({
 export const finalizeUpload = mutation({
     args: {
         storageId: v.optional(v.id("_storage")),
+        privateFileId: v.optional(v.id("privateFiles")),
         type: credentialTypeValidator,
         title: v.string(),
         issuingBody: v.string(),
@@ -102,6 +107,8 @@ export const finalizeUpload = mutation({
         const educator = await getEducatorForUser(ctx, user._id);
         if (!educator) throw new Error("No educator profile");
 
+        if (args.storageId) throw new Error("Raw storage IDs are forbidden");
+        if (args.privateFileId) await ownedFile({ ...ctx, user }, args.privateFileId, "credential");
         return await ctx.db.insert("credentials", {
             educatorId: educator._id,
             type: args.type,
@@ -110,7 +117,7 @@ export const finalizeUpload = mutation({
             state: args.state?.trim() || undefined,
             issueDate: args.issueDate,
             expiryDate: args.expiryDate || undefined,
-            storageId: args.storageId ?? undefined,
+            privateFileId: args.privateFileId,
             verified: false,
         });
     },
@@ -128,15 +135,6 @@ export const remove = mutation({
         if (!credential) throw new Error("Not found");
         if (credential.educatorId !== educator._id) throw new Error("Forbidden");
 
-        const fileId = credentialStorageId(credential);
-        if (fileId) {
-            try {
-                await ctx.storage.delete(fileId);
-            } catch (err) {
-                // Non-fatal: the row still goes away even if the file was already gone.
-                console.warn("storage.delete failed", err);
-            }
-        }
         await ctx.db.delete(args.credentialId);
         return args.credentialId;
     },
@@ -148,29 +146,30 @@ export const remove = mutation({
 export const listMine = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return [];
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user || user.role !== "educator") return [];
         const educator = await getEducatorForUser(ctx, user._id);
         if (!educator) return [];
-        return await ctx.db
+        const rows=await ctx.db
             .query("credentials")
             .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
             .order("desc")
             .collect();
+        return Promise.all(rows.map(async credential=>({...credential,reviewed:await credentialWasReviewed(ctx,credential._id)})));
     },
 });
 
 /**
- * Returns a fresh signed URL for displaying/downloading a credential file.
+ * Returns an authenticated application route for a private credential file.
  * Educator can view their own; district accounts and superadmins can view any
  * educator's credential file for verification purposes.
  */
 export const getCredentialFileUrl = query({
     args: { credentialId: v.id("credentials") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) return null;
@@ -186,9 +185,7 @@ export const getCredentialFileUrl = query({
         const isOwner = educator.userId === user._id;
 
         if (!isOwner && !isDistrict) return null;
-        const fileId = credentialStorageId(credential);
-        if (!fileId) return null;
-        return await ctx.storage.getUrl(fileId);
+        return credential.privateFileId ? downloadPath(credential.privateFileId) : null;
     },
 });
 
@@ -200,7 +197,7 @@ export const getCredentialFileUrl = query({
 export const listForEducatorProfile = query({
     args: { educatorId: v.id("educators") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getAppIdentity(ctx);
         if (!identity) return null;
         const user = await getUserByClerkId(ctx, identity.subject);
         if (!user) return null;
@@ -218,7 +215,7 @@ export const listForEducatorProfile = query({
             .order("desc")
             .collect();
 
-        return rows.map((credential) => ({
+        return Promise.all(rows.map(async (credential) => ({
             id: credential._id,
             type: credential.type,
             title: credential.title,
@@ -227,7 +224,8 @@ export const listForEducatorProfile = query({
             issueDate: credential.issueDate,
             expiryDate: credential.expiryDate,
             verified: credential.verified,
-            hasFile: !!credentialStorageId(credential),
-        }));
+            reviewed: await credentialWasReviewed(ctx, credential._id),
+            hasFile: !!credential.privateFileId || !!credentialStorageId(credential),
+        })));
     },
 });

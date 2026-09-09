@@ -9,6 +9,8 @@
  */
 const domain = process.env.CLERK_JWT_ISSUER_DOMAIN;
 
+if (process.env.APP_ENV === "staging" && domain !== "https://regular-wolf-65.clerk.accounts.dev") throw new Error("Staging Clerk issuer mismatch");
+
 const authConfig = {
     providers: domain ? [{ domain, applicationID: "convex" }] : [],
 };

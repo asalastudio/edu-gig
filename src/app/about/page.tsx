@@ -5,7 +5,7 @@ import { PrimaryButton } from "@/components/shared/button";
 
 export const metadata = {
     title: "About",
-    description: "K12Gig connects school systems with verified K-12 educators, coaches, substitutes, and specialists.",
+    description: "K12Gig connects school systems with K-12 consultants, coaches, and specialists.",
 };
 
 export default function AboutPage() {
@@ -42,7 +42,7 @@ export default function AboutPage() {
                         <div>
                             <h3 className="font-bold">District leaders</h3>
                             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-                                Superintendents, HR teams, principals, and department leaders can source vetted educators for short-term, consulting, intervention, and placement needs.
+                                Superintendents, HR teams, principals, and department leaders can source consultants for short-term, consulting, intervention, and placement needs.
                             </p>
                         </div>
                         <div>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
-import { PrimaryButton } from "@/components/shared/button";
+import { primaryButtonClassName } from "@/components/shared/button";
 import { SUPPORT_EMAIL, supportMailto } from "@/lib/legal";
 import { isCardCheckoutEnabled } from "@/lib/launch-flags";
 import { getActiveBetaCopy } from "@/lib/active-beta-copy";
@@ -28,9 +28,13 @@ export default function HelpPage() {
                 <section className="grid gap-6 md:grid-cols-2">
                     {[
                         ["Districts", "Post a need, browse consultants, review proposals, accept work, message candidates, and keep contract files in Contract Hub."],
-                        ["Educators", betaCopy.educatorHelp],
+                        ["Consultants", betaCopy.educatorHelp],
                         ["Billing", betaCopy.billingHelp],
-                        ["Trust and compliance", "Privacy, terms, DPA requests, credential status, and current verification information are available from profile and legal surfaces."],
+                        ["Drafts and posting", "A preview draft stays in this browser session. Sign in, explicitly import it into the intended district account, review the scope, and publish. Use Save draft for an account draft you can return to later."],
+                        ["Finding consultants", "Choose support, specialization, grades, service area and availability. Accepting new clients includes limited availability. Saved consultants stay with the signed-in account in this browser."],
+                        ["Credential status", "Credentials reviewed means an administrator recorded a review of submitted credentials with supporting evidence. It does not establish a background check or replace your district's checks. Profile complete describes profile fields, not verification."],
+                        ["Agreement coordination", "After accepting a proposal, use the engagement's Contract Hub. Upload saves a private draft; Share sends it to the other party. A signed-copy upload does not record external signing or complete the work. Record these actions separately. Payment and signing happen outside K12Gig."],
+                        ["Service area and timing", "Confirm the consultant's coverage, remote or on-site delivery, availability and schedule directly. Contact support for policy and account questions."],
                     ].map(([title, body]) => (
                         <div key={title} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-subtle)] md:p-6">
                             <h2 className="font-heading text-xl font-bold">{title}</h2>
@@ -49,7 +53,7 @@ export default function HelpPage() {
                         .
                     </p>
                     <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <Link href="/login"><PrimaryButton>Open your dashboard</PrimaryButton></Link>
+                        <Link href="/login" className={primaryButtonClassName()}>Open your dashboard</Link>
                         <Link href="/privacy" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border-strong)] px-4 text-sm font-bold">
                             Privacy details
                         </Link>

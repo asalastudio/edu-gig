@@ -1,0 +1,13 @@
+{
+  "environment": "staging",
+  "appUrl": "https://k12gig-staging.vercel.app",
+  "convexDeployment": "reminiscent-eagle-756",
+  "convexUrl": "https://reminiscent-eagle-756.convex.cloud",
+  "convexSiteUrl": "https://reminiscent-eagle-756.convex.site",
+  "clerkInstanceId": "ins_3CcGU4eLSlRRv1oQgKNzr9mGlfN",
+  "clerkIssuer": "https://regular-wolf-65.clerk.accounts.dev",
+  "productionConvexDeployment": "descriptive-bass-5",
+  "productionClerkIssuer": "https://clerk.k12gig.com",
+  "vercelProjectId": "prj_Vpy7lyVtwojNT1wBri26KaRni59D",
+  "vercelTeamId": "team_CGyACzn1BhcZitDAKUiZRzax"
+}

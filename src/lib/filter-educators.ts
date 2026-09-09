@@ -9,6 +9,7 @@ export type DirectoryQuickFilter =
 
 export type DirectoryFilterState = {
     selectedAreas: string[];
+    selectedSpecializations?: string[];
     selectedGrades: string[];
     selectedRegions: string[];
     selectedEngagements: string[];
@@ -59,9 +60,10 @@ export function educatorMatchesDirectoryFilters(
     ) {
         return false;
     }
+    if (filters.selectedSpecializations?.length && !filters.selectedSpecializations.some(id=>educator.subCategories?.includes(id) || educator.areasOfNeed.includes(id))) return false;
     if (filters.showSavedOnly && !filters.savedEducatorIds.includes(educator.id)) return false;
     if (filters.verifiedOnly && educator.verificationTier === "basic") return false;
-    if (filters.availableNow && educator.availabilityStatus !== "open") return false;
+    if (filters.availableNow && educator.availabilityStatus === "closed") return false;
 
     if (filters.activeQuickFilter === "quick_local") {
         if (!filters.districtRegion) return false;

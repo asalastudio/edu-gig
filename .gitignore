@@ -56,3 +56,7 @@ next-env.d.ts
 
 # ux review snapshots (regenerable, not committed)
 ux-review/
+
+# Staging credentials, authenticated browser state and private evidence
+.qa-private/
+playwright/.auth/

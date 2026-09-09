@@ -56,8 +56,8 @@ export default function Home() {
 
               <h1 className="font-heading text-4xl font-bold leading-[1.04] tracking-normal text-white md:text-[2.8rem] 2xl:text-[4rem]">
                 Find qualified K–12 consultants <br className="hidden md:block" />
-                in <span className="relative inline-block text-[#F4D46A]">
-                  zero days.
+                for <span className="relative inline-block text-[#F4D46A]">
+                  your next project.
                   <svg className="absolute -bottom-3 left-0 h-3 w-full overflow-visible" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
                     <path
                       d="M2 6 C 19 1, 37 8, 52 5 S 80 2, 98 4"
@@ -73,16 +73,16 @@ export default function Home() {
               </h1>
 
               <p className="max-w-2xl text-base leading-7 text-white/84">
-                Stop waiting on generic staffing agencies. K12Gig helps districts find reviewed educators, coaches, and specialists for contract and consulting needs.
+                Stop waiting on generic staffing agencies. K12Gig helps districts find consultants, coaches, and specialists for contract and consulting needs.
               </p>
               <p className="max-w-2xl text-sm leading-6 text-white/70">
-                The live educator directory is available to district hiring teams — sign in to browse, message, and book.
+                The live educator directory is available to district hiring teams — sign in to browse profiles and discuss your needs.
               </p>
 
               <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                 <Link href="/browse">
                   <PrimaryButton className="w-full min-h-12 bg-[var(--accent-secondary)] px-6 text-base text-[#17261F] hover:bg-[var(--accent-secondary)]/90 sm:w-auto">
-                    Search Educators
+                    Search Consultants
                     <MagnifyingGlass className="h-5 w-5" weight="bold" />
                   </PrimaryButton>
                 </Link>
@@ -106,7 +106,7 @@ export default function Home() {
             <div className="mb-6 flex items-center justify-center gap-5 text-center">
               <div className="hidden h-px w-16 bg-[var(--border-strong)] md:block" />
               <p className="font-heading text-base font-bold text-[var(--text-primary)]">
-                Trusted by school districts nationwide
+                Built for school and district teams
               </p>
               <div className="hidden h-px w-16 bg-[var(--border-strong)] md:block" />
             </div>
@@ -115,7 +115,7 @@ export default function Home() {
                 {
                   icon: ShieldCheck,
                   title: "Credentials you can inspect",
-                  desc: "Consultants upload resumes and credentials. Badges appear only when a record is actually reviewed.",
+                  desc: "Consultants upload resumes and credentials. Credentials-reviewed badges require an explicit supporting review record.",
                 },
                 {
                   icon: Users,
@@ -158,7 +158,7 @@ export default function Home() {
 
               <ul className="flex flex-col gap-5 mt-4">
                 {[
-                  { title: "Credential review", desc: "Consultants can upload licenses, certifications, degrees, and endorsements. K12Gig shows review status from those files. Background-check badges appear only when a check is actually recorded." },
+                  { title: "Credential review", desc: "Consultants can upload licenses, certifications, degrees, and endorsements. K12Gig distinguishes submitted credentials from recorded reviews. Credential review does not establish that a background check was completed." },
                   { title: "Clear rates", desc: "Consultant starting rates are shown on profiles. After a proposal is accepted, payment is arranged directly between the district and consultant." },
                   { title: "Direct sourcing", desc: "Filter by support type, grade level, and coverage region, then message consultants without going through a staffing agency." }
                 ].map((item, i) => (
@@ -279,7 +279,7 @@ function HeroTrustRail() {
   return (
     <div className="grid w-full grid-cols-1 gap-3 pt-1 text-left sm:grid-cols-3">
       {[
-        { icon: ShieldCheck, title: "Vetted" },
+        { icon: ShieldCheck, title: "Profiles" },
         { icon: ChatCircleText, title: "Message" },
         { icon: CurrencyCircleDollar, title: "Clear rates" },
       ].map((item) => (

@@ -1,12 +1,17 @@
 "use client";
 
+import {Suspense} from "react";
+import {useSearchParams} from "next/navigation";
 import Link from "next/link";
 import { Buildings, ChalkboardTeacher } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
-import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
+import { authPagePath, safeInternalPath } from "@/lib/auth-intent";
 
-export default function LoginHubPage() {
+export default function LoginHubPage() {return <Suspense fallback={null}><LoginHub /></Suspense>;}
+function LoginHub() {
+    const params=useSearchParams();
+    const next=safeInternalPath(params.get("next"));
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
             <SiteHeader />
@@ -21,7 +26,7 @@ export default function LoginHubPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
                     <Link
-                        href={`/sign-in?${AUTH_INTENT_PARAM}=district`}
+                        href={authPagePath("/sign-in","district",next)}
                         className="group flex flex-col gap-4 p-8 rounded-lg bg-white border border-[var(--border-default)] shadow-[var(--shadow-subtle)] hover:border-[var(--accent-primary)]/40 hover:shadow-[var(--shadow-soft)] transition-all"
                     >
                         <div className="flex items-center gap-3">
@@ -43,7 +48,7 @@ export default function LoginHubPage() {
                     </Link>
 
                     <Link
-                        href={`/sign-in?${AUTH_INTENT_PARAM}=educator`}
+                        href={authPagePath("/sign-in","educator",next)}
                         className="group flex flex-col gap-4 p-8 rounded-lg bg-white border border-[var(--border-default)] shadow-[var(--shadow-subtle)] hover:border-[var(--accent-primary)]/40 hover:shadow-[var(--shadow-soft)] transition-all"
                     >
                         <div className="flex items-center gap-3">
@@ -52,7 +57,7 @@ export default function LoginHubPage() {
                             </div>
                             <div>
                                 <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-1">
-                                    I&apos;m an educator
+                                    I&apos;m a consultant
                                 </h2>
                                 <p className="text-sm text-[var(--text-secondary)] font-medium">
                                     Build your profile, manage gigs, and get hired.

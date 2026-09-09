@@ -1,8 +1,9 @@
 "use client";
 
+import {useOwnedFormState, clearOwnedOnboarding} from "@/lib/use-owned-form-state";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -45,12 +46,12 @@ import {
     type DistrictFirstAction,
     type DistrictOnboardingRole,
 } from "@/lib/onboarding";
-import { RateField } from "@/components/educator/rate-field";
 import { RegionCoverageLink } from "@/components/shared/region-coverage-link";
-import { TAXONOMY } from "@/lib/taxonomy";
+import { TAXONOMY, getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { US_STATES } from "@/lib/us-states";
 import { cn } from "@/lib/utils";
+import { privateFileMime, uploadPrivateFile } from "@/lib/private-upload";
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -83,7 +84,13 @@ function OnboardingWithoutClerk() {
 }
 
 function OnboardingWithClerk() {
+    const {user,isLoaded}=useUser();
+    if(!isLoaded) return <div role="status">Checking your session…</div>;
+    return <OnboardingAccount key={user?.id ?? "anonymous"} />;
+}
+function OnboardingAccount() {
     const { user, isLoaded } = useUser();
+    const { getToken } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const intentParam = searchParams.get(AUTH_INTENT_PARAM);
@@ -97,42 +104,46 @@ function OnboardingWithClerk() {
 
     const viewer = useQuery(api.users.viewer);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
-    const generateResumeUploadUrl = useMutation(api.users.generateOnboardingResumeUploadUrl);
+    const requestUpload = useMutation(api.privateFiles.requestUpload);
+    const setResume = useMutation(api.educators.setResume);
 
-    const [step, setStep] = useState(0);
+    const [step, setStep] = useOwnedFormState<number>(user?.id ?? null,"step",0);
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [acceptedLegal, setAcceptedLegal] = useState(false);
     const [intentResolved, setIntentResolved] = useState(false);
 
-    const [districtRole, setDistrictRole] = useState<DistrictOnboardingRole>("superintendent");
-    const [organizationName, setOrganizationName] = useState("");
-    const [districtState, setDistrictState] = useState("MI");
-    const [districtRegion, setDistrictRegion] = useState("region_6");
-    const [districtNceaId, setDistrictNceaId] = useState("");
-    const [districtAction, setDistrictAction] = useState<DistrictFirstAction>("post_need");
+    const [districtRole, setDistrictRole] = useOwnedFormState<DistrictOnboardingRole>(user?.id ?? null,"districtRole","superintendent");
+    const [organizationName, setOrganizationName] = useOwnedFormState<string>(user?.id ?? null,"organizationName","");
+    const [districtState, setDistrictState] = useOwnedFormState<string>(user?.id ?? null,"districtState","");
+    const [districtRegion, setDistrictRegion] = useOwnedFormState<string>(user?.id ?? null,"districtRegion","");
+    const [districtNceaId, setDistrictNceaId] = useOwnedFormState<string>(user?.id ?? null,"districtNceaId","");
+    const [districtAction, setDistrictAction] = useOwnedFormState<DistrictFirstAction>(user?.id ?? null,"districtAction","post_need");
 
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
-    const [businessName, setBusinessName] = useState("");
-    const [headline, setHeadline] = useState("");
-    const [bio, setBio] = useState("");
-    const [engagementTypes, setEngagementTypes] = useState<string[]>([...DEFAULT_ENGAGEMENT_TYPES]);
-    const [yearsExperience, setYearsExperience] = useState("5");
-    const [rateAmount, setRateAmount] = useState("");
-    const [rateHourly, setRateHourly] = useState(true);
-    const [rateDaily, setRateDaily] = useState(false);
-    const [availabilityStatus, setAvailabilityStatus] = useState<"open" | "limited" | "closed">("open");
-    const [gradeLevelBands, setGradeLevelBands] = useState<string[]>([]);
-    const [areasOfNeed, setAreasOfNeed] = useState<string[]>([]);
-    const [coverageRegions, setCoverageRegions] = useState<string[]>([]);
-    const [profileType, setProfileType] = useState<"individual" | "firm">("individual");
-    const [resumeStorageId, setResumeStorageId] = useState<string | null>(null);
-    const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+    const [firstName, setFirstName] = useOwnedFormState<string>(user?.id ?? null,"firstName",user?.firstName?.trim() ?? "");
+    const [lastName, setLastName] = useOwnedFormState<string>(user?.id ?? null,"lastName",user?.lastName?.trim() ?? "");
+    const [businessName, setBusinessName] = useOwnedFormState<string>(user?.id ?? null,"businessName","");
+    const [headline, setHeadline] = useOwnedFormState<string>(user?.id ?? null,"headline","");
+    const [bio, setBio] = useOwnedFormState<string>(user?.id ?? null,"bio","");
+    const [engagementTypes, setEngagementTypes] = useOwnedFormState<string[]>(user?.id ?? null,"engagementTypes",[...DEFAULT_ENGAGEMENT_TYPES]);
+    const [yearsExperience, setYearsExperience] = useOwnedFormState<string>(user?.id ?? null,"yearsExperience","");
+    const [hourlyAmount, setHourlyAmount] = useOwnedFormState<string>(user?.id ?? null,"hourlyAmount","");
+    const [dailyAmount,setDailyAmount]=useOwnedFormState<string>(user?.id ?? null,"dailyAmount","");
+    const [availabilityStatus, setAvailabilityStatus] = useOwnedFormState<"open" | "limited" | "closed">(user?.id ?? null,"availabilityStatus","open");
+    const [gradeLevelBands, setGradeLevelBands] = useOwnedFormState<string[]>(user?.id ?? null,"gradeLevelBands",[]);
+    const [subCategories,setSubCategories]=useOwnedFormState<string[]>(user?.id ?? null,"subCategories",[]);
+    const [areasOfNeed, setAreasOfNeed] = useOwnedFormState<string[]>(user?.id ?? null,"areasOfNeed",[]);
+    const [coverageRegions, setCoverageRegions] = useOwnedFormState<string[]>(user?.id ?? null,"coverageRegions",[]);
+    const [profileType, setProfileType] = useOwnedFormState<"individual" | "firm">(user?.id ?? null,"profileType","individual");
+    const [resumeFile, setResumeFile] = useState<{ value: File; requestId: string } | null>(null);
     const [resumeBusy, setResumeBusy] = useState(false);
+    const [profileCreated, setProfileCreated] = useState(false);
+    const suppressOnboardedRedirect = useRef(false);
+    const active=useRef(true);
+    useEffect(()=>{active.current=true;return ()=>{active.current=false;};},[]);
 
-    const hourlyRate = rateHourly && rateAmount ? Number(rateAmount) : undefined;
-    const dailyRate = rateDaily && rateAmount ? Number(rateAmount) : undefined;
+    const hourlyRate = hourlyAmount ? Number(hourlyAmount) : undefined;
+    const dailyRate = dailyAmount ? Number(dailyAmount) : undefined;
 
     const isEducator = intent === "educator";
     const steps = isEducator ? EDUCATOR_STEPS : DISTRICT_STEPS;
@@ -163,7 +174,7 @@ function OnboardingWithClerk() {
             return;
         }
         if (viewer === undefined) return;
-        if (viewer?.onboarded) {
+        if (viewer?.onboarded && !suppressOnboardedRedirect.current) {
             router.replace(safeNext ?? dashboardPathForIntent(intentFromRole(viewer.role)));
         }
     }, [isLoaded, user, viewer, router, safeNext]);
@@ -180,21 +191,14 @@ function OnboardingWithClerk() {
         setIntentResolved(true);
     }, [urlIntent]);
 
+    const previousIntent=useRef(intent);
     useEffect(() => {
+        if(previousIntent.current===intent) return;
+        previousIntent.current=intent;
         setStep(0);
         setError(null);
         setAcceptedLegal(false);
-    }, [intent]);
-
-    // Seed the name fields once from the Clerk profile so returning users don't
-    // retype what Clerk already knows; later edits stay under the user's control.
-    const nameSeeded = useRef(false);
-    useEffect(() => {
-        if (!user || nameSeeded.current) return;
-        nameSeeded.current = true;
-        setFirstName(user.firstName?.trim() ?? "");
-        setLastName(user.lastName?.trim() ?? "");
-    }, [user]);
+    }, [intent,setStep]);
 
     function validateStep(targetStep = step) {
         if (!intent) return null;
@@ -208,21 +212,21 @@ function OnboardingWithClerk() {
         }
 
         if (targetStep === 0) {
+            if(yearsExperience === "" || !Number.isFinite(Number(yearsExperience)) || Number(yearsExperience)<0) return "Enter your years in education, including zero if applicable.";
             if (firstName.trim().length === 0) return "Add your first name.";
             if (headline.trim().length < 12) return "Add a professional headline with at least a little context.";
             if (bio.trim().length < 40) return "Add a short bio so districts know what outcomes you support.";
         }
         if (targetStep === 1) {
-            if (areasOfNeed.length === 0) return "Choose at least one support type.";
+            if (areasOfNeed.length === 0) return "Choose at least one primary support area.";
             if (gradeLevelBands.length === 0) return "Choose at least one grade band.";
             if (engagementTypes.length === 0) return "Choose at least one engagement type.";
         }
         if (targetStep === 2) {
             if (coverageRegions.length === 0) return "Choose at least one coverage area.";
-            if (!rateAmount || Number(rateAmount) <= 0) return "Add your starting rate.";
-            if (!rateHourly && !rateDaily) return "Choose whether your rate is hourly, daily, or both.";
-            if (rateHourly && Number(rateAmount) < 20) return "Hourly rates should be $20 or more.";
-            if (rateDaily && Number(rateAmount) < 100) return "Daily rates should be $100 or more.";
+            if(!hourlyAmount && !dailyAmount) return "Add an hourly or daily rate.";
+            if(hourlyAmount && (!Number.isFinite(hourlyRate) || hourlyRate! < 20)) return "Hourly rates should be $20 or more.";
+            if(dailyAmount && (!Number.isFinite(dailyRate) || dailyRate! < 100)) return "Daily rates should be $100 or more.";
         }
         return null;
     }
@@ -263,6 +267,7 @@ function OnboardingWithClerk() {
         setError(null);
         setSubmitting(true);
         try {
+            suppressOnboardedRedirect.current = intent === "educator" && !!resumeFile;
             await completeOnboarding({
                 role: intent === "educator" ? "educator" : roleForDistrictOnboarding(districtRole),
                 firstName: intent === "educator" ? firstName.trim() : undefined,
@@ -281,33 +286,76 @@ function OnboardingWithClerk() {
                 dailyRate: intent === "educator" ? dailyRate : undefined,
                 gradeLevelBands: intent === "educator" ? gradeLevelBands : undefined,
                 areasOfNeed: intent === "educator" ? areasOfNeed : undefined,
+                subCategories: intent === "educator" ? subCategories : undefined,
                 engagementTypes: intent === "educator" ? (engagementTypes.length ? engagementTypes : [...DEFAULT_ENGAGEMENT_TYPES]) : undefined,
                 coverageRegions: intent === "educator" ? coverageRegions : undefined,
                 availabilityStatus: intent === "educator" ? availabilityStatus : undefined,
                 profileType: intent === "educator" ? profileType : undefined,
-                resumeStorageId: intent === "educator" && resumeStorageId ? (resumeStorageId as never) : undefined,
-                resumeFileName: intent === "educator" ? resumeFileName ?? undefined : undefined,
                 termsVersion: TERMS_VERSION,
                 privacyVersion: PRIVACY_VERSION,
             });
-
-            // Onboarding is done — drop the remembered role so a later
-            // different-role session in this tab starts clean.
-            clearAuthIntent();
-
+            if(!active.current) return;
             const destination =
                 intent === "district"
                     ? destinationForFirstAction(districtAction, safeNext)
                     : safeNext ?? defaultDestinationForIntent(intent);
-            router.replace(destination);
-        } catch (err) {
-            console.error(err);
-            setError(
-                "Could not save your setup. If you just enabled Clerk, confirm Convex is using the same Clerk issuer and try again."
-            );
+            setProfileCreated(true);
+            if (intent === "educator" && resumeFile) {
+                await attachResumeAndContinue(destination);
+            } else {
+                if(user) clearOwnedOnboarding(user.id);
+                clearAuthIntent();
+                router.replace(destination);
+            }
+        } catch {
+            if(!active.current) return;
+            if (!profileCreated) {
+                suppressOnboardedRedirect.current = false;
+                setError("Could not save your setup. If you just enabled Clerk, confirm Convex is using the same Clerk issuer and try again.");
+            }
         } finally {
             setSubmitting(false);
         }
+    }
+
+    async function attachResumeAndContinue(destination = safeNext ?? defaultDestinationForIntent("educator")) {
+        if (!resumeFile) return;
+        setResumeBusy(true);
+        setError(null);
+        try {
+            const ticket = await requestUpload({
+                purpose: "resume",
+                fileName: resumeFile.value.name,
+                mimeType: privateFileMime(resumeFile.value),
+                size: resumeFile.value.size,
+                requestId: resumeFile.requestId,
+            });
+            if(!active.current) return;
+            const token = await getToken({ template: "convex" });
+            if(!active.current) return;
+            if (!token) throw new Error("Your session expired. Sign in again, then retry.");
+            const receipt = await uploadPrivateFile({ file: resumeFile.value, ticketId: ticket.ticketId, token });
+            if(!active.current) return;
+            await setResume({ privateFileId: receipt.privateFileId, fileName: resumeFile.value.name });
+            if(!active.current) return;
+            setResumeFile(null);
+            suppressOnboardedRedirect.current = false;
+            if(user) clearOwnedOnboarding(user.id);
+            clearAuthIntent();
+            router.replace(destination);
+        } catch (err) {
+            setProfileCreated(true);
+            setError(`Your profile was saved, but the resume was not attached. ${err instanceof Error ? err.message : "Please retry."}`);
+        } finally {
+            setResumeBusy(false);
+        }
+    }
+
+    function continueWithoutResume() {
+        suppressOnboardedRedirect.current = false;
+        if(user) clearOwnedOnboarding(user.id);
+        clearAuthIntent();
+        router.replace(safeNext ?? defaultDestinationForIntent("educator"));
     }
 
     if (!isLoaded || viewer === undefined) {
@@ -322,8 +370,30 @@ function OnboardingWithClerk() {
         );
     }
 
-    if (!user || viewer?.onboarded) {
+    if (!user || (viewer?.onboarded && !(profileCreated && resumeFile))) {
         return null;
+    }
+
+    if (profileCreated && resumeFile) {
+        return (
+            <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
+                <SiteHeader />
+                <main className="flex-1 mx-auto flex w-full max-w-xl items-center px-6 py-16">
+                    <div className="w-full rounded-xl border border-[var(--border-subtle)] bg-white p-6 sm:p-8">
+                        <h1 className="font-heading text-2xl font-bold">Your profile is ready</h1>
+                        <p className="mt-2 text-sm text-[var(--text-secondary)]">The selected resume is still on this page and has not been attached yet.</p>
+                        <p className="mt-4 break-all text-sm font-semibold">{resumeFile.value.name}</p>
+                        {resumeBusy && <p role="status" aria-live="polite" className="mt-3 text-sm">Uploading resume…</p>}
+                        {error && <p role="alert" className="mt-3 text-sm font-semibold text-red-700">{error}</p>}
+                        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                            <PrimaryButton type="button" disabled={resumeBusy} onClick={() => void attachResumeAndContinue()}>Retry resume upload</PrimaryButton>
+                            <button type="button" disabled={resumeBusy} onClick={continueWithoutResume} className="rounded-lg border border-[var(--border-strong)] px-4 py-2.5 text-sm font-bold">Continue to profile without resume</button>
+                        </div>
+                    </div>
+                </main>
+                <SiteFooter />
+            </div>
+        );
     }
 
     if (!intentResolved) {
@@ -350,7 +420,7 @@ function OnboardingWithClerk() {
                     <section className="rounded-lg border border-[var(--border-default)] bg-white shadow-[var(--shadow-soft)] overflow-hidden">
                         <div className="px-6 md:px-8 py-7 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
                             <div className="education-rule mb-4" />
-                            <p className="eyebrow mb-3">{isEducator ? "Educator setup" : "District setup"}</p>
+                            <p className="eyebrow mb-3">{isEducator ? "Consultant setup" : "District setup"}</p>
                             <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tight">
                                 {isEducator
                                     ? `${welcome} Build a profile districts can trust.`
@@ -401,16 +471,13 @@ function OnboardingWithClerk() {
                                     onEngagementTypesChange={setEngagementTypes}
                                     yearsExperience={yearsExperience}
                                     onYearsExperienceChange={setYearsExperience}
-                                    rateAmount={rateAmount}
-                                    onRateAmountChange={setRateAmount}
-                                    rateHourly={rateHourly}
-                                    onRateHourlyChange={setRateHourly}
-                                    rateDaily={rateDaily}
-                                    onRateDailyChange={setRateDaily}
+                                    hourlyAmount={hourlyAmount} onHourlyAmountChange={setHourlyAmount}
+                                    dailyAmount={dailyAmount} onDailyAmountChange={setDailyAmount}
                                     availabilityStatus={availabilityStatus}
                                     onAvailabilityStatusChange={setAvailabilityStatus}
                                     gradeLevelBands={gradeLevelBands}
                                     onGradeLevelBandsChange={setGradeLevelBands}
+                                    subCategories={subCategories} onSubCategoriesChange={setSubCategories}
                                     areasOfNeed={areasOfNeed}
                                     onAreasOfNeedChange={setAreasOfNeed}
                                     coverageRegions={coverageRegions}
@@ -433,37 +500,24 @@ function OnboardingWithClerk() {
                                     <p className="mt-1 text-sm text-[var(--text-secondary)]">
                                         Districts require a resume on proposals. You can upload one now or later in settings.
                                     </p>
-                                    {resumeFileName ? (
-                                        <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">{resumeFileName}</p>
+                                    {resumeFile ? (
+                                        <p className="mt-3 break-all text-sm font-semibold text-[var(--text-primary)]">{resumeFile.value.name}</p>
                                     ) : null}
                                     <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-[var(--border-strong)] px-4 py-2 text-sm font-bold">
-                                        {resumeBusy ? "Uploading…" : resumeFileName ? "Replace file" : "Upload resume"}
+                                        {resumeFile ? "Replace selected file" : "Choose resume"}
                                         <input
                                             type="file"
                                             className="hidden"
                                             accept=".pdf,.doc,.docx"
-                                            disabled={resumeBusy}
-                                            onChange={async (event) => {
+                                            disabled={submitting}
+                                            onChange={(event) => {
                                                 const file = event.target.files?.[0];
                                                 event.target.value = "";
                                                 if (!file) return;
-                                                setResumeBusy(true);
                                                 setError(null);
-                                                try {
-                                                    const uploadUrl = await generateResumeUploadUrl({});
-                                                    const result = await fetch(uploadUrl, {
-                                                        method: "POST",
-                                                        headers: { "Content-Type": file.type || "application/octet-stream" },
-                                                        body: file,
-                                                    });
-                                                    const json = (await result.json()) as { storageId: string };
-                                                    setResumeStorageId(json.storageId);
-                                                    setResumeFileName(file.name);
-                                                } catch (err) {
-                                                    setError(err instanceof Error ? err.message : "Could not upload resume.");
-                                                } finally {
-                                                    setResumeBusy(false);
-                                                }
+                                                if (file.size > 10 * 1024 * 1024) return setError("Keep the resume under 10 MB.");
+                                                if (!/\.(pdf|doc|docx)$/i.test(file.name)) return setError("Choose a PDF, DOC, or DOCX resume.");
+                                                setResumeFile({ value: file, requestId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}` });
                                             }}
                                         />
                                     </label>
@@ -522,7 +576,7 @@ function RoleChoice({ welcome }: { welcome: string }) {
                         {welcome} Where should we start?
                     </h1>
                     <p className="text-lg font-medium text-[var(--text-secondary)]">
-                        K12Gig separates district hiring tools from educator profile tools so each account path starts with the right defaults.
+                        K12Gig separates district hiring tools from consultant profile tools so each account path starts with the right defaults.
                     </p>
                 </div>
                 <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -533,7 +587,7 @@ function RoleChoice({ welcome }: { welcome: string }) {
                         <Buildings weight="duotone" className="h-11 w-11 text-[var(--accent-primary)] mb-5" />
                         <h2 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-2">I represent a school or district</h2>
                         <p className="text-sm font-medium leading-6 text-[var(--text-secondary)]">
-                            For superintendents, HR teams, principals, and school leaders posting needs or comparing educators.
+                            For superintendents, HR teams, principals, and school leaders posting needs or comparing consultants.
                         </p>
                         <span className="mt-6 inline-flex text-sm font-bold text-[var(--accent-primary)] group-hover:underline">
                             Set up district account
@@ -549,7 +603,7 @@ function RoleChoice({ welcome }: { welcome: string }) {
                             For teachers, coaches, specialists, facilitators, and consultants creating a district-facing profile.
                         </p>
                         <span className="mt-6 inline-flex text-sm font-bold text-[var(--accent-primary)] group-hover:underline">
-                            Build educator profile
+                            Build consultant profile
                         </span>
                     </Link>
                 </div>
@@ -638,7 +692,7 @@ function DistrictStep(props: {
                 <SectionIntro
                     icon={Buildings}
                     title="Identify the district or school."
-                    description="Educators need a real organization name and service region before they trust a request."
+                    description="Consultants need a real organization name and service region before they trust a request."
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field label="District, school, or organization name" className="md:col-span-2">
@@ -652,6 +706,7 @@ function DistrictStep(props: {
                     </Field>
                     <Field label="State">
                         <select value={props.state} onChange={(e) => props.onStateChange(e.target.value)} className="field-control">
+                            <option value="">Choose a state</option>
                             {US_STATES.map((state) => (
                                 <option key={state.code} value={state.code}>
                                     {state.name}
@@ -662,6 +717,7 @@ function DistrictStep(props: {
                     <div className="flex flex-col gap-2">
                         <Field label="Location by region">
                             <select value={props.region} onChange={(e) => props.onRegionChange(e.target.value)} className="field-control">
+                                <option value="">Choose a service region</option>
                                 {TAXONOMY.coverageRegions.map((region) => (
                                     <option key={region.id} value={region.id}>
                                         {region.label}
@@ -722,16 +778,13 @@ function EducatorStep(props: {
     onEngagementTypesChange: (value: string[]) => void;
     yearsExperience: string;
     onYearsExperienceChange: (value: string) => void;
-    rateAmount: string;
-    onRateAmountChange: (value: string) => void;
-    rateHourly: boolean;
-    onRateHourlyChange: (value: boolean) => void;
-    rateDaily: boolean;
-    onRateDailyChange: (value: boolean) => void;
+    hourlyAmount: string; onHourlyAmountChange:(value:string)=>void;
+    dailyAmount: string; onDailyAmountChange:(value:string)=>void;
     availabilityStatus: "open" | "limited" | "closed";
     onAvailabilityStatusChange: (value: "open" | "limited" | "closed") => void;
     gradeLevelBands: string[];
     onGradeLevelBandsChange: (value: string[]) => void;
+    subCategories: string[];onSubCategoriesChange:(value:string[])=>void;
     areasOfNeed: string[];
     onAreasOfNeedChange: (value: string[]) => void;
     coverageRegions: string[];
@@ -753,7 +806,7 @@ function EducatorStep(props: {
                         <input
                             value={props.firstName}
                             onChange={(e) => props.onFirstNameChange(e.target.value)}
-                            placeholder="Jordan"
+                            placeholder="Example: Jordan"
                             autoFocus
                             className="field-control"
                         />
@@ -762,7 +815,7 @@ function EducatorStep(props: {
                         <input
                             value={props.lastName}
                             onChange={(e) => props.onLastNameChange(e.target.value)}
-                            placeholder="Lee"
+                            placeholder="Example: Lee"
                             className="field-control"
                         />
                     </Field>
@@ -770,7 +823,7 @@ function EducatorStep(props: {
                         <input
                             value={props.businessName}
                             onChange={(e) => props.onBusinessNameChange(e.target.value)}
-                            placeholder="SparkSum Learning"
+                            placeholder="Example: SparkSum Learning"
                             className="field-control"
                         />
                         <span className="text-xs font-semibold text-[var(--text-tertiary)]">
@@ -798,7 +851,7 @@ function EducatorStep(props: {
                         <input
                             value={props.headline}
                             onChange={(e) => props.onHeadlineChange(e.target.value)}
-                            placeholder="Math interventionist and instructional coach"
+                            placeholder="Example: Math interventionist and instructional coach"
                             className="field-control"
                         />
                     </Field>
@@ -816,7 +869,7 @@ function EducatorStep(props: {
                             value={props.bio}
                             onChange={(e) => props.onBioChange(e.target.value)}
                             rows={5}
-                            placeholder="I help campuses strengthen Tier 2 math intervention, coach teachers through data cycles, and support implementation with practical classroom routines."
+                            placeholder="Example: I help campuses strengthen Tier 2 math intervention, coach teachers through data cycles, and support implementation with practical classroom routines."
                             className="field-control min-h-32 py-3"
                         />
                     </Field>
@@ -834,23 +887,19 @@ function EducatorStep(props: {
                     description="These choices power search, profile chips, and the first filtering pass for hiring teams."
                 />
                 <MultiSelectGroup
-                    label="Support types"
+                    label="Primary support areas"
                     values={TAXONOMY.areasOfNeed}
                     selected={props.areasOfNeed}
                     onChange={props.onAreasOfNeedChange}
                 />
+                <MultiSelectGroup label="Specific expertise offered" values={TAXONOMY.areasOfNeed.filter(a=>props.areasOfNeed.includes(a.id)).flatMap(a=>a.subCategories.map(s=>({id:s.id,label:s.label})))} selected={props.subCategories} onChange={props.onSubCategoriesChange} />
                 <MultiSelectGroup
-                    label="Grade bands"
+                    label="Grade levels"
                     values={TAXONOMY.gradeLevelBands.filter((grade) => grade.id !== "other")}
                     selected={props.gradeLevelBands}
                     onChange={props.onGradeLevelBandsChange}
                 />
-                <MultiSelectGroup
-                    label="Engagement types"
-                    values={TAXONOMY.engagementTypes}
-                    selected={props.engagementTypes}
-                    onChange={props.onEngagementTypesChange}
-                />
+                <p className="text-sm">New profiles offer freelance consulting. Describe your services and specializations in your profile.</p>
             </div>
         );
     }
@@ -860,12 +909,12 @@ function EducatorStep(props: {
             <div className="space-y-7">
                 <SectionIntro
                     icon={SealCheck}
-                    title="Set availability, coverage, and rate."
+                    title="Set availability, service area, and rates."
                     description="Transparent availability and pricing reduce back-and-forth for district teams."
                 />
                 <div className="space-y-2">
                     <MultiSelectGroup
-                        label="Coverage areas"
+                        label="Service areas"
                         values={TAXONOMY.coverageRegions}
                         selected={props.coverageRegions}
                         onChange={props.onCoverageRegionsChange}
@@ -886,14 +935,9 @@ function EducatorStep(props: {
                             ))}
                         </select>
                     </Field>
-                    <RateField
-                        amount={props.rateAmount}
-                        onAmountChange={props.onRateAmountChange}
-                        hourly={props.rateHourly}
-                        onHourlyChange={props.onRateHourlyChange}
-                        daily={props.rateDaily}
-                        onDailyChange={props.onRateDailyChange}
-                    />
+                    <Field label="Hourly rate (USD per hour)"><input type="number" min={20} value={props.hourlyAmount} onChange={e=>props.onHourlyAmountChange(e.target.value)} placeholder="Example: 95" className="field-control" /></Field>
+                    <Field label="Daily rate (USD per day)"><input type="number" min={100} value={props.dailyAmount} onChange={e=>props.onDailyAmountChange(e.target.value)} placeholder="Example: 650" className="field-control" /></Field>
+                    <p className="text-sm text-[var(--text-secondary)]">Enter one or both rates. Each amount is independent; final scope and payment are agreed directly.</p>
                 </div>
             </div>
         );
@@ -904,7 +948,7 @@ function EducatorStep(props: {
             <SectionIntro
                 icon={CheckCircle}
                 title="Review your launch profile."
-                description="This is enough to create a credible profile and keep polishing from educator settings."
+                description="This is enough to create a credible profile and keep polishing from consultant settings."
             />
             <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
                 <div className="flex items-center justify-between gap-4 mb-4">
@@ -924,25 +968,26 @@ function EducatorStep(props: {
                     ["Headline", props.headline],
                     ["Experience", `${Number(props.yearsExperience) || 0} years`],
                     ["Areas", props.areasOfNeed.length ? `${props.areasOfNeed.length} selected` : "None selected"],
-                    ["Grades", props.gradeLevelBands.length ? `${props.gradeLevelBands.length} selected` : "None selected"],
+                    ["Specific expertise offered", props.subCategories.map(getAreaOfNeedLabel).join(", ") || "None selected"],
+                    ["Grade levels", props.gradeLevelBands.length ? `${props.gradeLevelBands.length} selected` : "None selected"],
                     [
                         "Engagement types",
                         props.engagementTypes
                             .map((id) => TAXONOMY.engagementTypes.find((type) => type.id === id)?.label ?? id)
                             .join(", ") || "None selected",
                     ],
-                    ["Coverage", props.coverageRegions.length ? `${props.coverageRegions.length} selected` : "None selected"],
+                    ["Service areas", props.coverageRegions.length ? `${props.coverageRegions.length} selected` : "None selected"],
                     [
                         "Rate",
                         formatEducatorRateSummary({
-                            hourlyRate: props.rateHourly && props.rateAmount ? Number(props.rateAmount) : undefined,
-                            dailyRate: props.rateDaily && props.rateAmount ? Number(props.rateAmount) : undefined,
+                            hourlyRate: props.hourlyAmount ? Number(props.hourlyAmount) : undefined,
+                            dailyRate: props.dailyAmount ? Number(props.dailyAmount) : undefined,
                         }),
                     ],
                 ]}
             />
             <p className="text-sm font-medium text-[var(--text-tertiary)]">
-                You can add your business logo from Educator settings after setup.
+                You can add your business logo from consultant settings after setup.
             </p>
         </div>
     );
@@ -983,7 +1028,7 @@ function OnboardingAside({
                 <UsersThree weight="duotone" className="h-9 w-9 text-[var(--accent-secondary)] mb-4" />
                 <h2 className="font-heading text-lg font-bold mb-2">Built for school decision cycles</h2>
                 <p className="text-sm leading-6 text-white/75">
-                    The setup favors clear roles, real district identity, visible educator qualifications, and practical next steps over generic marketplace signup.
+                    The setup favors clear roles, real district identity, visible consultant qualifications, and practical next steps over generic marketplace signup.
                 </p>
             </div>
         </aside>
@@ -1122,6 +1167,7 @@ function MultiSelectGroup({
                             key={item.id}
                             type="button"
                             onClick={() => toggle(item.id)}
+                            aria-pressed={active}
                             className={cn(
                                 "min-h-10 rounded-lg border px-3 py-2 text-sm font-bold transition-colors",
                                 active

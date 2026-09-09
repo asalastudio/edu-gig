@@ -1,7 +1,11 @@
+import { active, current, engagementAccess, receipt, saveReceipt } from "./lib/releaseDomain";
+import { enqueue } from "./lib/outbox";
+import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import { authedQuery, authedMutation } from "./lib/customFunctions";
-import { canAccessEngagement, canManageNeed, getEducatorForUser } from "./lib/auth";
+import type { QueryCtx } from "./_generated/server";
+import { canAccessEngagement, canAccessEngagementAsParty, canManageNeed, canManageNeedAsParty, getEducatorForUser } from "./lib/auth";
 import { createEngagementFromAcceptance } from "./lib/createEngagement";
 import { engagementStatusValidator, engagementSummaryValidator } from "./lib/validators";
 
@@ -13,8 +17,13 @@ const engagementDetailValidator = v.object({
     counterpartUserId: v.id("users"),
 });
 
+const engagementDetailResultValidator = v.union(
+    v.object({ status: v.literal("available"), detail: engagementDetailValidator }),
+    v.object({ status: v.literal("unavailable") }),
+);
+
 async function toSummary(
-    ctx: { db: import("./_generated/server").QueryCtx["db"] },
+    ctx: QueryCtx & { user: Doc<"users"> },
     engagement: import("./_generated/dataModel").Doc<"engagements">
 ) {
     const educatorUser = await ctx.db.get(engagement.educatorUserId);
@@ -23,6 +32,9 @@ async function toSummary(
         : "Consultant";
     return {
         _id: engagement._id,
+        revision: engagement.revision ?? 0,
+        archivedForViewer: !!engagement.archivedBy?.includes(ctx.user._id),
+        partyAccess: await canAccessEngagementAsParty(ctx, ctx.user, engagement),
         needId: engagement.needId,
         proposalId: engagement.proposalId,
         educatorId: engagement.educatorId,
@@ -47,9 +59,9 @@ async function toSummary(
 }
 
 export const listMine = authedQuery({
-    args: {},
+    args: { includeArchived: v.optional(v.boolean()) },
     returns: v.array(engagementSummaryValidator),
-    handler: async (ctx) => {
+    handler: async (ctx, args) => {
         const user = ctx.user;
         if (user.role === "educator") {
             const educator = await getEducatorForUser(ctx, user._id);
@@ -59,7 +71,7 @@ export const listMine = authedQuery({
                 .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
                 .order("desc")
                 .collect();
-            return await Promise.all(rows.map((row) => toSummary(ctx, row)));
+            return await Promise.all(rows.filter(row => args.includeArchived || !row.archivedBy?.includes(user._id)).map((row) => toSummary(ctx, row)));
         }
 
         const byBuyer = await ctx.db
@@ -82,7 +94,7 @@ export const listMine = authedQuery({
             }
         }
         const combined = [...byBuyer, ...extra].sort((a, b) => b.createdAt - a.createdAt);
-        return await Promise.all(combined.map((row) => toSummary(ctx, row)));
+        return await Promise.all(combined.filter(row => args.includeArchived || !row.archivedBy?.includes(user._id)).map((row) => toSummary(ctx, row)));
     },
 });
 
@@ -117,6 +129,43 @@ export const getById = authedQuery({
     },
 });
 
+/**
+ * Detail-page contract that intentionally makes missing and inaccessible records
+ * indistinguishable. Unexpected query failures still propagate to the client.
+ */
+export const getDetailPage = authedQuery({
+    args: { engagementId: v.id("engagements") },
+    returns: engagementDetailResultValidator,
+    handler: async (ctx, args) => {
+        const engagement = await ctx.db.get("engagements", args.engagementId);
+        if (!engagement || !(await canAccessEngagement(ctx, ctx.user, engagement))) {
+            return { status: "unavailable" as const };
+        }
+        const summary = await toSummary(ctx, engagement);
+        const need = await ctx.db.get("needs", engagement.needId);
+        const proposal = await ctx.db.get("proposals", engagement.proposalId);
+        const isConsultant = engagement.educatorUserId === ctx.user._id;
+        const counterpart = isConsultant
+            ? await ctx.db.get("users", engagement.buyerUserId)
+            : await ctx.db.get("users", engagement.educatorUserId);
+        const counterpartName = counterpart
+            ? [counterpart.firstName, counterpart.lastName].filter(Boolean).join(" ").trim() || counterpart.email
+            : isConsultant
+              ? engagement.orgName
+              : summary.consultantName;
+        return {
+            status: "available" as const,
+            detail: {
+                engagement: summary,
+                needDescription: need?.description,
+                proposalMessage: proposal?.message,
+                counterpartName,
+                counterpartUserId: isConsultant ? engagement.buyerUserId : engagement.educatorUserId,
+            },
+        };
+    },
+});
+
 export const setStatus = authedMutation({
     args: {
         engagementId: v.id("engagements"),
@@ -129,11 +178,7 @@ export const setStatus = authedMutation({
         if (!(await canAccessEngagement(ctx, ctx.user, engagement))) {
             throw new Error("Forbidden");
         }
-        await ctx.db.patch(args.engagementId, {
-            status: args.status,
-            updatedAt: Date.now(),
-        });
-        return args.engagementId;
+        throw new Error("Use explicit engagement transition with revision and reason; refresh the application");
     },
 });
 
@@ -199,3 +244,37 @@ export const listForNeed = authedQuery({
         return await Promise.all(rows.map((row) => toSummary(ctx, row)));
     },
 });
+
+export const transition = authedMutation({
+ args: { engagementId: v.id("engagements"), action: v.union(v.literal("start"), v.literal("complete"), v.literal("cancel"), v.literal("reopen_need"), v.literal("archive")), expectedRevision: v.number(), requestId: v.string(), reason: v.optional(v.string()), acknowledged: v.optional(v.boolean()) },
+ handler: async (ctx, args): Promise<{ engagementId: Id<"engagements">; revision: number; status: string }> => {
+  const e = await engagementAccess(ctx, args.engagementId); const fp = JSON.stringify(["transition", args]); const prior = await receipt(ctx, args.requestId, fp); if (prior) return prior;
+  current(e.revision, args.expectedRevision);
+  const need = await ctx.db.get(e.needId); if (!need) throw new Error("Need unavailable");
+  if (["start", "complete", "reopen_need"].includes(args.action) && !await canManageNeedAsParty(ctx, ctx.user, need)) throw new Error("Forbidden");
+  let status = e.status;
+  if (args.action === "start") { if (e.status !== "active") throw new Error("Only active work can start"); status = "in_progress"; }
+  if (args.action === "complete") { if (e.status !== "in_progress") throw new Error("Only in-progress work can complete"); status = "completed"; }
+  if (args.action === "cancel") { active(e); if (!args.reason?.trim() || !args.acknowledged) throw new Error("Cancellation reason and acknowledgement required; external agreements are not voided"); status = "cancelled"; }
+  if (args.action === "reopen_need") {
+   if (e.status !== "cancelled" || !args.reason?.trim() || !args.acknowledged) throw new Error("Canceled engagement, reason and explicit correction required");
+   const others = await ctx.db.query("engagements").withIndex("by_need", q => q.eq("needId", need._id)).collect();
+   if (others.some(x => x.status !== "cancelled")) throw new Error("An active hire already exists");
+   if (need.status !== "placed") throw new Error("Need must be placed before correction");
+   await ctx.db.patch(need._id, { status: "open" });
+  }
+  if (args.action === "archive") {
+   if (!["completed", "cancelled"].includes(e.status)) throw new Error("Only completed/cancelled work may be archived");
+   await ctx.db.patch(e._id, { archivedBy: Array.from(new Set([...(e.archivedBy ?? []), ctx.user._id])) });
+  }
+  const revision = args.expectedRevision + 1;
+  await ctx.db.patch(e._id, { status, revision, updatedAt: Date.now() });
+  const eventId = await ctx.db.insert("engagementEvents", { engagementId: e._id, actorUserId: ctx.user._id, action: args.action, note: args.reason?.trim(), createdAt: Date.now() });
+  if (args.action !== "archive") await enqueue(ctx, { eventKey: `engagement:${eventId}`, sourceId: e._id, recipientUserId: ctx.user._id === e.educatorUserId ? e.buyerUserId : e.educatorUserId, title: `Engagement update: ${args.action.replaceAll("_", " ")}`, body: `${e.title}. ${args.reason?.trim() ?? "Work status updated."}${args.action === "cancel" ? " External agreements are not voided." : ""}`, actionUrl: `/dashboard/engagements/${e._id}`, type: "engagement_update" });
+  const result = { engagementId: e._id, revision, status }; await saveReceipt(ctx, args.requestId, fp, e._id, result); return result;
+ },
+});
+export const activity = authedQuery({ args: { engagementId: v.id("engagements") }, handler: async (ctx, args) => {
+ await engagementAccess(ctx, args.engagementId);
+ return ctx.db.query("engagementEvents").withIndex("by_engagement", q => q.eq("engagementId", args.engagementId)).collect();
+} });

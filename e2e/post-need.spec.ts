@@ -22,21 +22,26 @@ test.describe("Post a Need", () => {
         await expect(page.getByRole("heading", { name: /The Details/i })).toBeVisible();
 
         await expect(page.getByRole("button", { name: /save draft/i })).toBeVisible();
-        await expect(page.getByRole("button", { name: /publish need/i })).toBeVisible();
+        await expect(page.getByRole("button", { name: /review need/i })).toBeVisible();
+        await page.getByRole("button", { name: /review need/i }).click();
+        await expect(page.getByRole("heading", { name: /Review your need/i })).toBeVisible();
+        await expect(page.getByRole("button", { name: /sign in to continue/i })).toBeVisible();
 
-        // An incomplete publish attempt preserves the work and sends the user to
-        // account creation; it never shows the published-success state.
-        await page.getByRole("button", { name: /publish need/i }).click();
+        // An incomplete anonymous preview preserves the work and carries the
+        // district intent and return path into sign-in; it never publishes.
+        await page.getByRole("button", { name: /sign in to continue/i }).click();
 
-        await expect(page).toHaveURL(/\/sign-up/);
+        await expect(page).toHaveURL(/\/sign-in\?[^#]*intent=district/);
         await expect(page.getByText(/your need has been posted/i)).toHaveCount(0);
 
         const savedDraft = await page.evaluate(() =>
-            JSON.parse(window.localStorage.getItem("k12gig_post_need_draft") ?? "null")
+            JSON.parse(window.sessionStorage.getItem("k12gig:post:anonymous:new") ?? "null")
         );
         expect(savedDraft).toMatchObject({
-            orgName: "Ann Arbor Public Schools",
-            areaOfNeed: "instruction_curriculum",
+            input: {
+                orgName: "Ann Arbor Public Schools",
+                areaOfNeed: "instruction_curriculum",
+            },
         });
     });
 });

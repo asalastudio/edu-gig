@@ -1,0 +1,19 @@
+name: Staging verification
+on:
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    # Test doubles run in memory and cannot alter stable human-review fixtures.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run lint
+      - name: Guard rejection check (no secrets or remote resources)
+        run: node --input-type=module -e "import {checkStaging} from './scripts/staging/guard.mjs'; try { checkStaging({}); process.exit(1); } catch (e) { if (!e.message.startsWith('Staging mismatch')) throw e; }"

@@ -1,4 +1,6 @@
+import { BUILD_COMMIT } from "../../convex/buildIdentity";
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Providers } from "@/components/providers";
@@ -22,6 +24,7 @@ const SITE_DESCRIPTION =
   "Connect school districts with credential-reviewed K-12 consultants. Post a need, review proposals, and coordinate contracts. Payment stays off-platform.";
 
 export const metadata: Metadata = {
+  ...(process.env.NEXT_PUBLIC_APP_ENV === "staging" ? { robots: { index: false, follow: false } } : {}),
   metadataBase: new URL(APP_URL),
     title: {
     default: "K12Gig - The K-12 Consultant Marketplace",
@@ -48,10 +51,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-qa-commit={process.env.NEXT_PUBLIC_APP_ENV === "staging" ? BUILD_COMMIT : undefined} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={process.env.NEXT_PUBLIC_APP_ENV === "staging" ? { "--staging-offset": "56px" } as CSSProperties : undefined}
       >
+        {process.env.NEXT_PUBLIC_APP_ENV === "staging" && <div role="status" className="sticky top-0 z-[100] flex h-14 items-center justify-center bg-amber-200 px-4 py-2 text-center text-sm font-bold text-slate-950">STAGING · Synthetic QA data · Email captured · No real agreements</div>}
         <TooltipProvider>
           <ThemeProvider
             attribute="class"

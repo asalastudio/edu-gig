@@ -261,7 +261,7 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
                         K12Gig stores working documents. Signing, payment, tax paperwork, and legal enforcement remain between the district and consultant.
                     </p>
 
-                    <Card className="mt-8 flex flex-col gap-4 p-5 sm:p-6">
+                    <Card className="mt-8 min-w-0 flex flex-col gap-4 p-5 sm:p-6">
                         <div>
                             <h2 className="font-heading text-lg font-bold">New agreement</h2>
                             <p className="mt-1 text-sm text-[var(--text-secondary)]">Saving creates a private draft. Sharing is a separate action.</p>
@@ -272,22 +272,22 @@ function ContractHubView({ role, getToken }: { role: "educator" | "district"; ge
                             </p>
                         ) : (
                             <>
-                                <label className="text-sm font-semibold">Engagement
-                                    <select className="field-control mt-1" value={selectedEngagement} disabled={busy || draftRecoveryLocked} onChange={(event) => setSelectedEngagement(event.target.value)}>
+                                <label className="min-w-0 text-sm font-semibold">Engagement
+                                    <select className="field-control mt-1 block w-full min-w-0 max-w-full" value={selectedEngagement} disabled={busy || draftRecoveryLocked} onChange={(event) => setSelectedEngagement(event.target.value)}>
                                         <option value="">Select an accepted gig</option>
                                         {partyEngagements.filter((engagement) => !engagement.archivedForViewer).map((engagement) => (
                                             <option key={engagement._id} value={engagement._id}>{engagement.orgName} — {engagement.title}</option>
                                         ))}
                                     </select>
                                 </label>
-                                <label className="text-sm font-semibold">Agreement title
-                                    <input className="field-control mt-1" value={title} disabled={busy || draftRecoveryLocked} onChange={(event) => setTitle(event.target.value)} />
+                                <label className="min-w-0 text-sm font-semibold">Agreement title
+                                    <input className="field-control mt-1 block w-full min-w-0 max-w-full" value={title} disabled={busy || draftRecoveryLocked} onChange={(event) => setTitle(event.target.value)} />
                                 </label>
-                                <label className="text-sm font-semibold">Notes
-                                    <textarea className="field-control mt-1 min-h-20" value={notes} disabled={busy || draftRecoveryLocked} onChange={(event) => setNotes(event.target.value)} />
+                                <label className="min-w-0 text-sm font-semibold">Notes
+                                    <textarea className="field-control mt-1 block min-h-20 w-full min-w-0 max-w-full" value={notes} disabled={busy || draftRecoveryLocked} onChange={(event) => setNotes(event.target.value)} />
                                 </label>
-                                <label className="text-sm font-semibold">Agreement file
-                                    <input type="file" accept=".pdf,.docx" className="mt-2 block max-w-full text-sm" disabled={busy || draftRecoveryLocked} onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} />
+                                <label className="min-w-0 text-sm font-semibold">Agreement file
+                                    <input type="file" accept=".pdf,.docx" className="mt-2 block w-full min-w-0 max-w-full text-sm" disabled={busy || draftRecoveryLocked} onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} />
                                 </label>
                                 <p className="text-xs text-[var(--text-tertiary)]">PDF or DOCX, up to 10 MB. The original stays preserved in version history.</p>
                                 {selectedFile && <p className="break-all text-sm font-semibold">{selectedFile.file.name}</p>}

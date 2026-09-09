@@ -17,6 +17,11 @@ const engagementDetailValidator = v.object({
     counterpartUserId: v.id("users"),
 });
 
+const engagementDetailResultValidator = v.union(
+    v.object({ status: v.literal("available"), detail: engagementDetailValidator }),
+    v.object({ status: v.literal("unavailable") }),
+);
+
 async function toSummary(
     ctx: QueryCtx & { user: Doc<"users"> },
     engagement: import("./_generated/dataModel").Doc<"engagements">
@@ -120,6 +125,43 @@ export const getById = authedQuery({
             proposalMessage: proposal?.message,
             counterpartName,
             counterpartUserId: isConsultant ? engagement.buyerUserId : engagement.educatorUserId,
+        };
+    },
+});
+
+/**
+ * Detail-page contract that intentionally makes missing and inaccessible records
+ * indistinguishable. Unexpected query failures still propagate to the client.
+ */
+export const getDetailPage = authedQuery({
+    args: { engagementId: v.id("engagements") },
+    returns: engagementDetailResultValidator,
+    handler: async (ctx, args) => {
+        const engagement = await ctx.db.get("engagements", args.engagementId);
+        if (!engagement || !(await canAccessEngagement(ctx, ctx.user, engagement))) {
+            return { status: "unavailable" as const };
+        }
+        const summary = await toSummary(ctx, engagement);
+        const need = await ctx.db.get("needs", engagement.needId);
+        const proposal = await ctx.db.get("proposals", engagement.proposalId);
+        const isConsultant = engagement.educatorUserId === ctx.user._id;
+        const counterpart = isConsultant
+            ? await ctx.db.get("users", engagement.buyerUserId)
+            : await ctx.db.get("users", engagement.educatorUserId);
+        const counterpartName = counterpart
+            ? [counterpart.firstName, counterpart.lastName].filter(Boolean).join(" ").trim() || counterpart.email
+            : isConsultant
+              ? engagement.orgName
+              : summary.consultantName;
+        return {
+            status: "available" as const,
+            detail: {
+                engagement: summary,
+                needDescription: need?.description,
+                proposalMessage: proposal?.message,
+                counterpartName,
+                counterpartUserId: isConsultant ? engagement.buyerUserId : engagement.educatorUserId,
+            },
         };
     },
 });

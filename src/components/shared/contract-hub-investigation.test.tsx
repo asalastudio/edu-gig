@@ -80,6 +80,25 @@ describe("ContractHub private agreement flow", () => {
         expect(mocks.requestUpload.mock.calls[1][0].requestId).toBe(firstRequestId);
     });
 
+    it("constrains every new-agreement control when engagement names are long", () => {
+        mocks.engagements = [{
+            ...mocks.engagements[0],
+            orgName: "A very long synthetic district organization name that must not widen the form",
+            title: "A very long accepted engagement title that must remain inside a narrow mobile card",
+        }];
+        render(<ContractHub role="district" />);
+
+        for (const control of [
+            screen.getByLabelText("Engagement"),
+            screen.getByLabelText("Agreement title"),
+            screen.getByLabelText("Notes"),
+            screen.getByLabelText("Agreement file"),
+        ]) {
+            expect(control).toHaveClass("w-full", "min-w-0", "max-w-full");
+            expect(control.closest("label")).toHaveClass("min-w-0");
+        }
+    });
+
     it("saves a selected file privately and never shares it until the author chooses Share", async () => {
         const user = userEvent.setup();
         render(<ContractHub role="district" />);

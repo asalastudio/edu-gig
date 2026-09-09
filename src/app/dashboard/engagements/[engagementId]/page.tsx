@@ -39,7 +39,8 @@ function EngagementDetailPageInner() {
     const searchParams = useSearchParams();
     const engagementId = params.engagementId as Id<"engagements">;
     const viewer = useQuery(api.users.viewer, {});
-    const detail = useQuery(api.engagements.getById, viewer ? { engagementId } : "skip");
+    const detailResult = useQuery(api.engagements.getDetailPage, viewer ? { engagementId } : "skip");
+    const detail = detailResult?.status === "available" ? detailResult.detail : null;
     const partyAccess = !!detail?.engagement.partyAccess;
     const transition = useMutation(api.engagements.transition);
     const retryDelivery = useMutation(api.delivery.retry);
@@ -103,11 +104,19 @@ function EngagementDetailPageInner() {
                     <Link href={backHref} className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8">
                         <ArrowLeft className="w-4 h-4" /> Back
                     </Link>
-                    {detail === undefined ? (
+                    {detailResult === undefined ? (
                         <p className="text-[var(--text-secondary)]">Loading engagement…</p>
-                    ) : detail === null ? (
-                        <p className="text-[var(--text-secondary)]">Engagement not found.</p>
-                    ) : (
+                    ) : detailResult.status === "unavailable" ? (
+                        <Card className="p-6" role="status" aria-live="polite">
+                            <h1 className="font-heading text-2xl font-bold">Engagement unavailable</h1>
+                            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                                This engagement is unavailable or your account does not have access to it.
+                            </p>
+                            <Link href={backHref} className="mt-5 inline-flex font-bold text-[var(--accent-primary)] hover:underline">
+                                Return to your engagements
+                            </Link>
+                        </Card>
+                    ) : detail ? (
                         <>
                             <PageHeader
                                 title={getAreaOfNeedLabel(detail.engagement.areaOfNeed)}
@@ -195,7 +204,7 @@ function EngagementDetailPageInner() {
                                 </Card>
                             </div>
                         </>
-                    )}
+                    ) : null}
                 </div>
             </main>
         </div>

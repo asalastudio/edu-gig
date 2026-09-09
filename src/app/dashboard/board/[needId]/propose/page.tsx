@@ -307,6 +307,16 @@ function ProposePageView({ getToken }: { getToken: () => Promise<string | null> 
                 description="Respond to this district-posted need. Share how you can help and attach your resume or a proposal doc."
             />
 
+            <div
+                role="status"
+                className="rounded-lg border border-[var(--accent-primary)]/20 bg-[var(--accent-primary)]/5 px-5 py-4 text-sm text-[var(--text-secondary)]"
+            >
+                <p className="font-bold text-[var(--text-primary)]">Review before sending</p>
+                <p className="mt-1">
+                    Opening this need or its notification does not submit a proposal. Your proposal is sent only when you choose <strong>Send proposal</strong>; the district must accept it separately.
+                </p>
+            </div>
+
             {/* ── RFP summary — the need you're responding to ── */}
             <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col gap-4">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-tertiary)]">

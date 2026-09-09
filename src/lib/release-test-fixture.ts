@@ -1,5 +1,6 @@
 vi.mock("../../convex/buildIdentity", () => ({ BUILD_COMMIT: "a".repeat(40) }));
 import { beforeEach, afterEach, vi } from "vitest";
+import { Blob as NodeBlob } from "node:buffer";
 import { convexTest } from "convex-test";
 import schema from "../../convex/schema";
 import { internal } from "../../convex/_generated/api";
@@ -18,7 +19,9 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 export async function seeded() {
     const t = convexTest(schema, modules);
-    const files = await t.run(async ctx => Promise.all(Array.from({ length: 6 }, async (_, i) => ({ name: `synthetic-${i}.pdf`, storageId: await ctx.storage.store(new Blob(["SYNTHETIC QA — NOT A REAL AGREEMENT"])), encryption: { sha256: "ab".repeat(32), nonce: "cd".repeat(12), keyId: "synthetic-legacy-test", size: 42 } }))));
+    // Use Node's Blob so Node 20's WebCrypto accepts the ArrayBuffer returned by
+    // convex-test; jsdom's cross-realm Blob is rejected by that runtime.
+    const files = await t.run(async ctx => Promise.all(Array.from({ length: 6 }, async (_, i) => ({ name: `synthetic-${i}.pdf`, storageId: await ctx.storage.store(new NodeBlob(["SYNTHETIC QA — NOT A REAL AGREEMENT"]) as unknown as Blob), encryption: { sha256: "ab".repeat(32), nonce: "cd".repeat(12), keyId: "synthetic-legacy-test", size: 42 } }))));
     await t.mutation(internal.qa.seedRows, { expectedCommit: "a".repeat(40), namespace, accounts, files });
     // Shape historical records inside the test harness only. Production seedRows
     // always requires encrypted receipts; legacy-row tests do not add a production bypass.

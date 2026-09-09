@@ -6,7 +6,7 @@ test.describe("public smoke", () => {
         await expect(page.getByText(/Find qualified K–12 consultants/i)).toBeVisible();
 
         await page.goto("/browse");
-        await expect(page.getByText(/Find K-12 Educators/i)).toBeVisible();
+        await expect(page.getByText(/Find K-12 Consultants/i)).toBeVisible();
 
         await page.goto("/login");
         await expect(page.getByRole("heading", { name: /Sign in or create your account/i })).toBeVisible();

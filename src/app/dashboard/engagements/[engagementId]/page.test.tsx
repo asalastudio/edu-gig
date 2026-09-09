@@ -7,12 +7,13 @@ const mocks = vi.hoisted(() => ({
     revision: 4,
     detailStatus: "available" as "available" | "unavailable",
     viewer: { _id: "district-user", role: "district_admin" },
+    engagementId: "engagement-1",
     transition: vi.fn(),
     retry: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
-    useParams: () => ({ engagementId: "engagement-1" }),
+    useParams: () => ({ engagementId: mocks.engagementId }),
     useSearchParams: () => new URLSearchParams("agreement=contract-1&version=version-2"),
 }));
 vi.mock("convex/react", () => ({
@@ -21,7 +22,7 @@ vi.mock("convex/react", () => ({
         const name = getFunctionName(ref);
         if (name === "users:viewer") return mocks.viewer;
         if (name === "engagements:getDetailPage") return mocks.detailStatus === "unavailable" ? { status: "unavailable" } : { status: "available", detail: {
-            engagement: { _id: "engagement-1", revision: mocks.revision, needId: "need-1", status: "active", areaOfNeed: "leadership", orgName: "Synthetic District", consultantName: "Alex Morgan", archivedForViewer: false, partyAccess: true },
+            engagement: { _id: mocks.engagementId, revision: mocks.revision, needId: "need-1", status: "active", areaOfNeed: "leadership", orgName: "Synthetic District", consultantName: "Alex Morgan", archivedForViewer: false, partyAccess: true },
             counterpartUserId: "consultant-user", counterpartName: "Alex Morgan",
         }};
         if (name === "engagements:activity") return [];
@@ -38,6 +39,7 @@ describe("engagement handoff and immutable transitions", () => {
         mocks.revision = 4;
         mocks.detailStatus = "available";
         mocks.viewer = { _id: "district-user", role: "district_admin" };
+        mocks.engagementId = "engagement-1";
         mocks.transition.mockReset().mockRejectedValueOnce(new Error("Response lost")).mockResolvedValue({ revision: 5 });
         mocks.retry.mockReset();
     });
@@ -61,6 +63,44 @@ describe("engagement handoff and immutable transitions", () => {
         await waitFor(() => expect(mocks.transition).toHaveBeenCalledTimes(2));
 
         expect(mocks.transition.mock.calls[1][0]).toEqual(first);
+    });
+
+    it("starts a route-scoped operation after a lost response on another engagement", async () => {
+        const user = userEvent.setup();
+        const { rerender } = render(<EngagementDetailPage />);
+        await user.click(screen.getByRole("button", { name: "Mark in progress" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Response lost");
+        expect(mocks.transition.mock.calls[0][0].engagementId).toBe("engagement-1");
+
+        mocks.engagementId = "engagement-2";
+        rerender(<EngagementDetailPage />);
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Mark in progress" }));
+
+        await waitFor(() => expect(mocks.transition).toHaveBeenCalledTimes(2));
+        expect(mocks.transition.mock.calls[1][0].engagementId).toBe("engagement-2");
+        expect(mocks.transition.mock.calls[1][0].requestId).not.toBe(mocks.transition.mock.calls[0][0].requestId);
+    });
+
+    it("ignores a late failure from an engagement that is no longer mounted", async () => {
+        const user = userEvent.setup();
+        let rejectOld!: (error: Error) => void;
+        mocks.transition.mockReset()
+            .mockImplementationOnce(() => new Promise((_, reject) => { rejectOld = reject; }))
+            .mockResolvedValueOnce({ revision: 1 });
+        const { rerender } = render(<EngagementDetailPage />);
+        await user.click(screen.getByRole("button", { name: "Mark in progress" }));
+        await waitFor(() => expect(mocks.transition).toHaveBeenCalledTimes(1));
+
+        mocks.engagementId = "engagement-2";
+        rerender(<EngagementDetailPage />);
+        await user.click(screen.getByRole("button", { name: "Mark in progress" }));
+        expect(await screen.findByRole("status")).toHaveTextContent("Engagement updated: start");
+
+        rejectOld(new Error("Late failure from engagement 1"));
+        await waitFor(() => expect(mocks.transition).toHaveBeenCalledTimes(2));
+        expect(screen.queryByText("Late failure from engagement 1")).not.toBeInTheDocument();
+        expect(screen.getByRole("status")).toHaveTextContent("Engagement updated: start");
     });
 
     it("does not show recipient-only Retry delivery when the server capability is false", () => {
@@ -91,5 +131,26 @@ describe("engagement handoff and immutable transitions", () => {
         expect(screen.getByRole("heading", { name: "Engagement unavailable" })).toBeInTheDocument();
         expect(screen.queryByText("Synthetic District · Alex Morgan")).not.toBeInTheDocument();
         expect(screen.getByRole("link", { name: "Return to your engagements" })).toHaveAttribute("href", "/dashboard/educator/my-gigs");
+    });
+
+    it("clears failed transition and reason state when the account changes", async () => {
+        const user = userEvent.setup();
+        const { rerender } = render(<EngagementDetailPage />);
+        await user.click(screen.getByRole("button", { name: "Cancel engagement" }));
+        await user.type(screen.getByLabelText("Reason"), "District-only correction context");
+        await user.click(screen.getByRole("checkbox"));
+        await user.click(screen.getByRole("button", { name: "Confirm cancellation" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Response lost");
+
+        mocks.viewer = { _id: "district-teammate", role: "district_hr" };
+        rerender(<EngagementDetailPage />);
+
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        expect(screen.queryByDisplayValue("District-only correction context")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Confirm cancellation" })).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Mark in progress" }));
+        await waitFor(() => expect(mocks.transition).toHaveBeenCalledTimes(2));
+        expect(mocks.transition.mock.calls[1][0].engagementId).toBe("engagement-1");
+        expect(mocks.transition.mock.calls[1][0].requestId).not.toBe(mocks.transition.mock.calls[0][0].requestId);
     });
 });

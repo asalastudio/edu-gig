@@ -4,6 +4,7 @@ import { Suspense, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -31,14 +32,22 @@ function isStaleTransitionError(error: unknown) {
 }
 
 export default function EngagementDetailPage() {
-    return <Suspense fallback={null}><EngagementDetailPageInner /></Suspense>;
+    return <Suspense fallback={null}><EngagementDetailRoute /></Suspense>;
 }
 
-function EngagementDetailPageInner() {
+type Viewer = NonNullable<FunctionReturnType<typeof api.users.viewer>>;
+
+function EngagementDetailRoute() {
     const params = useParams<{ engagementId: string }>();
-    const searchParams = useSearchParams();
     const engagementId = params.engagementId as Id<"engagements">;
     const viewer = useQuery(api.users.viewer, {});
+    const contextKey = `${viewer?._id ?? "viewer-loading"}:${engagementId}`;
+
+    return <EngagementDetailPageInner key={contextKey} engagementId={engagementId} viewer={viewer ?? null} />;
+}
+
+function EngagementDetailPageInner({ engagementId, viewer }: { engagementId: Id<"engagements">; viewer: Viewer | null }) {
+    const searchParams = useSearchParams();
     const detailResult = useQuery(api.engagements.getDetailPage, viewer ? { engagementId } : "skip");
     const detail = detailResult?.status === "available" ? detailResult.detail : null;
     const partyAccess = !!detail?.engagement.partyAccess;

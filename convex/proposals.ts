@@ -304,6 +304,23 @@ export const accept = mutation({
         for (const sibling of siblings) {
             if (sibling._id !== args.proposalId && sibling.status === "pending") {
                 await ctx.db.patch(sibling._id, { status: "rejected" });
+                await ctx.db.insert("notifications", {
+                    userId: sibling.educatorUserId,
+                    type: "proposal_rejected",
+                    title: "Your proposal was not selected",
+                    body: `${need.orgName} selected another consultant.`,
+                    read: false,
+                    actionUrl: `/dashboard/board`,
+                    createdAt: Date.now(),
+                });
+                try {
+                    await ctx.scheduler.runAfter(0, internal.emails.sendProposalRejectedAlert, {
+                        proposalId: sibling._id,
+                        reason: "another_accepted",
+                    });
+                } catch (err) {
+                    console.log("[proposals.accept] sibling reject email skipped:", err);
+                }
             }
         }
 
@@ -365,6 +382,15 @@ export const reject = mutation({
             actionUrl: `/dashboard/board`,
             createdAt: Date.now(),
         });
+
+        try {
+            await ctx.scheduler.runAfter(0, internal.emails.sendProposalRejectedAlert, {
+                proposalId: args.proposalId,
+                reason: "rejected",
+            });
+        } catch (err) {
+            console.log("[proposals.reject] email schedule skipped:", err);
+        }
 
         return args.proposalId;
     },

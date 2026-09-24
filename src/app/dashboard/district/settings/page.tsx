@@ -45,7 +45,7 @@ export default function DistrictSettingsPage() {
                         <ArrowLeft className="w-4 h-4" /> Back to dashboard
                     </Link>
                     <PageHeader
-                        title="District account settings"
+                        title="District profile"
                         description="Account and organization preferences for hiring teams."
                     />
                     <div className="mt-10 space-y-8">
@@ -91,13 +91,12 @@ export default function DistrictSettingsPage() {
                         <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm">
                             <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-4">Hiring account</h2>
                             <p className="text-sm text-[var(--text-secondary)] mb-4">
-                                Manage needs, messages, accepted engagements, and contract documents from the district dashboard.
+                                Manage needs, messages, and accepted engagements from the district dashboard.
                             </p>
                             <div className="flex flex-wrap gap-3">
                                 <Link href="/post" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Post a need</Link>
                                 <Link href="/dashboard/messages" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Open messages</Link>
                                 <Link href="/browse" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Browse consultants</Link>
-                                <Link href="/dashboard/district/contract-hub" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Contract Hub</Link>
                             </div>
                         </section>
                         <section id="procurement" className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm">

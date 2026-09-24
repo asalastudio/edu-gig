@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "convex/react";
-import { Toaster } from "sonner";
+import { useMutation, useQuery } from "convex/react";
+import { toast, Toaster } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -11,8 +11,19 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
 import { getAreaOfNeedLabel, TAXONOMY } from "@/lib/taxonomy";
 import { isDistrictRole } from "@/lib/roles";
+import { canCancelNeed } from "@/lib/need-status";
 import { CurrencyDollar, Buildings, Briefcase, Clock, PlusCircle } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type OpenNeed = {
     _id: Id<"needs">;
@@ -114,6 +125,23 @@ export default function GigBoardPage() {
         api.needs.listMineWithCounts,
         isDistrict ? {} : "skip"
     ) as NeedWithCounts[] | undefined;
+    const cancelNeed = useMutation(api.needs.cancel);
+    const [cancelTarget, setCancelTarget] = useState<NeedWithCounts | null>(null);
+    const [cancelling, setCancelling] = useState(false);
+
+    async function handleCancelGig() {
+        if (!cancelTarget) return;
+        setCancelling(true);
+        try {
+            const result = await cancelNeed({ needId: cancelTarget._id });
+            toast.success(result.deleted ? "Draft deleted" : "Gig cancelled");
+            setCancelTarget(null);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Could not cancel this gig.");
+        } finally {
+            setCancelling(false);
+        }
+    }
 
     // Needs the educator has already proposed on (persistent, from listMine).
     const proposedNeedIds = useMemo(() => {
@@ -298,10 +326,10 @@ export default function GigBoardPage() {
                             {districtNeeds?.map((need) => {
                                 const grade = gradeLabel(need.gradeLevel);
                                 const isDraft = need.status === "draft";
+                                const detailHref = isDraft ? `/post?draft=${need._id}` : `/dashboard/district/needs/${need._id}`;
                                 return (
-                                    <Link
+                                    <div
                                         key={need._id}
-                                        href={isDraft ? `/post?draft=${need._id}` : `/dashboard/district/needs/${need._id}`}
                                         className="block p-0 border border-[var(--border-subtle)] shadow-[0_8px_30px_rgba(0,0,0,0.03)] rounded-lg bg-white overflow-hidden group hover:-translate-y-0.5 hover:border-[var(--accent-primary)]/40 hover:shadow-lg transition-all"
                                     >
                                         <div className="p-8 flex flex-col lg:flex-row justify-between gap-6">
@@ -362,14 +390,50 @@ export default function GigBoardPage() {
                                                         )}
                                                     </div>
                                                 )}
-                                                <span className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[var(--accent-primary)] text-white font-bold group-hover:bg-[var(--accent-primary-h)] transition-colors">
+                                                <Link
+                                                    href={detailHref}
+                                                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[var(--accent-primary)] text-white font-bold group-hover:bg-[var(--accent-primary-h)] transition-colors"
+                                                >
                                                     {isDraft ? "Continue editing" : "Review proposals"}
-                                                </span>
+                                                </Link>
+                                                {canCancelNeed(need.status) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setCancelTarget(need)}
+                                                        className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-red-200 bg-red-50 text-sm font-bold text-red-700 hover:bg-red-100"
+                                                    >
+                                                        {isDraft ? "Delete draft" : "Cancel this gig"}
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
-                                    </Link>
+                                    </div>
                                 );
                             })}
+                            <AlertDialog open={!!cancelTarget} onOpenChange={(open) => !open && setCancelTarget(null)}>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                            {cancelTarget?.status === "draft" ? "Delete this draft?" : "Cancel this posted gig?"}
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            {cancelTarget?.status === "draft"
+                                                ? "This draft will be removed. You can post a new need anytime."
+                                                : "The posting will close and pending consultants will be emailed that it was cancelled. This cannot be undone."}
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel disabled={cancelling}>Keep gig</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            variant="destructive"
+                                            disabled={cancelling}
+                                            onClick={() => void handleCancelGig()}
+                                        >
+                                            {cancelTarget?.status === "draft" ? "Delete draft" : "Cancel gig"}
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </div>
                     )}
                 </div>

@@ -120,10 +120,18 @@ function PostNeedPageInner() {
         ) {
             return;
         }
+        if (district === undefined) return;
         const raw = window.localStorage.getItem("k12gig_post_need_draft");
         if (!raw) return;
         const storedDraft = parseStoredNeedDraft(raw);
         if (!storedDraft) {
+            window.localStorage.removeItem("k12gig_post_need_draft");
+            return;
+        }
+        if (
+            district?.name &&
+            storedDraft.orgName.trim().toLowerCase() !== district.name.trim().toLowerCase()
+        ) {
             window.localStorage.removeItem("k12gig_post_need_draft");
             return;
         }
@@ -159,6 +167,7 @@ function PostNeedPageInner() {
             });
     }, [
         canPersist,
+        district,
         localDraftTransferState,
         requestedDraftId,
         router,

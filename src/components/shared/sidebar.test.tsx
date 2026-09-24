@@ -35,11 +35,14 @@ describe("Sidebar", () => {
         mocks.useQuery.mockReset();
     });
 
-    it("labels the district board as Posted Needs", () => {
+    it("labels the district board as Posted Needs and hides Contract Hub", () => {
         renderForViewer({ role: "district_admin", email: "district@example.org" });
 
         expect(screen.getByRole("link", { name: /Posted Needs/i })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Profile/i })).toBeInTheDocument();
         expect(screen.queryByRole("link", { name: /Gig Board/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /Contract Hub/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /^Settings$/i })).not.toBeInTheDocument();
     });
 
     it("keeps Gig Board language and exposes core destinations for educators", () => {
@@ -47,7 +50,8 @@ describe("Sidebar", () => {
 
         expect(screen.getByRole("link", { name: /Gig Board/i })).toBeInTheDocument();
         expect(screen.getByRole("link", { name: /My Gigs/i })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /Contract Hub/i })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Profile/i })).toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /Contract Hub/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("link", { name: /Directory/i })).not.toBeInTheDocument();
     });
 

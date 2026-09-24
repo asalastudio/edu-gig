@@ -2,19 +2,26 @@ import { test, expect } from "@playwright/test";
 import { expectClerkSignIn, hasClerkE2E } from "./helpers";
 
 test.describe("Launch marketplace flow (public)", () => {
-    test("pricing, help, and homepage describe off-platform payment and Contract Hub", async ({ page }) => {
+    test("pricing, help, and homepage describe off-platform payment without Contract Hub", async ({ page }) => {
         await page.goto("/");
         await expect(page.getByText(/Find qualified K–12 consultants/i)).toBeVisible();
+        await expect(page.getByText(/zero days/i)).toHaveCount(0);
         await expect(page.getByText(/reference checks/i)).toHaveCount(0);
 
         await page.goto("/pricing");
         await expect(page.getByText(/Payment stays between you/i)).toBeVisible();
         await expect(page.getByText(/does not charge an 18% fee/i)).toBeVisible();
-        await expect(page.getByText(/Contract Hub/i).first()).toBeVisible();
+        await expect(page.getByText(/Contract Hub/i)).toHaveCount(0);
 
         await page.goto("/help");
-        await expect(page.getByText(/Contract Hub/i).first()).toBeVisible();
+        await expect(page.getByText(/Contract Hub/i)).toHaveCount(0);
         await expect(page.getByText(/Educators are paid weekly via ACH/i)).toHaveCount(0);
+    });
+
+    test("legacy get-started URL reaches login", async ({ page }) => {
+        await page.goto("/get-started");
+        await expect(page).toHaveURL(/\/login/);
+        await expect(page.getByRole("heading", { name: /Sign in or create your account/i })).toBeVisible();
     });
 
     test("checkout routes are retired and post-need stays behind sign-in", async ({ page }) => {
@@ -40,17 +47,11 @@ test.describe("Launch marketplace flow (public)", () => {
 test.describe("Launch marketplace flow (auth-gated)", () => {
     test.skip(!hasClerkE2E, "Clerk is not configured in this environment.");
 
-    test("district post, consultant My Gigs, Contract Hub, and engagement detail require sign-in", async ({ page }) => {
+    test("district post, consultant My Gigs, and engagement detail require sign-in", async ({ page }) => {
         await page.goto("/dashboard/district");
         await expectClerkSignIn(page);
 
         await page.goto("/dashboard/educator/my-gigs");
-        await expectClerkSignIn(page);
-
-        await page.goto("/dashboard/educator/contract-hub");
-        await expectClerkSignIn(page);
-
-        await page.goto("/dashboard/district/contract-hub");
         await expectClerkSignIn(page);
 
         await page.goto("/dashboard/engagements/placeholder");

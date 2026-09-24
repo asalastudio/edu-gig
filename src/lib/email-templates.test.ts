@@ -6,6 +6,8 @@ import {
     newProposalAlert,
     profileCompletionReminder,
     proposalAcceptedAlert,
+    proposalRejectedAlert,
+    engagementStatusAlert,
 } from "./email-templates";
 
 describe("bookingConfirmation", () => {
@@ -132,17 +134,65 @@ describe("newProposalAlert", () => {
 });
 
 describe("proposalAcceptedAlert", () => {
-    it("includes org and need title with celebratory copy", () => {
+    it("includes org and need title with 3-business-day follow-up copy", () => {
         const out = proposalAcceptedAlert({
             needTitle: "Fall STEM Coach",
             orgName: "Riverside USD",
             educatorFirstName: "Kai",
-            needUrl: "https://k12gig.com/dashboard/educator/needs",
+            needUrl: "https://k12gig.com/dashboard/educator/my-gigs",
         });
         expect(out.subject).toContain("Fall STEM Coach");
         expect(out.html).toContain("Riverside USD");
         expect(out.text).toContain("Kai");
         expect(out.html.toLowerCase()).toContain("accepted");
+        expect(out.html).toMatch(/3 business days/i);
+        expect(out.html).not.toMatch(/Contract Hub/i);
+    });
+});
+
+describe("proposalRejectedAlert", () => {
+    it("emails the consultant when a district rejects a proposal", () => {
+        const out = proposalRejectedAlert({
+            needTitle: "Literacy Coach",
+            orgName: "Brown School",
+            educatorFirstName: "Dakota",
+            needUrl: "https://k12gig.com/dashboard/board",
+        });
+        expect(out.subject).toContain("Literacy Coach");
+        expect(out.html).toContain("Dakota");
+        expect(out.html).toContain("Brown School");
+        expect(out.html).toContain("https://k12gig.com/dashboard/board");
+        expect(out.text).toMatch(/did not select/i);
+        expect(out.html).toContain("K12Gig");
+    });
+
+    it("uses cancelled copy when the district pulls the posting", () => {
+        const out = proposalRejectedAlert({
+            needTitle: "Math Intervention",
+            orgName: "Harborview District",
+            educatorFirstName: "Jordan",
+            needUrl: "https://k12gig.com/dashboard/board",
+            reason: "need_cancelled",
+        });
+        expect(out.html).toMatch(/cancelled/i);
+        expect(out.text).toMatch(/cancelled/i);
+    });
+});
+
+describe("engagementStatusAlert", () => {
+    it("tells the other party the new engagement status", () => {
+        const out = engagementStatusAlert({
+            counterpartFirstName: "Chris",
+            actorName: "Consultant Brown",
+            orgName: "Brown School",
+            areaLabel: "Literacy Coach",
+            statusLabel: "in progress",
+            engagementUrl: "https://k12gig.com/dashboard/engagements/abc",
+        });
+        expect(out.subject).toContain("Brown School");
+        expect(out.html).toContain("in progress");
+        expect(out.html).toContain("https://k12gig.com/dashboard/engagements/abc");
+        expect(out.text).toContain("Consultant Brown");
     });
 });
 

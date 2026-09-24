@@ -1,9 +1,11 @@
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { authedQuery, authedMutation } from "./lib/customFunctions";
 import { canAccessEngagement, canManageNeed, getEducatorForUser } from "./lib/auth";
 import { createEngagementFromAcceptance } from "./lib/createEngagement";
 import { engagementStatusValidator, engagementSummaryValidator } from "./lib/validators";
+import { getAreaOfNeedLabel } from "../src/lib/taxonomy";
 
 const engagementDetailValidator = v.object({
     engagement: engagementSummaryValidator,
@@ -133,6 +135,38 @@ export const setStatus = authedMutation({
             status: args.status,
             updatedAt: Date.now(),
         });
+
+        const counterpartId =
+            engagement.educatorUserId === ctx.user._id
+                ? engagement.buyerUserId
+                : engagement.educatorUserId;
+        const actorName =
+            `${ctx.user.firstName} ${ctx.user.lastName}`.trim() || ctx.user.email || "A teammate";
+        const statusLabel =
+            args.status === "in_progress"
+                ? "in progress"
+                : args.status === "completed"
+                  ? "complete"
+                  : args.status;
+        await ctx.db.insert("notifications", {
+            userId: counterpartId,
+            type: "engagement_status",
+            title: "Engagement status updated",
+            body: `${actorName} marked ${getAreaOfNeedLabel(engagement.areaOfNeed)} as ${statusLabel}.`,
+            read: false,
+            actionUrl: `/dashboard/engagements/${args.engagementId}`,
+            createdAt: Date.now(),
+        });
+        try {
+            await ctx.scheduler.runAfter(0, internal.emails.sendEngagementStatusAlert, {
+                engagementId: args.engagementId,
+                actorUserId: ctx.user._id,
+                statusLabel,
+            });
+        } catch (err) {
+            console.log("[engagements.setStatus] email schedule skipped:", err);
+        }
+
         return args.engagementId;
     },
 });

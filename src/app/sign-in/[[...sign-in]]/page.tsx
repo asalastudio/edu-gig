@@ -65,6 +65,18 @@ export default function SignInPage() {
                         appearance={clerkCardAppearance}
                     />
                 </div>
+                <div className="mt-6 w-full max-w-md rounded-lg border border-[var(--accent-primary)]/20 bg-[var(--accent-primary)]/5 px-5 py-4 text-center">
+                    <p className="text-sm font-bold text-[var(--text-primary)]">Don&apos;t have an account?</p>
+                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                        Create one now — you can finish your profile after you verify email.
+                    </p>
+                    <Link
+                        href={authPagePath("/sign-up", intent, safeNext)}
+                        className="mt-3 inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--accent-primary)] px-4 text-sm font-bold text-white hover:opacity-90"
+                    >
+                        Sign up
+                    </Link>
+                </div>
                 <Link href="/login" className="mt-8 text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
                     ← Choose a different path
                 </Link>

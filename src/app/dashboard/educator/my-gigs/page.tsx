@@ -30,7 +30,7 @@ export default function EducatorMyGigsPage() {
                     </Link>
                     <PageHeader
                         title="My Gigs"
-                        description="Accepted district work lives here. Coordinate scope, documents, and next steps from each engagement."
+                        description="Accepted district work lives here. If you don't hear from the school in 3 business days, reach out to them."
                     />
 
                     {engagements === undefined ? (
@@ -44,7 +44,7 @@ export default function EducatorMyGigsPage() {
                                 No accepted gigs yet
                             </h3>
                             <p className="text-sm text-[var(--text-secondary)] max-w-sm mb-6">
-                                When a district accepts your proposal, the engagement appears here with the agreed rate and a link to Contract Hub.
+                                When a district accepts your proposal, the engagement appears here with the agreed rate so you can message the school.
                             </p>
                             <Link href="/dashboard/board">
                                 <PrimaryButton>Browse the Gig Board</PrimaryButton>

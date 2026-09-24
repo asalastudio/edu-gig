@@ -19,6 +19,8 @@ import {
     newProposalAlert,
     profileCompletionReminder,
     proposalAcceptedAlert,
+    proposalRejectedAlert,
+    engagementStatusAlert,
     refundIssuedAlert,
 } from "../src/lib/email-templates";
 import { generateInvoicePdf, invoiceNumber } from "../src/lib/invoice-pdf";
@@ -292,7 +294,7 @@ export const sendProposalAcceptedAlert = internalAction({
                 needTitle: need.areaOfNeed || "your placement",
                 orgName: need.orgName,
                 educatorFirstName: educatorUser.firstName || "there",
-                needUrl: `${appUrl()}/dashboard/educator/needs`,
+                needUrl: `${appUrl()}/dashboard/educator/my-gigs`,
             });
 
             await sendViaResend({
@@ -304,6 +306,94 @@ export const sendProposalAcceptedAlert = internalAction({
             });
         } catch (err) {
             console.error("[emails] sendProposalAcceptedAlert failed", err);
+        }
+    },
+});
+
+// ─── 4b. Proposal rejected alert ─────────────────────────────
+
+export const sendProposalRejectedAlert = internalAction({
+    args: {
+        proposalId: v.id("proposals"),
+        reason: v.optional(
+            v.union(v.literal("rejected"), v.literal("another_accepted"), v.literal("need_cancelled"))
+        ),
+    },
+    handler: async (ctx, args) => {
+        if (!process.env.RESEND_API_KEY) {
+            console.log("[emails] sendProposalRejectedAlert — RESEND_API_KEY missing, skipping.");
+            return;
+        }
+        try {
+            const data = await ctx.runQuery(
+                (await import("./_generated/api")).internal.emails.getProposalContext,
+                { proposalId: args.proposalId }
+            );
+            if (!data) return;
+
+            const { need, educatorUser } = data;
+            if (!educatorUser?.email) {
+                console.log("[emails] sendProposalRejectedAlert — no educator email.");
+                return;
+            }
+
+            const payload = proposalRejectedAlert({
+                needTitle: need.areaOfNeed || "the posting",
+                orgName: need.orgName,
+                educatorFirstName: educatorUser.firstName || "there",
+                needUrl: `${appUrl()}/dashboard/board`,
+                reason: args.reason,
+            });
+
+            await sendViaResend({
+                from: fromAddress(),
+                to: [educatorUser.email],
+                subject: payload.subject,
+                html: payload.html,
+                text: payload.text,
+            });
+        } catch (err) {
+            console.error("[emails] sendProposalRejectedAlert failed", err);
+        }
+    },
+});
+
+export const sendEngagementStatusAlert = internalAction({
+    args: {
+        engagementId: v.id("engagements"),
+        actorUserId: v.id("users"),
+        statusLabel: v.string(),
+    },
+    handler: async (ctx, args) => {
+        if (!process.env.RESEND_API_KEY) {
+            console.log("[emails] sendEngagementStatusAlert — RESEND_API_KEY missing, skipping.");
+            return;
+        }
+        try {
+            const data = await ctx.runQuery(
+                (await import("./_generated/api")).internal.emails.getEngagementStatusContext,
+                { engagementId: args.engagementId, actorUserId: args.actorUserId }
+            );
+            if (!data?.counterpart?.email) return;
+
+            const payload = engagementStatusAlert({
+                counterpartFirstName: data.counterpart.firstName || "there",
+                actorName: data.actorName,
+                orgName: data.orgName,
+                areaLabel: data.areaLabel,
+                statusLabel: args.statusLabel,
+                engagementUrl: `${appUrl()}/dashboard/engagements/${args.engagementId}`,
+            });
+
+            await sendViaResend({
+                from: fromAddress(),
+                to: [data.counterpart.email],
+                subject: payload.subject,
+                html: payload.html,
+                text: payload.text,
+            });
+        } catch (err) {
+            console.error("[emails] sendEngagementStatusAlert failed", err);
         }
     },
 });
@@ -505,6 +595,29 @@ export const getProposalContext = internalQuery({
         const districtUser = await ctx.db.get(need.postedByUserId);
         if (!educatorUser || !districtUser) return null;
         return { proposal, need, educatorUser, districtUser };
+    },
+});
+
+export const getEngagementStatusContext = internalQuery({
+    args: { engagementId: v.id("engagements"), actorUserId: v.id("users") },
+    handler: async (ctx, args) => {
+        const engagement = await ctx.db.get(args.engagementId);
+        if (!engagement) return null;
+        const actor = await ctx.db.get(args.actorUserId);
+        if (!actor) return null;
+        const counterpartId =
+            engagement.educatorUserId === args.actorUserId
+                ? engagement.buyerUserId
+                : engagement.educatorUserId;
+        const counterpart = await ctx.db.get(counterpartId);
+        if (!counterpart) return null;
+        const actorName = `${actor.firstName} ${actor.lastName}`.trim() || actor.email || "A teammate";
+        return {
+            counterpart,
+            actorName,
+            orgName: engagement.orgName,
+            areaLabel: getAreaOfNeedLabel(engagement.areaOfNeed),
+        };
     },
 });
 

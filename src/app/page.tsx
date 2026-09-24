@@ -56,8 +56,8 @@ export default function Home() {
 
               <h1 className="font-heading text-4xl font-bold leading-[1.04] tracking-normal text-white md:text-[2.8rem] 2xl:text-[4rem]">
                 Find qualified K–12 consultants <br className="hidden md:block" />
-                in <span className="relative inline-block text-[#F4D46A]">
-                  zero days.
+                for your <span className="relative inline-block text-[#F4D46A]">
+                  next opening.
                   <svg className="absolute -bottom-3 left-0 h-3 w-full overflow-visible" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
                     <path
                       d="M2 6 C 19 1, 37 8, 52 5 S 80 2, 98 4"

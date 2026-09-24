@@ -280,7 +280,7 @@ export function proposalAcceptedAlert(input: ProposalAcceptedAlertInput): EmailP
 <h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">Congratulations — your proposal was accepted</h1>
 <p style="margin:0 0 16px;">Hi ${escapeHtml(educatorFirstName)},</p>
 <p style="margin:0 0 16px;"><strong>${escapeHtml(orgName)}</strong> accepted your proposal for <strong>${escapeHtml(needTitle)}</strong>.</p>
-<p style="margin:0 0 20px;">The district will be in touch with next steps. You can also reach out directly through K12Gig's messaging.</p>
+<p style="margin:0 0 20px;">If you don't hear from the school in 3 business days, reach out to them. Contracts and payment are handled off-platform.</p>
 <p style="margin:0 0 0;">
   <a href="${escapeHtml(needUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Open placement</a>
 </p>
@@ -296,6 +296,91 @@ export function proposalAcceptedAlert(input: ProposalAcceptedAlertInput): EmailP
         `The district will be in touch with next steps.`,
         ``,
         `Open placement: ${needUrl}`,
+        ``,
+        `— K12Gig, The K-12 Educator Marketplace`,
+    ].join("\n");
+
+    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+}
+
+// ─── 4b. Proposal rejected alert ────────────────────────────
+
+export type ProposalRejectedReason = "rejected" | "another_accepted" | "need_cancelled";
+
+export type ProposalRejectedAlertInput = {
+    needTitle: string;
+    orgName: string;
+    educatorFirstName: string;
+    needUrl: string;
+    reason?: ProposalRejectedReason;
+};
+
+export function proposalRejectedAlert(input: ProposalRejectedAlertInput): EmailPayload {
+    const { needTitle, orgName, educatorFirstName, needUrl, reason = "rejected" } = input;
+    const subject = `Update on your proposal — ${needTitle}`;
+
+    const reasonCopy =
+        reason === "need_cancelled"
+            ? `${orgName} cancelled the posting for ${needTitle}. Your proposal is no longer under review.`
+            : reason === "another_accepted"
+              ? `${orgName} selected another consultant for ${needTitle}.`
+              : `${orgName} did not select your proposal for ${needTitle}.`;
+
+    const bodyHtml = `
+<h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">Proposal update</h1>
+<p style="margin:0 0 16px;">Hi ${escapeHtml(educatorFirstName)},</p>
+<p style="margin:0 0 16px;">${escapeHtml(reasonCopy)}</p>
+<p style="margin:0 0 20px;">You can keep browsing open district needs and submit a new proposal when you find a fit.</p>
+<p style="margin:0 0 0;">
+  <a href="${escapeHtml(needUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">View open needs</a>
+</p>
+`;
+
+    const text = [
+        `Update on your proposal — ${needTitle}`,
+        ``,
+        `Hi ${educatorFirstName},`,
+        ``,
+        reasonCopy,
+        ``,
+        `View open needs: ${needUrl}`,
+        ``,
+        `— K12Gig, The K-12 Educator Marketplace`,
+    ].join("\n");
+
+    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+}
+
+export type EngagementStatusAlertInput = {
+    counterpartFirstName: string;
+    actorName: string;
+    orgName: string;
+    areaLabel: string;
+    statusLabel: string;
+    engagementUrl: string;
+};
+
+export function engagementStatusAlert(input: EngagementStatusAlertInput): EmailPayload {
+    const { counterpartFirstName, actorName, orgName, areaLabel, statusLabel, engagementUrl } = input;
+    const subject = `${orgName} updated the engagement — ${areaLabel}`;
+
+    const bodyHtml = `
+<h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">Engagement status updated</h1>
+<p style="margin:0 0 16px;">Hi ${escapeHtml(counterpartFirstName)},</p>
+<p style="margin:0 0 16px;"><strong>${escapeHtml(actorName)}</strong> marked the ${escapeHtml(areaLabel)} engagement at ${escapeHtml(orgName)} as <strong>${escapeHtml(statusLabel)}</strong>.</p>
+<p style="margin:0 0 0;">
+  <a href="${escapeHtml(engagementUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Open engagement</a>
+</p>
+`;
+
+    const text = [
+        `${orgName} updated the engagement — ${areaLabel}`,
+        ``,
+        `Hi ${counterpartFirstName},`,
+        ``,
+        `${actorName} marked the ${areaLabel} engagement at ${orgName} as ${statusLabel}.`,
+        ``,
+        `Open engagement: ${engagementUrl}`,
         ``,
         `— K12Gig, The K-12 Educator Marketplace`,
     ].join("\n");

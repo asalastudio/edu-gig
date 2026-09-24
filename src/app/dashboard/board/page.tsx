@@ -175,7 +175,7 @@ export default function GigBoardPage() {
                                 <Link href="/post">
                                     <PrimaryButton>
                                         <PlusCircle weight="bold" className="w-4 h-4" />
-                                        Post a need
+                                        Post a gig
                                     </PrimaryButton>
                                 </Link>
                             ) : undefined
@@ -311,13 +311,13 @@ export default function GigBoardPage() {
                                         No needs posted yet
                                     </h2>
                                     <p className="text-[var(--text-secondary)] max-w-md mx-auto mb-6">
-                                        Post a need to reach matching educators. They&apos;ll respond with
+                                        Post a gig to reach matching educators. They&apos;ll respond with
                                         proposals you can review here.
                                     </p>
                                     <Link href="/post">
                                         <PrimaryButton>
                                             <PlusCircle weight="bold" className="w-4 h-4" />
-                                            Post a need
+                                            Post a gig
                                         </PrimaryButton>
                                     </Link>
                                 </div>

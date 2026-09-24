@@ -27,10 +27,10 @@ export default function GigCheckoutPage() {
                     <h1 className="font-heading text-3xl font-bold mb-3">Checkout is not part of K12Gig</h1>
                     <p className="text-[var(--text-secondary)] leading-7 mb-6">
                         {gigData ? `${gigData.educatorName} · ${gigData.gig.title}. ` : ""}
-                        Districts post a need, review proposals, and accept work here. After accept, both sides coordinate contracts and payment off-platform.
+                        Districts post a gig, review proposals, and accept work here. After accept, both sides coordinate contracts and payment off-platform.
                     </p>
                     <div className="flex flex-wrap justify-center gap-3">
-                        <Link href="/post"><PrimaryButton>Post a need</PrimaryButton></Link>
+                        <Link href="/post"><PrimaryButton>Post a gig</PrimaryButton></Link>
                         <Link href="/browse" className="inline-flex items-center px-4 py-2 rounded-md border border-[var(--border-strong)] text-sm font-bold">Browse consultants</Link>
                     </div>
                 </div>

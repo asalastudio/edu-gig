@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 const SITE_DESCRIPTION =
-  "Connect school districts with credential-reviewed K-12 consultants. Post a need, review proposals, and coordinate contracts. Payment stays off-platform.";
+  "Connect school districts with credential-reviewed K-12 consultants. Post a gig, review proposals, and coordinate contracts. Payment stays off-platform.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),

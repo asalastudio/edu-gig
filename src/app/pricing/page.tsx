@@ -38,7 +38,7 @@ export default function PricingPage() {
                 <section className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-subtle)] md:p-8">
                     <h2 className="font-heading text-2xl font-bold">How money works at launch</h2>
                     <ol className="mt-6 grid gap-4 text-sm leading-6 text-[var(--text-secondary)]">
-                        <li><strong className="text-[var(--text-primary)]">1. Post and propose.</strong> Districts post a need. Consultants submit a proposal with a rate and resume.</li>
+                        <li><strong className="text-[var(--text-primary)]">1. Post and propose.</strong> Districts post a gig. Consultants submit a proposal with a rate and resume.</li>
                         <li><strong className="text-[var(--text-primary)]">2. Accept.</strong> Acceptance creates an engagement both sides see on dashboards and My Gigs.</li>
                         <li><strong className="text-[var(--text-primary)]">3. Reach out within 3 business days.</strong> The school contacts the consultant to coordinate the working agreement. Sign it with the district’s usual process.</li>
                         <li><strong className="text-[var(--text-primary)]">4. Pay directly.</strong> Purchase orders, invoices, and payment happen between the district and consultant.</li>
@@ -51,7 +51,7 @@ export default function PricingPage() {
                         Purchase orders, invoice routing, tax-exemption documentation, and contract requirements stay with the district. K12Gig keeps the proposal, engagement, and messages available for the hiring team and consultant.
                     </p>
                     <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <Link href="/post"><PrimaryButton>Post a need</PrimaryButton></Link>
+                        <Link href="/post"><PrimaryButton>Post a gig</PrimaryButton></Link>
                         <Link href="/dpa" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border-strong)] px-4 text-sm font-bold">
                             Review district documents
                         </Link>

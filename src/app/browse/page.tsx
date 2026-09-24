@@ -9,12 +9,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { TaxonomyFilter } from "@/components/shared/taxonomy-filter";
 import { EducatorCard, type EducatorCardProps } from "@/components/shared/educator-card";
 import { TAXONOMY, getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxonomy";
-import {
-    filterEducatorRoster,
-    type DirectoryQuickFilter,
-} from "@/lib/filter-educators";
+import { filterEducatorRoster } from "@/lib/filter-educators";
 import { PrimaryButton } from "@/components/shared/button";
-import { ArrowLeft, FadersHorizontal, Lightning, Clock, MapPin, Funnel } from "@phosphor-icons/react";
+import { ArrowLeft, FadersHorizontal, Funnel } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -41,12 +38,6 @@ function savedEducatorIdsFromStorage(): string[] {
     }
 }
 
-const QUICK_FILTERS = [
-    { id: "quick_avail", label: "Available Now", icon: Clock, color: "text-emerald-700", active: "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 ring-emerald-100" },
-    { id: "quick_local", label: "Local to Me", icon: MapPin, color: "text-[var(--accent-tertiary)]", active: "bg-sky-50 hover:bg-sky-100 border-sky-200 ring-sky-100" },
-    { id: "quick_instant", label: "Ready to Request", icon: Lightning, color: "text-[var(--accent-primary)]", active: "bg-green-50 hover:bg-green-100 border-green-200 ring-green-100" },
-] as const;
-
 export default function BrowsePage() {
     const router = useRouter();
     const viewer = useQuery(api.users.viewer, {});
@@ -61,7 +52,6 @@ export default function BrowsePage() {
             router.replace("/dashboard/board");
         }
     }, [viewer, router]);
-    const districtMine = useQuery(api.districts.getMine, districtOK ? {} : "skip");
     const convexEducators = useQuery(
         api.educators.listForBrowse,
         USE_CONVEX_BROWSE && districtOK ? {} : "skip"
@@ -85,37 +75,22 @@ export default function BrowsePage() {
     const [selectedAreas, setSelectedAreas] = useState<string[]>(() => searchParamList("area"));
     const [selectedGrades, setSelectedGrades] = useState<string[]>(() => searchParamList("grade"));
     const [selectedRegions, setSelectedRegions] = useState<string[]>(() => searchParamList("region", "location"));
-    const [selectedEngagements, setSelectedEngagements] = useState<string[]>(() => searchParamList("engagement"));
     const [verifiedOnly, setVerifiedOnly] = useState(false);
-    const [availableNow, setAvailableNow] = useState(false);
     const [sortOption, setSortOption] = useState("relevance");
     const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
     const [showSavedOnly, setShowSavedOnly] = useState(false);
     const [savedEducatorIds] = useState<string[]>(() => savedEducatorIdsFromStorage());
-    
-    // Quick filter active state
-    const [activeQuickFilter, setActiveQuickFilter] = useState<DirectoryQuickFilter>(null);
 
     const toggleFilter = (setter: React.Dispatch<React.SetStateAction<string[]>>, id: string) => {
         setter(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
     };
 
-    const handleQuickFilter = (id: Exclude<DirectoryQuickFilter, null>) => {
-        if (!convexLive) return;
-        if (activeQuickFilter === id) {
-            setActiveQuickFilter(null);
-            setAvailableNow(false);
-        } else {
-            setActiveQuickFilter(id);
-            setAvailableNow(id === "quick_avail" || id === "quick_instant");
-        }
-    };
-
-    const clearAvailableNow = () => {
-        setAvailableNow(false);
-        setActiveQuickFilter((current) =>
-            current === "quick_avail" || current === "quick_instant" ? null : current
-        );
+    const clearDirectoryFilters = () => {
+        setSelectedAreas([]);
+        setSelectedGrades([]);
+        setSelectedRegions([]);
+        setVerifiedOnly(false);
+        setShowSavedOnly(false);
     };
 
     // Filter logic
@@ -123,37 +98,27 @@ export default function BrowsePage() {
         selectedAreas,
         selectedGrades,
         selectedRegions,
-        selectedEngagements,
+        selectedEngagements: [],
         verifiedOnly,
-        availableNow,
+        availableNow: false,
         showSavedOnly,
         savedEducatorIds,
-        activeQuickFilter,
-        districtRegion: districtMine?.region,
+        activeQuickFilter: null,
     });
 
     const activeFilterChips = [
         ...selectedAreas.map((id) => ({ id: `area:${id}`, label: getAreaOfNeedLabel(id), clear: () => setSelectedAreas((prev) => prev.filter((v) => v !== id)) })),
         ...selectedGrades.map((id) => ({ id: `grade:${id}`, label: TAXONOMY.gradeLevelBands.find((g) => g.id === id)?.label ?? id, clear: () => setSelectedGrades((prev) => prev.filter((v) => v !== id)) })),
         ...selectedRegions.map((id) => ({ id: `region:${id}`, label: getCoverageRegionLabel(id), clear: () => setSelectedRegions((prev) => prev.filter((v) => v !== id)) })),
-        ...selectedEngagements.map((id) => ({ id: `engagement:${id}`, label: TAXONOMY.engagementTypes.find((e) => e.id === id)?.label ?? id, clear: () => setSelectedEngagements((prev) => prev.filter((v) => v !== id)) })),
-        ...(availableNow ? [{ id: "available", label: "Available now", clear: clearAvailableNow }] : []),
-        ...(activeQuickFilter === "quick_local" ? [{ id: "quick_local", label: "Local coverage", clear: () => setActiveQuickFilter(null) }] : []),
-        ...(activeQuickFilter === "quick_instant" ? [{ id: "quick_instant", label: "Ready to request", clear: () => setActiveQuickFilter(null) }] : []),
         ...(verifiedOnly ? [{ id: "verified", label: "Verified only", clear: () => setVerifiedOnly(false) }] : []),
         ...(showSavedOnly ? [{ id: "saved", label: "Saved educators", clear: () => setShowSavedOnly(false) }] : []),
     ];
 
-    // Sort logic
-    if (sortOption === "availability") {
-        filteredEducators.sort((a, b) => (b.availabilityStatus === 'open' ? 1 : 0) - (a.availabilityStatus === 'open' ? 1 : 0));
-    } else if (sortOption === "rate") {
+    if (sortOption === "rate") {
         filteredEducators.sort((a, b) => (a.startingRate ?? 0) - (b.startingRate ?? 0));
     }
 
     const canUseDirectory = convexLive;
-    const showLocalQuickFilter = districtOK && !!districtMine?.region;
-    const visibleQuickFilters = QUICK_FILTERS.filter((f) => f.id !== "quick_local" || showLocalQuickFilter);
 
     const signedIn = !!viewer;
     const emptyState = (() => {
@@ -199,16 +164,7 @@ export default function BrowsePage() {
             action: (
                 <PrimaryButton
                     className="px-6 shadow-sm bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90"
-                    onClick={() => {
-                        setSelectedAreas([]);
-                        setSelectedGrades([]);
-                        setSelectedRegions([]);
-                        setSelectedEngagements([]);
-                        setVerifiedOnly(false);
-                        setAvailableNow(false);
-                        setActiveQuickFilter(null);
-                        setShowSavedOnly(false);
-                    }}
+                    onClick={clearDirectoryFilters}
                 >
                     Clear filters
                 </PrimaryButton>
@@ -226,7 +182,7 @@ export default function BrowsePage() {
                 )}
 
                 <PageHeader
-                    title="Find K-12 Educators"
+                    title="Find consultants"
                     description={
                         needsDistrictSignIn
                             ? "The live educator directory is available to district hiring teams."
@@ -343,31 +299,13 @@ export default function BrowsePage() {
                                     />
                                     <span className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Verified Only</span>
                                 </label>
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input 
-                                        type="checkbox" 
-                                        className="w-4 h-4 rounded border-[var(--border-strong)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
-                                        checked={availableNow}
-                                        onChange={(e) => setAvailableNow(e.target.checked)}
-                                    />
-                                    <span className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Available Now</span>
-                                </label>
                             </div>
 
                             <div className="h-px bg-[var(--border-subtle)] w-full my-1" />
 
                             <button
                                 className="text-sm font-bold text-[var(--text-tertiary)] hover:text-[var(--text-primary)] text-left transition-colors"
-                                onClick={() => {
-                                    setSelectedAreas([]);
-                                    setSelectedGrades([]);
-                                    setSelectedRegions([]);
-                                    setSelectedEngagements([]);
-                                    setVerifiedOnly(false);
-                                    setAvailableNow(false);
-                                    setActiveQuickFilter(null);
-                                    setShowSavedOnly(false);
-                                }}
+                                onClick={clearDirectoryFilters}
                             >
                                 Clear All Filters
                             </button>
@@ -376,30 +314,6 @@ export default function BrowsePage() {
 
                     {/* Results Grid */}
                     <main className="flex-1 flex flex-col">
-                        
-                        {/* Quick Action Filter Chips */}
-                        <div className="flex flex-wrap gap-2.5 mb-5">
-                            {visibleQuickFilters.map(f => (
-                                <button 
-                                    key={f.id}
-                                    type="button"
-                                    disabled={!canUseDirectory}
-                                    title={!canUseDirectory ? "Sign in with a district account to filter the live roster" : undefined}
-                                    onClick={() => handleQuickFilter(f.id)}
-                                    className={cn(
-                                        "flex items-center gap-2 px-3.5 py-2 rounded-full border text-sm font-semibold transition-all duration-200",
-                                        !canUseDirectory && "cursor-not-allowed opacity-50",
-                                        activeQuickFilter === f.id
-                                            ? `${f.active} ring-2 ring-offset-2`
-                                            : "bg-white border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:shadow-sm"
-                                    )}
-                                >
-                                    <f.icon weight={activeQuickFilter === f.id ? "fill" : "regular"} className={cn("w-4 h-4", activeQuickFilter === f.id ? f.color : "text-[var(--text-tertiary)]")} />
-                                    <span className={activeQuickFilter === f.id ? "text-[var(--text-primary)]" : ""}>{f.label}</span>
-                                </button>
-                            ))}
-                        </div>
-
                         {activeFilterChips.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-5">
                                 {activeFilterChips.map((chip) => (
@@ -431,7 +345,6 @@ export default function BrowsePage() {
                                 onChange={(e) => setSortOption(e.target.value)}
                             >
                                 <option value="relevance">Sort by: Relevance</option>
-                                <option value="availability">Sort by: Availability</option>
                                 <option value="rate">Sort by: Rate</option>
                             </select>
                         </div>

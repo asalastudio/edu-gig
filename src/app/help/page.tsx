@@ -27,7 +27,7 @@ export default function HelpPage() {
 
                 <section className="grid gap-6 md:grid-cols-2">
                     {[
-                        ["Districts", "Post a need, browse consultants, review proposals, accept work, and message candidates. After you accept, reach out to the consultant within 3 business days. Contracts and payment stay off-platform."],
+                        ["Districts", "Post a gig, browse consultants, review proposals, accept work, and message candidates. After you accept, reach out to the consultant within 3 business days. Contracts and payment stay off-platform."],
                         ["Educators", betaCopy.educatorHelp],
                         ["Billing", betaCopy.billingHelp],
                         ["Trust and compliance", "Privacy, terms, DPA requests, credential status, and current verification information are available from profile and legal surfaces."],

@@ -94,7 +94,7 @@ export default function DistrictSettingsPage() {
                                 Manage needs, messages, and accepted engagements from the district dashboard.
                             </p>
                             <div className="flex flex-wrap gap-3">
-                                <Link href="/post" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Post a need</Link>
+                                <Link href="/post" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Post a gig</Link>
                                 <Link href="/dashboard/messages" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Open messages</Link>
                                 <Link href="/browse" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Browse consultants</Link>
                             </div>

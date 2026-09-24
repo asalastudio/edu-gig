@@ -5,8 +5,10 @@ test.describe("Launch marketplace flow (public)", () => {
     test("pricing, help, and homepage describe off-platform payment without Contract Hub", async ({ page }) => {
         await page.goto("/");
         await expect(page.getByText(/Find qualified K–12 consultants/i)).toBeVisible();
+        await expect(page.getByRole("link", { name: /Find consultants/i }).first()).toBeVisible();
         await expect(page.getByText(/zero days/i)).toHaveCount(0);
         await expect(page.getByText(/reference checks/i)).toHaveCount(0);
+        await expect(page.getByText(/Search Educators/i)).toHaveCount(0);
 
         await page.goto("/pricing");
         await expect(page.getByText(/Payment stays between you/i)).toBeVisible();
@@ -30,17 +32,28 @@ test.describe("Launch marketplace flow (public)", () => {
         await expect(page.getByRole("button", { name: /Submit booking request|Pay with Stripe/i })).toHaveCount(0);
 
         await page.goto("/post");
-        await expect(page.getByRole("heading", { name: /Sign in to post a need/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: /Sign in to post a gig/i })).toBeVisible();
     });
 
     test("mobile navigation exposes browse, post, and pricing", async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto("/");
         await page.getByRole("button", { name: /Open menu/i }).click();
-        await expect(page.getByRole("banner").getByRole("link", { name: /Post a need/i })).toBeVisible();
+        await expect(page.getByRole("banner").getByRole("link", { name: /Post a gig/i })).toBeVisible();
+        await expect(page.getByRole("banner").getByRole("link", { name: /Find consultants/i })).toBeVisible();
         await expect(page.getByRole("banner").getByRole("link", { name: /^Pricing$/i })).toBeVisible();
         await page.getByRole("banner").getByRole("link", { name: /^Pricing$/i }).click();
         await expect(page).toHaveURL(/\/pricing/);
+    });
+
+    test("directory no longer shows engagement type or availability chips", async ({ page }) => {
+        await page.goto("/browse");
+        await expect(page.getByRole("heading", { name: /Find consultants/i })).toBeVisible();
+        await expect(page.getByText(/Engagement Type/i)).toHaveCount(0);
+        await expect(page.getByText(/Available Now/i)).toHaveCount(0);
+        await expect(page.getByText(/Local to Me/i)).toHaveCount(0);
+        await expect(page.getByText(/Ready to Request/i)).toHaveCount(0);
+        await expect(page.getByText(/Sort by: Availability/i)).toHaveCount(0);
     });
 });
 

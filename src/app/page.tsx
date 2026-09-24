@@ -82,7 +82,7 @@ export default function Home() {
               <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                 <Link href="/browse">
                   <PrimaryButton className="w-full min-h-12 bg-[var(--accent-secondary)] px-6 text-base text-[#17261F] hover:bg-[var(--accent-secondary)]/90 sm:w-auto">
-                    Search Educators
+                    Find consultants
                     <MagnifyingGlass className="h-5 w-5" weight="bold" />
                   </PrimaryButton>
                 </Link>

@@ -21,6 +21,6 @@ export function getActiveBetaCopy(cardCheckoutEnabled: boolean): ActiveBetaCopy 
         checkoutInvoiceOption: "Off-platform payment",
         checkoutInvoiceNotice:
             "K12Gig checkout is retired. Accept a proposal, then coordinate the contract and payment outside the platform.",
-        checkoutInvoiceAction: "Post a need",
+        checkoutInvoiceAction: "Post a gig",
     };
 }

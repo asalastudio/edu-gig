@@ -11,7 +11,7 @@ describe("getActiveBetaCopy", () => {
         expect(copy.educatorHelp).not.toMatch(/create gigs/i);
         expect(copy.billingHelp).toMatch(/does not process payments/i);
         expect(copy.billingHelp).not.toMatch(/Contract Hub/i);
-        expect(copy.checkoutInvoiceAction).toBe("Post a need");
+        expect(copy.checkoutInvoiceAction).toBe("Post a gig");
         expect(copy.paymentModeLabel).toMatch(/Off-platform/i);
     });
 

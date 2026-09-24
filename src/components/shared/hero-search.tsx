@@ -67,7 +67,7 @@ export function HeroSearch() {
                 <button
                     type="button"
                     onClick={handleSearch}
-                    aria-label="Search educators"
+                    aria-label="Find consultants"
                     className="flex min-h-12 items-center justify-center rounded-lg bg-[var(--accent-primary)] text-white shadow-[0_10px_22px_rgba(20,48,38,0.22)] transition hover:bg-[var(--accent-primary-h)] sm:col-start-3 sm:row-span-2 sm:row-start-1 2xl:col-start-auto 2xl:row-span-1 2xl:row-start-auto"
                 >
                     <MagnifyingGlass className="h-6 w-6" weight="bold" />

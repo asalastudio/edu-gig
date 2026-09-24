@@ -21,13 +21,13 @@ export default function HelpPage() {
                     <div className="education-rule mb-4" />
                     <h1 className="font-heading text-4xl font-bold leading-tight md:text-5xl">Support for every hiring step.</h1>
                     <p className="mt-5 text-base leading-7 text-[var(--text-secondary)] md:text-lg">
-                        Get help with district hiring workflows, consultant profiles, Contract Hub documents, credentials, and marketplace messages.
+                        Get help with district hiring workflows, consultant profiles, credentials, and marketplace messages.
                     </p>
                 </section>
 
                 <section className="grid gap-6 md:grid-cols-2">
                     {[
-                        ["Districts", "Post a need, browse consultants, review proposals, accept work, message candidates, and keep contract files in Contract Hub."],
+                        ["Districts", "Post a gig, browse consultants, review proposals, accept work, and message candidates. After you accept, reach out to the consultant within 3 business days. Contracts and payment stay off-platform."],
                         ["Educators", betaCopy.educatorHelp],
                         ["Billing", betaCopy.billingHelp],
                         ["Trust and compliance", "Privacy, terms, DPA requests, credential status, and current verification information are available from profile and legal surfaces."],

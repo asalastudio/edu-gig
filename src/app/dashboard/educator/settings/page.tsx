@@ -70,7 +70,7 @@ export default function EducatorSettingsPage() {
         const hasHourly = typeof mine.hourlyRate === "number";
         const hasDaily = typeof mine.dailyRate === "number";
         setRateHourly(hasHourly);
-        setRateDaily(hasDaily);
+        setRateDaily(hasDaily && !hasHourly);
         setRateAmount(
             hasHourly
                 ? String(mine.hourlyRate)
@@ -172,7 +172,7 @@ export default function EducatorSettingsPage() {
                         <ArrowLeft className="w-4 h-4" /> Back to dashboard
                     </Link>
                     <PageHeader
-                        title="Educator settings"
+                        title="Consultant profile"
                         description="Profile visibility, rates, and notifications."
                     />
                     <div className="mt-10 flex flex-col gap-8">
@@ -303,7 +303,6 @@ export default function EducatorSettingsPage() {
                                     {[
                                         { label: "Support types", values: TAXONOMY.areasOfNeed, selected: areas, setter: setAreas },
                                         { label: "Grade levels", values: TAXONOMY.gradeLevelBands.filter((g) => g.id !== "other"), selected: gradeLevels, setter: setGradeLevels },
-                                        { label: "Engagement types", values: TAXONOMY.engagementTypes, selected: engagementTypes, setter: setEngagementTypes },
                                         { label: "Coverage areas", values: TAXONOMY.coverageRegions, selected: coverageRegions, setter: setCoverageRegions },
                                     ].map((group) => (
                                         <div key={group.label} className="flex flex-col gap-3">

@@ -43,6 +43,13 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      { source: "/get-started", destination: "/login", permanent: false },
+      { source: "/dashboard/educator/contract-hub", destination: "/dashboard/educator/my-gigs", permanent: false },
+      { source: "/dashboard/district/contract-hub", destination: "/dashboard/district", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

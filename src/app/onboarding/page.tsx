@@ -117,7 +117,7 @@ function OnboardingWithClerk() {
     const [businessName, setBusinessName] = useState("");
     const [headline, setHeadline] = useState("");
     const [bio, setBio] = useState("");
-    const [engagementTypes, setEngagementTypes] = useState<string[]>([...DEFAULT_ENGAGEMENT_TYPES]);
+    const [engagementTypes] = useState<string[]>([...DEFAULT_ENGAGEMENT_TYPES]);
     const [yearsExperience, setYearsExperience] = useState("5");
     const [rateAmount, setRateAmount] = useState("");
     const [rateHourly, setRateHourly] = useState(true);
@@ -189,8 +189,27 @@ function OnboardingWithClerk() {
     // Seed the name fields once from the Clerk profile so returning users don't
     // retype what Clerk already knows; later edits stay under the user's control.
     const nameSeeded = useRef(false);
+    const seededForUserId = useRef<string | null>(null);
     useEffect(() => {
-        if (!user || nameSeeded.current) return;
+        if (!user) return;
+        if (seededForUserId.current && seededForUserId.current !== user.id) {
+            setOrganizationName("");
+            setDistrictNceaId("");
+            setBusinessName("");
+            setHeadline("");
+            setBio("");
+            setRateAmount("");
+            setAreasOfNeed([]);
+            setGradeLevelBands([]);
+            setCoverageRegions([]);
+            setResumeStorageId(null);
+            setResumeFileName(null);
+            setAcceptedLegal(false);
+            setStep(0);
+            nameSeeded.current = false;
+        }
+        seededForUserId.current = user.id;
+        if (nameSeeded.current) return;
         nameSeeded.current = true;
         setFirstName(user.firstName?.trim() ?? "");
         setLastName(user.lastName?.trim() ?? "");
@@ -215,12 +234,11 @@ function OnboardingWithClerk() {
         if (targetStep === 1) {
             if (areasOfNeed.length === 0) return "Choose at least one support type.";
             if (gradeLevelBands.length === 0) return "Choose at least one grade band.";
-            if (engagementTypes.length === 0) return "Choose at least one engagement type.";
         }
         if (targetStep === 2) {
             if (coverageRegions.length === 0) return "Choose at least one coverage area.";
             if (!rateAmount || Number(rateAmount) <= 0) return "Add your starting rate.";
-            if (!rateHourly && !rateDaily) return "Choose whether your rate is hourly, daily, or both.";
+            if (!rateHourly && !rateDaily) return "Choose whether your rate is hourly or daily.";
             if (rateHourly && Number(rateAmount) < 20) return "Hourly rates should be $20 or more.";
             if (rateDaily && Number(rateAmount) < 100) return "Daily rates should be $100 or more.";
         }
@@ -397,8 +415,6 @@ function OnboardingWithClerk() {
                                     onHeadlineChange={setHeadline}
                                     bio={bio}
                                     onBioChange={setBio}
-                                    engagementTypes={engagementTypes}
-                                    onEngagementTypesChange={setEngagementTypes}
                                     yearsExperience={yearsExperience}
                                     onYearsExperienceChange={setYearsExperience}
                                     rateAmount={rateAmount}
@@ -718,8 +734,6 @@ function EducatorStep(props: {
     onHeadlineChange: (value: string) => void;
     bio: string;
     onBioChange: (value: string) => void;
-    engagementTypes: string[];
-    onEngagementTypesChange: (value: string[]) => void;
     yearsExperience: string;
     onYearsExperienceChange: (value: string) => void;
     rateAmount: string;
@@ -845,12 +859,6 @@ function EducatorStep(props: {
                     selected={props.gradeLevelBands}
                     onChange={props.onGradeLevelBandsChange}
                 />
-                <MultiSelectGroup
-                    label="Engagement types"
-                    values={TAXONOMY.engagementTypes}
-                    selected={props.engagementTypes}
-                    onChange={props.onEngagementTypesChange}
-                />
             </div>
         );
     }
@@ -925,12 +933,6 @@ function EducatorStep(props: {
                     ["Experience", `${Number(props.yearsExperience) || 0} years`],
                     ["Areas", props.areasOfNeed.length ? `${props.areasOfNeed.length} selected` : "None selected"],
                     ["Grades", props.gradeLevelBands.length ? `${props.gradeLevelBands.length} selected` : "None selected"],
-                    [
-                        "Engagement types",
-                        props.engagementTypes
-                            .map((id) => TAXONOMY.engagementTypes.find((type) => type.id === id)?.label ?? id)
-                            .join(", ") || "None selected",
-                    ],
                     ["Coverage", props.coverageRegions.length ? `${props.coverageRegions.length} selected` : "None selected"],
                     [
                         "Rate",

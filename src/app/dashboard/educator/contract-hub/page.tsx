@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { ContractHub } from "@/components/shared/contract-hub";
-
-export default function EducatorContractHubPage() {
-    return <ContractHub role="educator" />;
+export default function EducatorContractHubRedirectPage() {
+    redirect("/dashboard/educator/my-gigs");
 }

@@ -13,8 +13,20 @@ import { PrimaryButton } from "@/components/shared/button";
 import { getAreaOfNeedLabel, TAXONOMY } from "@/lib/taxonomy";
 import { formatProposalStatus, formatProposedRate } from "@/lib/map-proposal";
 import { isDistrictRole } from "@/lib/roles";
-import { ArrowLeft, CheckCircle, Paperclip, XCircle } from "@phosphor-icons/react";
+import { ArrowLeft, CheckCircle, Paperclip, Trash, XCircle } from "@phosphor-icons/react";
+import { canCancelNeed } from "@/lib/need-status";
 import { cn } from "@/lib/utils";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 function looksLikeConvexId(value: string): boolean {
     return value.length >= 20 && !value.includes("-");
@@ -53,8 +65,10 @@ export default function DistrictNeedDetailPage() {
 
     const acceptProposal = useMutation(api.proposals.accept);
     const rejectProposal = useMutation(api.proposals.reject);
+    const cancelNeed = useMutation(api.needs.cancel);
     const [acting, setActing] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    const [cancelling, setCancelling] = useState(false);
 
     async function handleAccept(proposalId: Id<"proposals">) {
         setActionError(null);
@@ -77,11 +91,26 @@ export default function DistrictNeedDetailPage() {
         setActing(proposalId as unknown as string);
         try {
             await rejectProposal({ proposalId });
-            toast.success("Proposal rejected");
+            toast.success("Proposal rejected. The consultant will be emailed.");
         } catch (err) {
             setActionError(err instanceof Error ? err.message : "Could not reject proposal.");
         } finally {
             setActing(null);
+        }
+    }
+
+    async function handleCancelGig() {
+        if (!need) return;
+        setActionError(null);
+        setCancelling(true);
+        try {
+            const result = await cancelNeed({ needId: need._id });
+            toast.success(result.deleted ? "Draft deleted" : "Gig cancelled");
+            router.push("/dashboard/board");
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : "Could not cancel this gig.");
+        } finally {
+            setCancelling(false);
         }
     }
 
@@ -145,6 +174,7 @@ export default function DistrictNeedDetailPage() {
     }
 
     const isPlaced = need?.status === "placed";
+    const showCancel = !!need && canCancelNeed(need.status);
 
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
@@ -159,10 +189,47 @@ export default function DistrictNeedDetailPage() {
                         <ArrowLeft className="w-4 h-4" /> Back to dashboard
                     </Link>
 
-                    <PageHeader
-                        title={need ? need.orgName : "Need detail"}
-                        description={need ? getAreaOfNeedLabel(need.areaOfNeed) : undefined}
-                    />
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <PageHeader
+                            title={need ? need.orgName : "Need detail"}
+                            description={need ? getAreaOfNeedLabel(need.areaOfNeed) : undefined}
+                        />
+                        {showCancel && (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <button
+                                        type="button"
+                                        disabled={cancelling}
+                                        className="inline-flex items-center gap-2 self-start rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100 disabled:opacity-40"
+                                    >
+                                        <Trash className="w-4 h-4" weight="bold" />
+                                        {need.status === "draft" ? "Delete draft" : "Cancel this gig"}
+                                    </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                            {need.status === "draft" ? "Delete this draft?" : "Cancel this posted gig?"}
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            {need.status === "draft"
+                                                ? "This draft will be removed. You can post a new need anytime."
+                                                : "The posting will close and pending consultants will be emailed that it was cancelled. This cannot be undone."}
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Keep gig</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            variant="destructive"
+                                            onClick={() => void handleCancelGig()}
+                                        >
+                                            {need.status === "draft" ? "Delete draft" : "Cancel gig"}
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        )}
+                    </div>
 
                     {need ? (
                         <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col gap-4">
@@ -305,15 +372,35 @@ export default function DistrictNeedDetailPage() {
                                                     )}
                                                 </div>
                                                 <div className="flex flex-wrap gap-2 mt-2">
-                                                    <PrimaryButton
-                                                        type="button"
-                                                        onClick={() => handleAccept(row.proposal._id)}
-                                                        disabled={disableActions}
-                                                        className="bg-emerald-600 hover:bg-emerald-700"
-                                                    >
-                                                        <CheckCircle weight="bold" className="w-4 h-4" />
-                                                        Accept
-                                                    </PrimaryButton>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <PrimaryButton
+                                                                type="button"
+                                                                disabled={disableActions}
+                                                                className="bg-emerald-600 hover:bg-emerald-700"
+                                                            >
+                                                                <CheckCircle weight="bold" className="w-4 h-4" />
+                                                                Accept
+                                                            </PrimaryButton>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Accept this proposal?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This cannot be undone. Other pending proposals will be declined and emailed.
+                                                                    After you accept, reach out to {educatorName} within 3 business days. Contracts stay off-platform.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Go back</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    onClick={() => void handleAccept(row.proposal._id)}
+                                                                >
+                                                                    Accept proposal
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleReject(row.proposal._id)}

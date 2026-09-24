@@ -13,7 +13,7 @@ type ExpectedRole = "educator" | "district";
 const BLOCKED_COPY: Record<ExpectedRole, { title: string; body: string; href: string; cta: string }> = {
     educator: {
         title: "This area is for consultant accounts",
-        body: "Your account is set up as a district hiring team. Consultant tools — proposals, accepted gigs, and Contract Hub — live in your consultant account.",
+        body: "Your account is set up as a district hiring team. Consultant tools — proposals and accepted gigs — live in your consultant account.",
         href: "/dashboard/district",
         cta: "Go to district dashboard",
     },

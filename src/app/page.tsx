@@ -56,8 +56,8 @@ export default function Home() {
 
               <h1 className="font-heading text-4xl font-bold leading-[1.04] tracking-normal text-white md:text-[2.8rem] 2xl:text-[4rem]">
                 Find qualified K–12 consultants <br className="hidden md:block" />
-                in <span className="relative inline-block text-[#F4D46A]">
-                  zero days.
+                for your <span className="relative inline-block text-[#F4D46A]">
+                  next opening.
                   <svg className="absolute -bottom-3 left-0 h-3 w-full overflow-visible" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
                     <path
                       d="M2 6 C 19 1, 37 8, 52 5 S 80 2, 98 4"
@@ -82,7 +82,7 @@ export default function Home() {
               <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                 <Link href="/browse">
                   <PrimaryButton className="w-full min-h-12 bg-[var(--accent-secondary)] px-6 text-base text-[#17261F] hover:bg-[var(--accent-secondary)]/90 sm:w-auto">
-                    Search Educators
+                    Find consultants
                     <MagnifyingGlass className="h-5 w-5" weight="bold" />
                   </PrimaryButton>
                 </Link>

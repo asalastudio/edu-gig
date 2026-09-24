@@ -14,8 +14,8 @@ export function SiteFooter() {
                 
                 <div className="flex flex-col gap-4">
                     <h4 className="text-sm font-semibold text-white/40 uppercase tracking-wider">Explore</h4>
-                    <Link href="/browse" className="text-sm text-white/70 hover:text-white">Browse consultants</Link>
-                    <Link href="/post" className="text-sm text-white/70 hover:text-white">Post a need</Link>
+                    <Link href="/browse" className="text-sm text-white/70 hover:text-white">Find consultants</Link>
+                    <Link href="/post" className="text-sm text-white/70 hover:text-white">Post a gig</Link>
                     <Link href="/#for-districts" className="text-sm text-white/70 hover:text-white">How Districts Hire</Link>
                     <Link href="/#for-educators" className="text-sm text-white/70 hover:text-white">For Consultants</Link>
                     <Link href="/login" className="text-sm text-white/80 hover:text-white font-semibold">Sign in</Link>

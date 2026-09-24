@@ -48,13 +48,13 @@ export const DISTRICT_FIRST_ACTIONS: Array<{
 }> = [
     {
         id: "post_need",
-        label: "Post a need",
+        label: "Post a gig",
         description: "Start with the role, schedule, and context educators need to respond well.",
         href: "/post",
     },
     {
         id: "browse_educators",
-        label: "Browse vetted educators",
+        label: "Find consultants",
         description: "Compare experience, rates, coverage, and availability before messaging.",
         href: "/browse",
     },

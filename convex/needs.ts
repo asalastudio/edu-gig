@@ -9,6 +9,7 @@ import {
     type NeedInput,
 } from "../src/lib/need-publish-policy";
 import { educatorMatchesNeed } from "../src/lib/match-need";
+import { canCancelNeed } from "../src/lib/need-status";
 
 /** Cap the per-need email/notification fan-out so a single posting can't blast the whole roster. */
 const MATCH_FANOUT_CAP = 50;
@@ -328,6 +329,72 @@ export const listOpenForEducators = query({
 
         const needs = await ctx.db.query("needs").order("desc").collect();
         return needs.filter((n) => n.status === "open" || n.status === "interviewing");
+    },
+});
+
+/**
+ * District cancels or deletes a posted gig (Chris Sep 10).
+ * Drafts are deleted. Open/interviewing postings close and pending proposals
+ * are rejected with an email to each consultant.
+ */
+export const cancel = mutation({
+    args: { needId: v.id("needs") },
+    returns: v.object({
+        needId: v.union(v.id("needs"), v.null()),
+        deleted: v.boolean(),
+        rejectedCount: v.number(),
+    }),
+    handler: async (ctx, args) => {
+        const user = await requireDistrictViewer(ctx);
+        const need = await ctx.db.get(args.needId);
+        if (!need) throw new Error("Gig not found");
+        if (!(await canManageNeed(ctx, user, need))) {
+            throw new Error("Forbidden");
+        }
+        if (!canCancelNeed(need.status)) {
+            if (need.status === "placed") {
+                throw new Error(
+                    "This gig already has an accepted proposal. Contact the consultant if you need to end the engagement."
+                );
+            }
+            throw new Error("This gig is already cancelled.");
+        }
+
+        const proposals = await ctx.db
+            .query("proposals")
+            .withIndex("by_need", (q) => q.eq("needId", args.needId))
+            .collect();
+        let rejectedCount = 0;
+        for (const proposal of proposals) {
+            if (proposal.status !== "pending") continue;
+            await ctx.db.patch(proposal._id, { status: "rejected" });
+            rejectedCount += 1;
+            await ctx.db.insert("notifications", {
+                userId: proposal.educatorUserId,
+                type: "proposal_rejected",
+                title: "A posted gig was cancelled",
+                body: `${need.orgName} cancelled this posting. Your proposal is no longer under review.`,
+                read: false,
+                actionUrl: "/dashboard/board",
+                createdAt: Date.now(),
+            });
+            try {
+                await ctx.scheduler.runAfter(0, internal.emails.sendProposalRejectedAlert, {
+                    proposalId: proposal._id,
+                    reason: "need_cancelled",
+                });
+            } catch (err) {
+                console.log("[needs.cancel] reject email skipped:", err);
+            }
+        }
+
+        if (need.status === "draft") {
+            await ctx.db.delete(args.needId);
+            return { needId: null, deleted: true, rejectedCount };
+        }
+
+        await ctx.db.patch(args.needId, { status: "closed", updatedAt: Date.now() });
+        return { needId: args.needId, deleted: false, rejectedCount };
     },
 });
 

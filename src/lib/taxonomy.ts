@@ -84,7 +84,7 @@ export const TAXONOMY = {
                 { id: "human_resources", label: "Human Resources", specializations: [] },
                 { id: "grant_writing", label: "Grant Writing", specializations: [] },
                 { id: "payroll_financial_accounting", label: "Payroll & Financial Accounting", specializations: [] },
-                { id: "keynote", label: "Keynote", specializations: [] },
+                { id: "keynote", label: "Keynote speaking", specializations: [] },
             ]
         },
         {

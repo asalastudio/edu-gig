@@ -13,6 +13,7 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { formatAgreedRate, formatOrderStatus } from "@/lib/map-dashboard";
 import { isDistrictRole } from "@/lib/roles";
+import { getPostAcceptCopy } from "@/lib/post-accept-copy";
 import { cn } from "@/lib/utils";
 
 export default function EngagementDetailPage() {
@@ -23,7 +24,7 @@ export default function EngagementDetailPage() {
     const setStatus = useMutation(api.engagements.setStatus);
     const isDistrict = !!viewer && isDistrictRole(viewer.role);
     const backHref = isDistrict ? "/dashboard/district" : "/dashboard/educator/my-gigs";
-    const contractHref = isDistrict ? "/dashboard/district/contract-hub" : "/dashboard/educator/contract-hub";
+    const nextStepCopy = getPostAcceptCopy(isDistrict ? "district" : "educator");
 
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
@@ -74,15 +75,15 @@ export default function EngagementDetailPage() {
                                             <p className="text-sm whitespace-pre-wrap">{detail.proposalMessage}</p>
                                         </div>
                                     )}
+                                    <p className="text-sm leading-6 text-[var(--text-primary)]">
+                                        {nextStepCopy}
+                                    </p>
                                     <p className="text-sm text-[var(--text-secondary)]">
-                                        Payment is arranged directly between the district and consultant. K12Gig coordinates the introduction, proposal, and contract documents.
+                                        Payment is arranged directly between the district and consultant. K12Gig coordinates the introduction and proposal only.
                                     </p>
                                     <div className="flex flex-wrap gap-3">
-                                        <Link href={`${isDistrict ? "/dashboard/messages?to=" : "/dashboard/messages?to="}${detail.counterpartUserId}`}>
+                                        <Link href={`/dashboard/messages?to=${detail.counterpartUserId}`}>
                                             <PrimaryButton>Message {detail.counterpartName}</PrimaryButton>
-                                        </Link>
-                                        <Link href={contractHref} className="inline-flex items-center px-4 py-2 rounded-md border border-[var(--border-strong)] text-sm font-bold">
-                                            Open Contract Hub
                                         </Link>
                                     </div>
                                     <div className="flex flex-wrap gap-2 pt-2">

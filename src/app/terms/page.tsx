@@ -53,14 +53,14 @@ export default function TermsPage() {
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Engagements, payment, and signatures</h2>
                     <p>
-                        When a district accepts a consultant&apos;s proposal, K12Gig records an engagement so both sides can coordinate
-                        through the Contract Hub. K12Gig does not charge a platform fee, does not process payments, does not issue
+                        When a district accepts a consultant&apos;s proposal, K12Gig records an engagement so both sides can message
+                        and coordinate next steps. K12Gig does not charge a platform fee, does not process payments, does not issue
                         invoices, payouts, or tax forms, and does not provide legally binding electronic signatures.
                     </p>
                     <p>
                         Pricing, purchase orders, invoicing, payment timing, taxes, and the signed agreement for each engagement are
                         arranged directly between the district and the consultant, outside K12Gig, under the district&apos;s procurement
-                        rules. Documents shared in the Contract Hub are working copies for coordination only; the executed agreement
+                        rules. Any working documents the parties exchange are coordinated off-platform; the executed agreement
                         held by the district and the consultant controls.
                     </p>
                     <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] pt-4">Cancellations and disputes</h2>

@@ -120,10 +120,18 @@ function PostNeedPageInner() {
         ) {
             return;
         }
+        if (district === undefined) return;
         const raw = window.localStorage.getItem("k12gig_post_need_draft");
         if (!raw) return;
         const storedDraft = parseStoredNeedDraft(raw);
         if (!storedDraft) {
+            window.localStorage.removeItem("k12gig_post_need_draft");
+            return;
+        }
+        if (
+            district?.name &&
+            storedDraft.orgName.trim().toLowerCase() !== district.name.trim().toLowerCase()
+        ) {
             window.localStorage.removeItem("k12gig_post_need_draft");
             return;
         }
@@ -159,6 +167,7 @@ function PostNeedPageInner() {
             });
     }, [
         canPersist,
+        district,
         localDraftTransferState,
         requestedDraftId,
         router,
@@ -321,7 +330,7 @@ function PostNeedPageInner() {
                 {signedOut && !previewMode && (
                     <div className="bg-white p-8 md:p-10 rounded-lg shadow-sm border border-[var(--border-subtle)]">
                         <h1 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-4">
-                            Sign in to post a need
+                            Sign in to post a gig
                         </h1>
                         <p className="text-lg text-[var(--text-secondary)] mb-6">
                             K12Gig saves district requests to your account so educators can respond, message you, and move toward booking.
@@ -384,7 +393,7 @@ function PostNeedPageInner() {
                     <div className="animate-in fade-in duration-500">
                         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                             <div>
-                            <h1 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-2">Post a need</h1>
+                            <h1 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-2">Post a gig</h1>
                                 <p className="text-lg text-[var(--text-secondary)]">
                                     {signedOut
                                         ? "Preview the request form. You’ll sign in before posting it for real."

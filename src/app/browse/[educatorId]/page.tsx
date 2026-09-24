@@ -298,19 +298,6 @@ export default function EducatorProfilePage() {
                                     <p className="text-[var(--text-secondary)] text-base mb-2">Led by {profile.secondaryName}</p>
                                 )}
                                 <p className="text-[var(--accent-primary)] font-bold text-lg md:text-xl">{profile.headline}</p>
-                                {profile.engagementTypes && profile.engagementTypes.length > 0 && (
-                                    <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-3">
-                                        {profile.engagementTypes.map((t) => (
-                                            <span
-                                                key={t}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--accent-primary)]/25 bg-[var(--accent-primary)]/10 text-sm font-bold text-[var(--accent-primary)]"
-                                            >
-                                                <Briefcase weight="fill" className="w-4 h-4" />
-                                                {t}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
                                 <p className="text-[var(--text-secondary)] text-base mt-2 flex items-center justify-center md:justify-start gap-2">
                                     <MapPin weight="fill" className="w-5 h-5 text-[var(--text-tertiary)]" /> {profile.location}
                                 </p>
@@ -350,7 +337,7 @@ export default function EducatorProfilePage() {
                             ) : (
                         <div className="hidden md:flex flex-row gap-3 w-full sm:w-auto mt-2">
                             <button onClick={() => handleRequestEducator()} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-lg hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
-                                    <Briefcase weight="fill" className="w-5 h-5" /> Post a need
+                                    <Briefcase weight="fill" className="w-5 h-5" /> Post a gig
                             </button>
                                     <button onClick={handleMessageEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
                                         <ChatCircle weight="fill" className="w-5 h-5" /> Message Consultant
@@ -435,7 +422,7 @@ export default function EducatorProfilePage() {
                             <TabsContent value="services" className="mt-0 outline-none animate-in fade-in duration-300">
                                 <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Areas of Support</h2>
                                 <p className="text-sm text-[var(--text-secondary)] mb-8">
-                                    Post a need and review available support options to start hiring.
+                                    Post a gig and review available support options to start hiring.
                                 </p>
                                 {educatorGigs === undefined ? (
                                     <p className="text-[var(--text-secondary)]">Loading services…</p>
@@ -443,10 +430,10 @@ export default function EducatorProfilePage() {
                                     <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-8 text-center">
                                         <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-2">No support details yet</h3>
                                         <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
-                                            This educator hasn&apos;t published fixed service details yet. You can still post a need to request support.
+                                            This educator hasn&apos;t published fixed service details yet. You can still post a gig to request support.
                                         </p>
                                         <PrimaryButton onClick={() => handleRequestEducator()}>
-                                            Post a need
+                                            Post a gig
                                         </PrimaryButton>
                                     </div>
                                 ) : (
@@ -464,7 +451,7 @@ export default function EducatorProfilePage() {
                                                     </p>
                                                 </div>
                                                 <PrimaryButton onClick={() => handleRequestEducator()} className="mt-auto w-full">
-                                                    Post a need
+                                                    Post a gig
                                                 </PrimaryButton>
                                             </div>
                                         ))}
@@ -475,7 +462,7 @@ export default function EducatorProfilePage() {
                                         Need a specific gig?
                                     </p>
                                     <PrimaryButton onClick={() => handleRequestEducator()} className="w-full md:w-auto">
-                                        Post a need
+                                        Post a gig
                                     </PrimaryButton>
                                 </div>
                             </TabsContent>
@@ -609,7 +596,7 @@ export default function EducatorProfilePage() {
                                     <div>
                                         <h2 className="text-2xl font-bold text-[var(--text-primary)]">Availability</h2>
                                         <p className="text-sm text-[var(--text-secondary)] font-medium mt-1">
-                                            Availability is a status indicator only. Dates and scope are confirmed after you post a need.
+                                            Availability is a status indicator only. Dates and scope are confirmed after you post a gig.
                                         </p>
                                     </div>
                                     <span className={cn("inline-flex items-center gap-2 px-4 py-2 border rounded-lg font-bold text-sm", availabilityClass)}>
@@ -623,7 +610,7 @@ export default function EducatorProfilePage() {
                                     </p>
                                 </div>
                                 <PrimaryButton onClick={() => handleRequestEducator()} className="w-full mt-4 sm:w-auto">
-                                    Post a need
+                                    Post a gig
                                 </PrimaryButton>
                             </TabsContent>
                         </div>
@@ -661,7 +648,7 @@ export default function EducatorProfilePage() {
                         <ChatCircle weight="bold" className="w-5 h-5" />
                     </button>
                     <PrimaryButton onClick={() => handleRequestEducator()} className="px-4 py-3 text-sm">
-                        Post a need
+                        Post a gig
                     </PrimaryButton>
                 </div>
             </div>

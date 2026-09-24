@@ -48,7 +48,7 @@ describe("GigCheckoutPage", () => {
         render(<GigCheckoutPage />);
 
         expect(screen.getByRole("heading", { name: /Checkout is not part of K12Gig/i })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /Post a need/i })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Post a gig/i })).toBeInTheDocument();
         expect(screen.queryByText(/Pay with Stripe/i)).not.toBeInTheDocument();
         expect(screen.queryByLabelText("Desired Start Date")).not.toBeInTheDocument();
     });

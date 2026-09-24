@@ -9,7 +9,7 @@ import { supportMailto } from "@/lib/legal";
 
 const recoveryLinks = [
     { href: "/browse", label: "Browse educators", icon: MagnifyingGlass },
-    { href: "/post", label: "Post a need", icon: Briefcase },
+    { href: "/post", label: "Post a gig", icon: Briefcase },
     { href: "/", label: "Home", icon: House },
     { href: supportMailto("K12Gig broken link support"), label: "Contact support", icon: Lifebuoy },
 ];

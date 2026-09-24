@@ -14,7 +14,6 @@ import {
     Buildings,
     ClipboardText,
     EnvelopeSimple,
-    FileText,
     Gear,
     GraduationCap,
     List,
@@ -92,15 +91,10 @@ export function Sidebar() {
                 icon: Briefcase,
             },
             ...(isEducator
-                ? [
-                    { href: "/dashboard/educator/my-gigs", label: "My Gigs", icon: ClipboardText },
-                    { href: "/dashboard/educator/contract-hub", label: "Contract Hub", icon: FileText },
-                ]
-                : [
-                    { href: "/dashboard/district/contract-hub", label: "Contract Hub", icon: FileText },
-                ]),
+                ? [{ href: "/dashboard/educator/my-gigs", label: "My Gigs", icon: ClipboardText }]
+                : []),
             { href: "/dashboard/messages", label: "Messages", icon: EnvelopeSimple, count: messagesBadge },
-            { href: settingsHref, label: "Settings", icon: Gear },
+            { href: settingsHref, label: "Profile", icon: Gear },
         ];
 
     const accountLabel = isRoleLoading
@@ -238,7 +232,7 @@ function SidebarItem({
         (() => {
             if (item.href === "/dashboard/admin") return pathname === "/dashboard/admin";
             if (item.label === "Dashboard") return pathname === basePath;
-            if (item.label === "Settings") return pathname.startsWith(settingsHref);
+            if (item.label === "Profile") return pathname.startsWith(settingsHref);
             if (item.href === "/browse") return pathname === "/browse" || pathname.startsWith("/browse/");
             if (item.href === "/post") return pathname.startsWith("/post");
             return pathname === item.href || pathname.startsWith(item.href + "/");

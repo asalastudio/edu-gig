@@ -1,6 +1,6 @@
 # K12Gig
 
-Proposal-centered consultant marketplace for K-12 districts. Districts post needs, consultants submit proposals, accepted work becomes an engagement, and Contract Hub coordinates documents. Payment happens off-platform.
+Proposal-centered consultant marketplace for K-12 districts. Districts post needs, consultants submit proposals, and accepted work becomes an engagement. Contracts and payment happen off-platform.
 
 ## Getting Started
 
@@ -15,7 +15,7 @@ App default: [http://localhost:3010](http://localhost:3010). Use `npx convex dev
 
 ## Product spine
 
-District posts need → consultant proposes (resume required) → district accepts → engagement on My Gigs → Contract Hub → off-platform signature and payment.
+District posts need → consultant proposes (resume required) → district accepts → engagement on My Gigs → both sides reach out within 3 business days → off-platform signature and payment.
 
 ## Testing
 

@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { ContractHub } from "@/components/shared/contract-hub";
-
-export default function DistrictContractHubPage() {
-    return <ContractHub role="district" />;
+export default function DistrictContractHubRedirectPage() {
+    redirect("/dashboard/district");
 }

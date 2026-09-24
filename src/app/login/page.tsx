@@ -65,9 +65,26 @@ export default function LoginHubPage() {
                     </Link>
                 </div>
 
-                <p className="mt-10 text-sm text-[var(--text-tertiary)]">
-                    New to K12Gig? Pick the path above that fits you — you&apos;ll create your account on the next step.
-                </p>
+                <div className="mt-10 rounded-lg border border-[var(--accent-primary)]/20 bg-[var(--accent-primary)]/5 px-6 py-5">
+                    <p className="text-base font-bold text-[var(--text-primary)]">Don&apos;t have an account yet?</p>
+                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                        Choose a path above, then use <strong>Sign up</strong> on the next screen. New district and consultant accounts start here.
+                    </p>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                        <Link
+                            href={`/sign-up?${AUTH_INTENT_PARAM}=district`}
+                            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--accent-primary)] px-4 text-sm font-bold text-white hover:opacity-90"
+                        >
+                            Create a district account
+                        </Link>
+                        <Link
+                            href={`/sign-up?${AUTH_INTENT_PARAM}=educator`}
+                            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border-strong)] px-4 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                        >
+                            Create a consultant account
+                        </Link>
+                    </div>
+                </div>
             </main>
             <SiteFooter />
         </div>

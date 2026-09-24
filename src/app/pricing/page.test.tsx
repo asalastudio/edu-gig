@@ -24,12 +24,13 @@ vi.mock("@/components/shared/site-footer", () => ({
 }));
 
 describe("PricingPage", () => {
-    it("describes off-platform payment and Contract Hub instead of checkout fees", () => {
+    it("describes off-platform payment instead of checkout fees", () => {
         render(<PricingPage />);
 
         expect(screen.getByText(/Payment stays between you/i)).toBeInTheDocument();
         expect(screen.getByText(/does not charge an 18% fee/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/Contract Hub/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/Off-platform contracts/i)).toBeInTheDocument();
+        expect(screen.queryByText(/Contract Hub/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/card checkout via stripe today/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/Educators are paid weekly via ACH/i)).not.toBeInTheDocument();
     });

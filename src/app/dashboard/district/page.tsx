@@ -52,7 +52,7 @@ export default function DistrictDashboardPage() {
             <div className="flex gap-4">
               <Link href="/post">
                 <PrimaryButton className="gap-2 px-5 py-2.5 text-sm rounded-lg shadow-sm bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90 border-none font-bold">
-                  <Plus weight="bold" className="h-5 w-5" /> Post a need
+                  <Plus weight="bold" className="h-5 w-5" /> Post a gig
                 </PrimaryButton>
               </Link>
             </div>

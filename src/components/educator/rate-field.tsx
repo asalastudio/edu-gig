@@ -35,22 +35,30 @@ export function RateField({
                     className="field-control !pl-8"
                 />
             </div>
-            <div className="flex flex-wrap gap-4 pt-1">
+            <div className="flex flex-wrap gap-4 pt-1" role="radiogroup" aria-label="Rate unit">
                 <label className="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] cursor-pointer">
                     <input
-                        type="checkbox"
+                        type="radio"
+                        name="k12gig-rate-unit"
                         checked={hourly}
-                        onChange={(e) => onHourlyChange(e.target.checked)}
-                        className="h-4 w-4 rounded border-[var(--border-strong)] text-[var(--accent-primary)]"
+                        onChange={() => {
+                            onHourlyChange(true);
+                            onDailyChange(false);
+                        }}
+                        className="h-4 w-4 border-[var(--border-strong)] text-[var(--accent-primary)]"
                     />
                     Hourly
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] cursor-pointer">
                     <input
-                        type="checkbox"
-                        checked={daily}
-                        onChange={(e) => onDailyChange(e.target.checked)}
-                        className="h-4 w-4 rounded border-[var(--border-strong)] text-[var(--accent-primary)]"
+                        type="radio"
+                        name="k12gig-rate-unit"
+                        checked={daily && !hourly}
+                        onChange={() => {
+                            onDailyChange(true);
+                            onHourlyChange(false);
+                        }}
+                        className="h-4 w-4 border-[var(--border-strong)] text-[var(--accent-primary)]"
                     />
                     Daily
                 </label>

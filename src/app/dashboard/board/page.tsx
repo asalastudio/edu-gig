@@ -14,6 +14,7 @@ import { isDistrictRole } from "@/lib/roles";
 import { canCancelNeed } from "@/lib/need-status";
 import { CurrencyDollar, Buildings, Briefcase, Clock, PlusCircle } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { collectProposedNeedIds } from "@/lib/proposed-needs";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -143,14 +144,11 @@ export default function GigBoardPage() {
         }
     }
 
-    // Needs the educator has already proposed on (persistent, from listMine).
-    const proposedNeedIds = useMemo(() => {
-        const set = new Set<string>();
-        for (const p of myProposals ?? []) {
-            set.add(p.needId as unknown as string);
-        }
-        return set;
-    }, [myProposals]);
+    // Needs with a pending proposal (matches proposals.submit — withdrawn/rejected can resubmit).
+    const proposedNeedIds = useMemo(
+        () => collectProposedNeedIds(myProposals ?? []),
+        [myProposals]
+    );
 
     const isSignedOut = viewer === null;
     const isSuperadmin = !!viewer && viewer.role === "superadmin";
@@ -266,9 +264,12 @@ export default function GigBoardPage() {
 
                                             <div className="flex flex-col items-stretch lg:items-end justify-center gap-2 min-w-[200px]">
                                                 {submitted ? (
-                                                    <span className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                                                    <Link
+                                                        href={`/dashboard/board/${need._id}/propose`}
+                                                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold hover:bg-emerald-100"
+                                                    >
                                                         Proposal submitted ✓
-                                                    </span>
+                                                    </Link>
                                                 ) : (
                                                     <Link href={`/dashboard/board/${need._id}/propose`}>
                                                         <PrimaryButton

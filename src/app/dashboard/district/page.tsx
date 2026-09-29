@@ -12,7 +12,8 @@ import { SquaresFour, UserCircleCheck, Briefcase, Plus } from "@phosphor-icons/r
 import { cn } from "@/lib/utils";
 import { isDistrictRole } from "@/lib/roles";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
-import { formatDistrictKpis, formatPipelineStatus, type PipelineRow } from "@/lib/map-dashboard";
+import { formatDistrictKpis, type PipelineRow } from "@/lib/map-dashboard";
+import { gigStatusStyle } from "@/lib/need-status";
 
 export default function DistrictDashboardPage() {
   const router = useRouter();
@@ -41,7 +42,7 @@ export default function DistrictDashboardPage() {
   return (
     <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto w-full relative">
+      <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
         <div className="max-w-[1600px] w-full mx-auto px-6 lg:px-10 py-8 flex flex-col gap-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 border-b border-[var(--border-subtle)] pb-6">
             <div>
@@ -91,7 +92,7 @@ export default function DistrictDashboardPage() {
                       </tr>
                     ) : (
                       pipelineRows.map((row) => {
-                        const label = formatPipelineStatus(row.status);
+                        const label = gigStatusStyle(row.status);
                         return (
                           <tr
                             key={row.id}
@@ -108,11 +109,9 @@ export default function DistrictDashboardPage() {
                             <td className="py-5 px-5">
                               <span className={cn(
                                 "px-3 py-1.5 font-bold rounded-lg text-xs leading-none border shadow-sm inline-block",
-                                label.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                  label.color === "amber" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                  "bg-blue-50 text-blue-700 border-blue-200"
+                                label.className
                               )}>
-                                {label.text}
+                                {label.label}
                               </span>
                             </td>
                             <td className="py-5 px-6 tabular-nums font-bold text-lg text-right text-[var(--text-primary)]">{row.daysOpen}</td>

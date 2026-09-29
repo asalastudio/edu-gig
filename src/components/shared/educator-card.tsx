@@ -38,7 +38,9 @@ export function EducatorCard({
     const orderedAreas = orderAreasForDisplay(educator.areasOfNeed, highlightedAreaIds);
     const primaryArea = orderedAreas[0] ? getAreaOfNeedLabel(orderedAreas[0]) : "K-12 support";
     const remainingAreaCount = Math.max(0, orderedAreas.length - 1);
-    const coverage = educator.coverageRegions[0] ? getCoverageRegionLabel(educator.coverageRegions[0]) : "Coverage varies";
+    // "Region 1 — Upper Peninsula" truncates on cards; the place name is the useful part.
+    const coverageLabel = educator.coverageRegions[0] ? getCoverageRegionLabel(educator.coverageRegions[0]) : "Coverage varies";
+    const coverage = coverageLabel.includes(" — ") ? coverageLabel.split(" — ")[1] : coverageLabel;
     const gradeLabels = educator.gradeLevels.map(
         (grade) => TAXONOMY.gradeLevelBands.find((option) => option.id === grade)?.label ?? grade.replace("_", "–")
     );
@@ -52,7 +54,7 @@ export function EducatorCard({
                 <div className="flex items-start justify-between gap-3">
                     <div className="relative">
                         <Avatar className="h-14 w-14 rounded-lg ring-2 ring-[var(--border-subtle)] shadow-sm">
-                            <AvatarImage src={educator.avatarUrl} />
+                            <AvatarImage src={educator.avatarUrl} alt="" />
                             <AvatarFallback className="bg-gradient-to-br from-[var(--bg-subtle)] to-[var(--bg-hover)] text-[var(--text-primary)] text-lg font-heading font-bold rounded-lg">
                                 {educator.name.split(' ').map(n => n[0]).join('')}
                             </AvatarFallback>
@@ -73,9 +75,9 @@ export function EducatorCard({
                 {/* — Title & Headline ———————————————— */}
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                        <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors line-clamp-1">
+                        <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors line-clamp-1">
                             {educator.name}
-                        </h3>
+                        </h2>
                         <VerificationBadge tier={educator.verificationTier} />
                     </div>
                     {educator.secondaryName && (

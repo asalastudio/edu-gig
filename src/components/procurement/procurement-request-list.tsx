@@ -26,7 +26,7 @@ export function ProcurementRequestList() {
             <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
                 <p className="text-sm font-bold text-[var(--text-primary)]">No procurement requests yet</p>
                 <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-                    Request a DPA packet or invoice review when your district is ready for procurement.
+                    Request a DPA packet when your district is ready for its privacy review.
                 </p>
                 <Link href="/dpa" className="mt-4 inline-flex text-sm font-bold text-[var(--accent-primary)] hover:underline">
                     Open DPA request form

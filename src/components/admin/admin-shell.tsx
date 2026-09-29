@@ -122,7 +122,7 @@ function AdminFrame({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-10 lg:py-10">{children}</main>
+            <main id="main-content" className="flex-1 overflow-y-auto px-6 py-8 lg:px-10 lg:py-10">{children}</main>
         </div>
     );
 }

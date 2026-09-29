@@ -40,6 +40,10 @@ export const getMine = query({
         v.null()
     ),
     handler: async (ctx) => {
+        // The client can run this before Clerk's token reaches Convex (e.g. on a
+        // hard reload); answer null instead of throwing so the page shows its
+        // loading state rather than crashing.
+        if (!(await ctx.auth.getUserIdentity())) return null;
         const user = await requireDistrictViewer(ctx);
         const districts = await ctx.db.query("districts").collect();
         const district = districts.find((d) => d.adminIds.includes(user._id)) ?? null;

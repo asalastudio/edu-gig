@@ -9,7 +9,7 @@ import { PrimaryButton } from "@/components/shared/button";
 import { Card } from "@/components/shared/card";
 import { ArrowLeft, Briefcase } from "@phosphor-icons/react";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
-import { formatAgreedRate, formatOrderStatus } from "@/lib/map-dashboard";
+import { formatAgreedRate, formatDateOnly, formatOrderStatus } from "@/lib/map-dashboard";
 import { formatFollowUpDeadline } from "@/lib/post-accept-copy";
 import { PendingProposalsSection } from "@/components/educator/pending-proposals";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,7 @@ export default function EducatorMyGigsPage() {
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-[1600px] w-full mx-auto px-8 lg:px-12 py-10">
                     <Link
                         href="/dashboard/educator"
@@ -55,9 +55,9 @@ export default function EducatorMyGigsPage() {
                             <div className="h-12 w-12 rounded-lg border border-[var(--border-default)] flex items-center justify-center mb-4 bg-[var(--bg-subtle)]">
                                 <Briefcase className="w-6 h-6 text-[var(--text-tertiary)]" />
                             </div>
-                            <h3 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
+                            <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
                                 No accepted gigs yet
-                            </h3>
+                            </h2>
                             <p className="text-sm text-[var(--text-secondary)] max-w-sm mb-6">
                                 When a district accepts your proposal, the engagement appears here with the agreed rate so you can message the school.
                             </p>
@@ -73,9 +73,9 @@ export default function EducatorMyGigsPage() {
                                     <Link key={engagement._id} href={`/dashboard/engagements/${engagement._id}`}>
                                         <Card className="p-6 flex flex-col gap-4 h-full hover:border-[var(--accent-primary)]/40">
                                             <div className="flex items-start justify-between gap-3">
-                                                <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] leading-snug">
+                                                <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] leading-snug">
                                                     {getAreaOfNeedLabel(engagement.areaOfNeed)}
-                                                </h3>
+                                                </h2>
                                                 <span
                                                     className={cn(
                                                         "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md",
@@ -101,7 +101,7 @@ export default function EducatorMyGigsPage() {
                                                 {engagement.startDate && (
                                                     <span>
                                                         <span className="font-semibold text-[var(--text-primary)]">Start:</span>{" "}
-                                                        {engagement.startDate}
+                                                        {formatDateOnly(engagement.startDate)}
                                                     </span>
                                                 )}
                                             </div>

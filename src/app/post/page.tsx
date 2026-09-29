@@ -322,7 +322,7 @@ function PostNeedPageInner() {
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
             <SiteHeader />
             
-            <main className="flex-1 max-w-3xl mx-auto w-full px-6 lg:px-12 py-12">
+            <main id="main-content" className="flex-1 min-h-[calc(100vh-4rem)] max-w-3xl mx-auto w-full px-6 lg:px-12 py-12">
                 <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-8 w-fit">
                     <ArrowLeft className="w-4 h-4" /> Home
                 </Link>
@@ -339,7 +339,7 @@ function PostNeedPageInner() {
                             Sign in to post a gig
                         </h1>
                         <p className="text-lg text-[var(--text-secondary)] mb-6">
-                            K12Gig saves district requests to your account so educators can respond, message you, and move toward booking.
+                            K12Gig saves your gig to your district account so consultants can respond with proposals.
                             Sign in or create a district account before posting.
                         </p>
                         {(educatorName || requestedSlot) && (
@@ -615,7 +615,7 @@ function PostNeedPageInner() {
                                             }}
                                             aria-invalid={!!errors.description}
                                             rows={5}
-                                            placeholder="Describe the role, requirements, and any context that will help educators understand the opportunity."
+                                            placeholder="Describe the role, requirements, and any context that will help consultants understand the opportunity."
                                             className="w-full p-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
                                         ></textarea>
                                         {errors.description && <span className="text-sm text-red-500 font-medium">{errors.description}</span>}

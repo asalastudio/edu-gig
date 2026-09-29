@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 
 const statusConfig = {
     open: { label: "Available", dot: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400" },
-    limited: { label: "Limited", dot: "bg-amber-400", text: "text-amber-700 dark:text-amber-400" },
+    limited: { label: "Limited", dot: "bg-amber-400", text: "text-amber-800 dark:text-amber-400" },
     closed: { label: "Unavailable", dot: "bg-[var(--text-tertiary)]", text: "text-[var(--text-tertiary)]" },
 }
 

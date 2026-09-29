@@ -33,7 +33,7 @@ export default function SignUpPage() {
         return (
             <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
                 <SiteHeader />
-                <main className="flex-1 max-w-lg mx-auto px-6 py-16 text-center">
+                <main id="main-content" className="flex-1 max-w-lg mx-auto px-6 py-16 text-center">
                     <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Authentication not configured</h1>
                     <p className="text-[var(--text-secondary)] mb-8">
                         Add Clerk keys to your environment to enable account creation.
@@ -50,7 +50,7 @@ export default function SignUpPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
-            <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+            <main id="main-content" className="flex-1 flex flex-col items-center justify-center px-4 py-12">
                 <div className="k12-clerk-card w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
                     <div className="px-2 pt-2 pb-1 text-center sm:px-4">
                         <h1 className="font-heading text-xl font-bold text-[var(--text-primary)]">
@@ -60,11 +60,14 @@ export default function SignUpPage() {
                             Welcome! Please fill in the details to get started.
                         </p>
                     </div>
-                    <SignUp
-                        forceRedirectUrl={afterAuthUrl}
-                        signInUrl={authPagePath("/sign-in", intent, safeNext)}
-                        appearance={clerkCardAppearance}
-                    />
+                    {/* Reserve the production form's height (219px) so the page doesn't jump when Clerk loads. */}
+                    <div className="min-h-[219px]">
+                        <SignUp
+                            forceRedirectUrl={afterAuthUrl}
+                            signInUrl={authPagePath("/sign-in", intent, safeNext)}
+                            appearance={clerkCardAppearance}
+                        />
+                    </div>
                 </div>
                 <AuthAccountSwitch
                     mode="sign-in"

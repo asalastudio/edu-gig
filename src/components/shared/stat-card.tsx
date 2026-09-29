@@ -11,22 +11,22 @@ export interface StatCardProps {
 export function StatCard({ label, value, delta, deltaLabel, icon: Icon }: StatCardProps) {
     const isPositive = delta !== undefined && delta >= 0
     return (
-        <div className="group relative overflow-hidden p-6 rounded-lg border border-[var(--border-default)] bg-white shadow-[var(--shadow-subtle)]
+        <div className="group relative overflow-hidden p-4 sm:p-6 rounded-lg border border-[var(--border-default)] bg-white shadow-[var(--shadow-subtle)]
                     hover:border-[var(--accent-primary)]/40 hover:shadow-[var(--shadow-soft)]
                     transition-all duration-300">
             <div className="absolute inset-x-0 top-0 h-1 bg-[var(--accent-primary)] opacity-80" />
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-2 sm:mb-6">
                 <span className="eyebrow">
                     {label}
                 </span>
                 {Icon && (
-                    <div className="w-11 h-11 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-center group-hover:bg-[var(--accent-primary)]/10 transition-colors">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-center group-hover:bg-[var(--accent-primary)]/10 transition-colors">
                         <Icon weight="duotone" className="h-6 w-6 text-[var(--accent-primary)]" />
                     </div>
                 )}
             </div>
 
-            <div className="font-heading text-4xl font-bold text-[var(--text-primary)] tracking-tight tabular-nums">
+            <div className="font-heading text-3xl sm:text-4xl font-bold text-[var(--text-primary)] tracking-tight tabular-nums">
                 {value}
             </div>
 

@@ -15,7 +15,8 @@ import { formatFollowUpDeadline } from "@/lib/post-accept-copy";
 import { formatProposalStatus, formatProposedRate } from "@/lib/map-proposal";
 import { isDistrictRole } from "@/lib/roles";
 import { ArrowLeft, CheckCircle, Paperclip, Trash, XCircle } from "@phosphor-icons/react";
-import { canCancelNeed } from "@/lib/need-status";
+import { canCancelNeed, gigStatusStyle } from "@/lib/need-status";
+import { formatDateOnly } from "@/lib/map-dashboard";
 import { cn } from "@/lib/utils";
 import {
     AlertDialog,
@@ -177,7 +178,7 @@ export default function DistrictNeedDetailPage() {
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <Toaster position="top-right" richColors />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-[1600px] w-full mx-auto px-8 lg:px-12 py-10 flex flex-col gap-10">
                     <Link
                         href="/dashboard/district"
@@ -186,10 +187,16 @@ export default function DistrictNeedDetailPage() {
                         <ArrowLeft className="w-4 h-4" /> Back to dashboard
                     </Link>
 
+                    {/* Header renders with the gig (not before it) so the details card doesn't jump down when the title wraps. */}
+                    {need && (
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <PageHeader
-                            title={need ? need.orgName : "Need detail"}
-                            description={need ? getAreaOfNeedLabel(need.areaOfNeed) : undefined}
+                            title={
+                                need.subCategory
+                                    ? `${getAreaOfNeedLabel(need.areaOfNeed)} · ${getAreaOfNeedLabel(need.subCategory)}`
+                                    : getAreaOfNeedLabel(need.areaOfNeed)
+                            }
+                            description={`Posted by ${need.orgName}`}
                         />
                         {showCancel && (
                             <AlertDialog>
@@ -227,6 +234,7 @@ export default function DistrictNeedDetailPage() {
                             </AlertDialog>
                         )}
                     </div>
+                    )}
 
                     {need ? (
                         <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col gap-4">
@@ -238,7 +246,7 @@ export default function DistrictNeedDetailPage() {
                                 {gradeLabel(need.gradeLevel) && <Pill label={gradeLabel(need.gradeLevel)!} />}
                             </div>
                             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-                                {need.startDate && <Field label="Start date" value={need.startDate} />}
+                                {need.startDate && <Field label="Start date" value={formatDateOnly(need.startDate)} />}
                                 {need.duration && <Field label="Duration" value={need.duration} />}
                                 {need.compensationRange && (
                                     <Field label="Compensation" value={need.compensationRange} />
@@ -249,20 +257,21 @@ export default function DistrictNeedDetailPage() {
                                 />
                             </dl>
                             {need.description && (
-                                <div>
+                                <dl>
                                     <dt className="text-sm font-semibold text-[var(--text-tertiary)] uppercase tracking-widest mb-1">
                                         Description
                                     </dt>
-                                    <p className="text-base text-[var(--text-primary)] whitespace-pre-wrap">
+                                    <dd className="text-base text-[var(--text-primary)] whitespace-pre-wrap">
                                         {need.description}
-                                    </p>
-                                </div>
+                                    </dd>
+                                </dl>
                             )}
                         </section>
                     ) : (
-                        <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm text-[var(--text-secondary)]">
-                            Loading need…
-                        </section>
+                        <div aria-busy="true" className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm text-[var(--text-secondary)]">
+                            <h1 className="sr-only">Gig details</h1>
+                            Loading gig…
+                        </div>
                     )}
 
                     {need && (
@@ -295,8 +304,8 @@ export default function DistrictNeedDetailPage() {
                                     const label = formatProposalStatus(row.proposal.status);
                                     const educatorName = row.user
                                         ? `${row.user.firstName ?? ""} ${row.user.lastName ?? ""}`.trim() ||
-                                          "Educator"
-                                        : "Educator";
+                                          "Consultant"
+                                        : "Consultant";
                                     const initials = educatorName
                                         .split(/\s+/)
                                         .map((p) => p[0] ?? "")
@@ -491,24 +500,9 @@ function Pill({ label }: { label: string }) {
 }
 
 function StatusPill({ status }: { status: string }) {
-    const color =
-        status === "placed"
-            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-            : status === "interviewing"
-              ? "bg-amber-50 text-amber-700 border-amber-200"
-              : status === "closed"
-                ? "bg-blue-50 text-blue-700 border-blue-200"
-                : "bg-blue-50 text-blue-700 border-blue-200";
-    const label =
-        status === "placed"
-            ? "Placed"
-            : status === "interviewing"
-              ? "Interviewing"
-              : status === "closed"
-                ? "Closed"
-                : "Open";
+    const { label, className } = gigStatusStyle(status);
     return (
-        <span className={cn("px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest border", color)}>
+        <span className={cn("px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest border", className)}>
             {label}
         </span>
     );
@@ -526,7 +520,7 @@ function ShellEmpty({
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-[1600px] w-full mx-auto px-8 lg:px-12 py-10 flex flex-col gap-10">
                     <Link
                         href="/dashboard/district"

@@ -27,11 +27,11 @@ test.describe("Post a gig", () => {
         await expect(page.getByRole("heading", { name: /The Details/i })).toBeVisible();
 
         await expect(page.getByRole("button", { name: /save draft/i })).toBeVisible();
-        await expect(page.getByRole("button", { name: /publish need/i })).toBeVisible();
+        await expect(page.getByRole("button", { name: /publish gig/i })).toBeVisible();
 
         // An incomplete publish attempt preserves the work and sends the user to
         // account creation; it never shows the published-success state.
-        await page.getByRole("button", { name: /publish need/i }).click();
+        await page.getByRole("button", { name: /publish gig/i }).click();
 
         await expect(page).toHaveURL(/\/sign-up/);
         await expect(page.getByText(/your (need|gig) has been posted/i)).toHaveCount(0);

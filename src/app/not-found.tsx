@@ -1,11 +1,12 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { PrimaryButton } from "@/components/shared/button";
-import { MagnifyingGlass, Briefcase, House, Lifebuoy } from "@phosphor-icons/react";
+import { MagnifyingGlass, Briefcase, House, Lifebuoy } from "@phosphor-icons/react/ssr";
 import { supportMailto } from "@/lib/legal";
+
+export const metadata: Metadata = { title: "Page not found" };
 
 const recoveryLinks = [
     { href: "/browse", label: "Find consultants", icon: MagnifyingGlass },
@@ -18,7 +19,7 @@ export default function NotFound() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
             <SiteHeader />
-            <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-16 lg:py-24 text-center">
+            <main id="main-content" className="flex-1 max-w-3xl mx-auto w-full px-6 py-16 lg:py-24 text-center">
                 <div className="education-rule mx-auto mb-6" />
                 <p className="text-sm font-bold uppercase tracking-widest text-[var(--text-tertiary)] mb-4">
                     404

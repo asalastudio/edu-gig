@@ -12,7 +12,7 @@ test.describe("Launch marketplace flow (public)", () => {
 
         await page.goto("/pricing");
         await expect(page.getByText(/Payment stays between you/i)).toBeVisible();
-        await expect(page.getByText(/does not charge an 18% fee/i)).toBeVisible();
+        await expect(page.getByText(/No platform fee/i)).toBeVisible();
         await expect(page.getByText(/Contract Hub/i)).toHaveCount(0);
 
         await page.goto("/help");

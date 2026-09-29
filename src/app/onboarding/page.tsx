@@ -70,7 +70,7 @@ function OnboardingWithoutClerk() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
-            <main className="flex-1 max-w-lg mx-auto px-6 py-16 text-center">
+            <main id="main-content" className="flex-1 max-w-lg mx-auto px-6 py-16 text-center">
                 <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Onboarding</h1>
                 <p className="text-[var(--text-secondary)] mb-8">
                     Sign in is not configured. Use the demo dashboards from the home page, or add Clerk keys to your environment.
@@ -339,7 +339,7 @@ function OnboardingWithClerk() {
         return (
             <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
                 <SiteHeader />
-                <main className="flex-1 flex items-center justify-center">
+                <main id="main-content" className="flex-1 flex items-center justify-center">
                     <p className="text-[var(--text-secondary)] font-medium">Loading setup...</p>
                 </main>
                 <SiteFooter />
@@ -355,7 +355,7 @@ function OnboardingWithClerk() {
         return (
             <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
                 <SiteHeader />
-                <main className="flex-1 flex items-center justify-center">
+                <main id="main-content" className="flex-1 flex items-center justify-center">
                     <p className="text-[var(--text-secondary)] font-medium">Loading setup...</p>
                 </main>
                 <SiteFooter />
@@ -370,12 +370,12 @@ function OnboardingWithClerk() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
-            <main className="flex-1 px-5 py-8 md:px-8 md:py-12">
+            <main id="main-content" className="flex-1 px-5 py-8 md:px-8 md:py-12">
                 <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
                     <section className="rounded-lg border border-[var(--border-default)] bg-white shadow-[var(--shadow-soft)] overflow-hidden">
                         <div className="px-6 md:px-8 py-7 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
                             <div className="education-rule mb-4" />
-                            <p className="eyebrow mb-3">{isEducator ? "Educator setup" : "District setup"}</p>
+                            <p className="eyebrow mb-3">{isEducator ? "Consultant setup" : "District setup"}</p>
                             <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tight">
                                 {isEducator
                                     ? `${welcome} Build a profile districts can trust.`
@@ -538,7 +538,7 @@ function RoleChoice({ welcome }: { welcome: string }) {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
-            <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-14">
+            <main id="main-content" className="flex-1 max-w-5xl mx-auto w-full px-6 py-14">
                 <div className="text-center max-w-2xl mx-auto">
                     <div className="education-rule mx-auto mb-5" />
                     <p className="eyebrow mb-3">Choose your account path</p>
@@ -662,7 +662,7 @@ function DistrictStep(props: {
                 <SectionIntro
                     icon={Buildings}
                     title="Identify the district or school."
-                    description="Educators need a real organization name and service region before they trust a request."
+                    description="Consultants need a real organization name and service region before they trust a gig."
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field label="District, school, or organization name" className="md:col-span-2">
@@ -921,7 +921,7 @@ function EducatorStep(props: {
             <SectionIntro
                 icon={CheckCircle}
                 title="Review your launch profile."
-                description="This is enough to create a credible profile and keep polishing from educator settings."
+                description="This is enough to create a credible profile and keep polishing from your consultant profile."
             />
             <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
                 <div className="flex items-center justify-between gap-4 mb-4">

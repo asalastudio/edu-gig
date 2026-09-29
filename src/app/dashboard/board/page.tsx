@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
 import { getAreaOfNeedLabel, TAXONOMY } from "@/lib/taxonomy";
 import { isDistrictRole } from "@/lib/roles";
-import { canCancelNeed } from "@/lib/need-status";
+import { canCancelNeed, gigStatusStyle } from "@/lib/need-status";
 import { CurrencyDollar, Buildings, Briefcase, Clock, PlusCircle } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { collectProposedNeedIds } from "@/lib/proposed-needs";
@@ -57,22 +57,6 @@ function gradeLabel(gradeId: string | undefined): string | null {
     return match?.label ?? gradeId;
 }
 
-function statusPillClass(status: string): string {
-    switch (status) {
-        case "draft":
-            return "bg-slate-50 text-slate-700 border-slate-200";
-        case "open":
-            return "bg-emerald-50 text-emerald-700 border-emerald-200";
-        case "interviewing":
-            return "bg-amber-50 text-amber-700 border-amber-200";
-        case "placed":
-            return "bg-blue-50 text-blue-700 border-blue-200";
-        case "closed":
-        default:
-            return "bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-strong)]";
-    }
-}
-
 /** Prominent "who posted this gig" source block, so the origin reads at a glance. */
 function NeedSource({ orgName }: { orgName: string }) {
     return (
@@ -90,23 +74,6 @@ function NeedSource({ orgName }: { orgName: string }) {
             </span>
         </div>
     );
-}
-
-function statusLabel(status: string): string {
-    switch (status) {
-        case "draft":
-            return "Draft";
-        case "open":
-            return "Open";
-        case "interviewing":
-            return "Interviewing";
-        case "placed":
-            return "Placed";
-        case "closed":
-            return "Closed";
-        default:
-            return status;
-    }
 }
 
 export default function GigBoardPage() {
@@ -163,7 +130,7 @@ export default function GigBoardPage() {
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <Toaster position="top-right" richColors />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-[1600px] w-full mx-auto px-8 lg:px-12 py-10 flex flex-col gap-10">
                     <PageHeader
                         title={boardTitle}
@@ -228,7 +195,7 @@ export default function GigBoardPage() {
                                         <div className="p-8 flex flex-col lg:flex-row justify-between gap-6">
                                             <div className="flex-1 flex flex-col gap-3">
                                                 <NeedSource orgName={need.orgName} />
-                                                <h3 className="font-heading text-2xl font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
+                                                <h2 className="font-heading text-2xl font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
                                                     {getAreaOfNeedLabel(need.areaOfNeed)}
                                                     {need.subCategory ? (
                                                         <span className="text-[var(--text-secondary)] font-semibold text-lg">
@@ -236,7 +203,7 @@ export default function GigBoardPage() {
                                                             {getAreaOfNeedLabel(need.subCategory)}
                                                         </span>
                                                     ) : null}
-                                                </h3>
+                                                </h2>
                                                 <div className="flex flex-wrap gap-3 text-sm font-semibold text-[var(--text-secondary)]">
                                                     {grade && (
                                                         <span className="inline-flex items-center gap-1.5 bg-[var(--bg-subtle)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">
@@ -330,13 +297,13 @@ export default function GigBoardPage() {
                                                     <span
                                                         className={cn(
                                                             "px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border",
-                                                            statusPillClass(need.status)
+                                                            gigStatusStyle(need.status).className
                                                         )}
                                                     >
-                                                        {statusLabel(need.status)}
+                                                        {gigStatusStyle(need.status).label}
                                                     </span>
                                                 </div>
-                                                <h3 className="font-heading text-2xl font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
+                                                <h2 className="font-heading text-2xl font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
                                                     {getAreaOfNeedLabel(need.areaOfNeed)}
                                                     {need.subCategory ? (
                                                         <span className="text-[var(--text-secondary)] font-semibold text-lg">
@@ -344,7 +311,7 @@ export default function GigBoardPage() {
                                                             {getAreaOfNeedLabel(need.subCategory)}
                                                         </span>
                                                     ) : null}
-                                                </h3>
+                                                </h2>
                                                 <div className="flex flex-wrap gap-3 text-sm font-semibold text-[var(--text-secondary)]">
                                                     {grade && (
                                                         <span className="inline-flex items-center gap-1.5 bg-[var(--bg-subtle)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">

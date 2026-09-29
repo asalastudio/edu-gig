@@ -163,7 +163,7 @@ export default function EducatorSettingsPage() {
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-10">
                     <Link
                         href="/dashboard/educator"

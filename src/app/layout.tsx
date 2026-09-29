@@ -61,6 +61,12 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <Providers>
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-[var(--accent-primary)] focus:shadow-lg focus:outline-2 focus:outline-[var(--accent-primary)]"
+              >
+                Skip to main content
+              </a>
               {children}
               <CookieConsent />
             </Providers>

@@ -10,7 +10,7 @@ export default function LoginHubPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
             <SiteHeader />
-            <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-16 text-center">
+            <main id="main-content" className="flex-1 max-w-4xl mx-auto w-full px-6 py-16 text-center">
                 <div className="education-rule mx-auto mb-5" />
                 <h1 className="font-heading text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-3">
                     Sign in or create your account
@@ -33,7 +33,7 @@ export default function LoginHubPage() {
                                     I represent a school or district
                                 </h2>
                                 <p className="text-sm text-[var(--text-secondary)] font-medium">
-                                    Districts, principals, HR — post needs and browse talent.
+                                    Districts, principals, HR — post gigs and find consultants.
                                 </p>
                             </div>
                         </div>
@@ -52,10 +52,10 @@ export default function LoginHubPage() {
                             </div>
                             <div>
                                 <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-1">
-                                    I&apos;m an educator
+                                    I&apos;m a consultant
                                 </h2>
                                 <p className="text-sm text-[var(--text-secondary)] font-medium">
-                                    Build your profile, manage gigs, and get hired.
+                                    Build your profile, send proposals, and get hired.
                                 </p>
                             </div>
                         </div>

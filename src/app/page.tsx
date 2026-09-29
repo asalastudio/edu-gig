@@ -28,7 +28,7 @@ export default function Home() {
       {/* 1. NAVIGATION BAR */}
       <SiteHeader />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         {/* 2. HERO SECTION */}
         <section className="relative w-full overflow-hidden bg-[#092B20] px-6 py-10 text-white md:py-12 lg:px-12">
           <div
@@ -73,10 +73,10 @@ export default function Home() {
               </h1>
 
               <p className="max-w-2xl text-base leading-7 text-white/84">
-                Stop waiting on generic staffing agencies. K12Gig helps districts find reviewed educators, coaches, and specialists for contract and consulting needs.
+                Stop waiting on generic staffing agencies. K12Gig helps districts find consultants, coaches, and specialists for contract and consulting work.
               </p>
               <p className="max-w-2xl text-sm leading-6 text-white/70">
-                The live educator directory is available to district hiring teams — sign in to browse consultants and message them.
+                The consultant directory is open to district hiring teams — sign in to browse consultants and message them.
               </p>
 
               <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
@@ -153,7 +153,7 @@ export default function Home() {
                 Staffing doesn&apos;t have to be a nightmare.
               </h2>
               <p className="text-base text-[var(--text-secondary)] leading-7">
-                Whether you need a specialized math interventionist for a 3-month contract or a reliable daily substitute, our marketplace model cuts out the middleman blockades.
+                Whether you need a math interventionist for a 3-month contract or a keynote for opening day, post a gig and review proposals directly — no staffing agency in the middle.
               </p>
 
               <ul className="flex flex-col gap-5 mt-4">
@@ -190,7 +190,7 @@ export default function Home() {
                     <p className="truncate text-sm text-[var(--text-secondary)]">Literacy Coach · K–5 · On-site</p>
                   </div>
                   <div className="h-8 px-3 bg-[var(--accent-info)]/10 border border-[var(--accent-info)]/20 rounded-full flex items-center justify-center">
-                    <span className="text-[10px] text-[var(--accent-info)] font-bold uppercase tracking-wider">Verified</span>
+                    <span className="text-[10px] text-[var(--accent-info)] font-bold uppercase tracking-wider">Resume on file</span>
                   </div>
                 </div>
                 {/* Mock Card 2 */}
@@ -259,7 +259,7 @@ export default function Home() {
             <div className="mt-8 flex flex-col sm:flex-row gap-4 items-center">
               <Link href={`/sign-up?${AUTH_INTENT_PARAM}=educator`}>
                 <PrimaryButton className="bg-[var(--accent-secondary)] text-[#1A1A18] hover:bg-[var(--accent-secondary)]/90 px-8 py-3.5 text-lg font-bold border-none shadow-sm">
-                  Create Educator Profile
+                  Create Consultant Profile
                 </PrimaryButton>
               </Link>
             </div>
@@ -279,7 +279,7 @@ function HeroTrustRail() {
   return (
     <div className="grid w-full grid-cols-1 gap-3 pt-1 text-left sm:grid-cols-3">
       {[
-        { icon: ShieldCheck, title: "Vetted" },
+        { icon: ShieldCheck, title: "Credentials" },
         { icon: ChatCircleText, title: "Message" },
         { icon: CurrencyCircleDollar, title: "Clear rates" },
       ].map((item) => (

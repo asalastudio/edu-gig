@@ -73,7 +73,7 @@ export function CategoryTiles() {
                         Browse by Support Type
                     </h2>
                     <p className="text-base leading-7 text-[var(--text-secondary)] md:text-lg">
-                        Whether you need immediate classroom coverage or long-term operational consulting, find verified professionals ready to step in.
+                        From a one-day keynote to long-term operational consulting, find specialists who fit your district&apos;s gig.
                     </p>
                 </div>
                 

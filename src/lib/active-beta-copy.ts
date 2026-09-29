@@ -14,7 +14,7 @@ export function getActiveBetaCopy(cardCheckoutEnabled: boolean): ActiveBetaCopy 
         educatorHelp:
             "Complete onboarding, publish your profile, upload a resume, respond to district gigs, and coordinate accepted work in My Gigs. After a proposal is accepted, reach out if you don't hear from the school in 3 business days.",
         billingHelp:
-            "K12Gig does not process payments, payouts, ACH, or 1099s. After a proposal is accepted, districts and consultants arrange contracts and payment directly off-platform.",
+            "K12Gig doesn't charge a fee or process payments. After a proposal is accepted, districts and consultants arrange contracts and payment directly.",
         paymentModeLabel: "Off-platform (district and consultant)",
         districtPaymentCopy:
             "Payment is arranged directly with the consultant. K12Gig does not run checkout.",

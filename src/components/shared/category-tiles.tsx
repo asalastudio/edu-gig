@@ -11,7 +11,8 @@ import {
     GraduationCap,
     Lightbulb,
     ClipboardText,
-    Scales
+    Scales,
+    MicrophoneStage
 } from "@phosphor-icons/react";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const CAT_ICONS: Record<string, React.ElementType> = {
     "instruction_curriculum": ChalkboardTeacher,
     "school_improvement": ChartLineUp,
     "leadership_operations": GraduationCap,
+    "keynote": MicrophoneStage,
     "student_support_services": Student,
 };
 
@@ -40,10 +42,10 @@ const META_CATEGORIES = [
     {
         id: "meta_leadership",
         title: "Leadership & Improvement",
-        description: "Administrative, board, planning, and school improvement expertise.",
+        description: "Administrative, board, planning, keynote, and school improvement expertise.",
         color: "amber",
         icon: Target,
-        areas: ["school_improvement", "leadership_operations"]
+        areas: ["school_improvement", "leadership_operations", "keynote"]
     },
     {
         id: "meta_ops",

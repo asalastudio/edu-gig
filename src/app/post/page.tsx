@@ -481,6 +481,7 @@ function PostNeedPageInner() {
                                         {errors.areaOfNeed && <span className="text-sm text-red-500 font-medium">{errors.areaOfNeed}</span>}
                                     </div>
 
+                                    {specs.length > 0 && (
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="specId" className="text-sm font-semibold text-[var(--text-primary)]">Area of Expertise <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
                                         <select 
@@ -491,7 +492,7 @@ function PostNeedPageInner() {
                                                 setSpecId(e.target.value);
                                                 if (errors.subCategory) setErrors({...errors, subCategory: undefined});
                                             }}
-                                            disabled={!areaId || specs.length === 0}
+                                            disabled={!areaId}
                                             aria-invalid={!!errors.subCategory}
                                         >
                                             <option value="">Select Area of Expertise</option>
@@ -501,6 +502,7 @@ function PostNeedPageInner() {
                                         </select>
                                         {errors.subCategory && <span className="text-sm text-red-500 font-medium">{errors.subCategory}</span>}
                                     </div>
+                                    )}
 
                                     <div className="flex flex-col gap-2">
                                         <label htmlFor="grade" className="text-sm font-semibold text-[var(--text-primary)]">Grade Level Band <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>

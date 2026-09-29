@@ -46,6 +46,21 @@ test.describe("Launch marketplace flow (public)", () => {
         await expect(page).toHaveURL(/\/pricing/);
     });
 
+    test("Keynote Speaking is a top-level Support Type on home and browse", async ({ page }) => {
+        await page.goto("/");
+        await expect(page.getByRole("heading", { name: /Browse by Support Type/i })).toBeVisible();
+        await expect(page.getByRole("button", { name: /Keynote Speaking/i })).toBeVisible();
+        await expect(page.getByLabel("Support Type").locator("option[value='keynote']")).toHaveText(
+            "Keynote Speaking"
+        );
+
+        await page.goto("/browse");
+        await page.getByRole("button", { name: /Select Support/i }).click();
+        await expect(page.getByText("Keynote Speaking", { exact: true })).toBeVisible();
+        await page.getByText("Keynote Speaking", { exact: true }).click();
+        await expect(page.getByRole("button", { name: /Keynote Speaking ×/i })).toBeVisible();
+    });
+
     test("directory no longer shows engagement type or availability chips", async ({ page }) => {
         await page.goto("/browse");
         await expect(page.getByRole("heading", { name: /Find consultants/i })).toBeVisible();

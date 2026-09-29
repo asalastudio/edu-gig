@@ -61,6 +61,10 @@ export default function DistrictNeedDetailPage() {
         isDistrict && isValidIdShape && need ? { needId: rawId as Id<"needs"> } : "skip"
     );
 
+    // Once placed, the accepted proposal links back to its engagement (districts had no way back after the accept redirect).
+    const engagements = useQuery(api.engagements.listMine, isDistrict && need?.status === "placed" ? {} : "skip");
+    const engagementByProposal = new Map((engagements ?? []).map((e) => [e.proposalId as string, e._id as string]));
+
     const acceptProposal = useMutation(api.proposals.accept);
     const rejectProposal = useMutation(api.proposals.reject);
     const cancelNeed = useMutation(api.needs.cancel);
@@ -374,6 +378,21 @@ export default function DistrictNeedDetailPage() {
                                                         />
                                                     )}
                                                 </div>
+                                                {row.proposal.status === "accepted" && (
+                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                        {engagementByProposal.has(row.proposal._id) && (
+                                                            <Link href={`/dashboard/engagements/${engagementByProposal.get(row.proposal._id)}`}>
+                                                                <PrimaryButton className="text-sm">Open engagement</PrimaryButton>
+                                                            </Link>
+                                                        )}
+                                                        <Link
+                                                            href={`/dashboard/messages?to=${encodeURIComponent(row.proposal.educatorUserId)}&name=${encodeURIComponent(educatorName)}`}
+                                                            className="inline-flex min-h-10 items-center rounded-lg border border-[var(--border-strong)] bg-white px-4 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                                                        >
+                                                            Message {educatorName}
+                                                        </Link>
+                                                    </div>
+                                                )}
                                                 {canDecide && (
                                                 <div className="flex flex-wrap gap-2 mt-2">
                                                     <AlertDialog>

@@ -55,6 +55,17 @@ describe("findViewableProposal", () => {
         expect(viewable?.id).toBe("won");
     });
 
+    it("does not fall back to an older accepted row when the newest is withdrawn", () => {
+        const viewable = findViewableProposal(
+            [
+                { needId: "need-1", status: "withdrawn", id: "latest" },
+                { needId: "need-1", status: "accepted", id: "older" },
+            ],
+            "need-1"
+        );
+        expect(viewable).toBeUndefined();
+    });
+
     it("returns undefined for withdrawn or rejected so the form can show again", () => {
         expect(
             findViewableProposal([{ needId: "need-1", status: "withdrawn" }], "need-1")

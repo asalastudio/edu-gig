@@ -143,25 +143,14 @@ export default function ProposePage() {
         );
     }
 
-    // Need loaded but not found / no longer open
-    if (!need) {
-        return (
-            <Shell>
-                <BackLink />
-                <EmptyCard
-                    title="This need is no longer open"
-                    body="It may have been filled or removed. Browse the Gig Board for other open needs."
-                />
-                <Link href="/dashboard/board" className="w-fit">
-                    <PrimaryButton>Back to Gig Board</PrimaryButton>
-                </Link>
-            </Shell>
-        );
-    }
-
-    // Already submitted (pending or accepted). Withdrawn/rejected fall through to the form.
+    // Existing proposal stays readable after the need leaves the open board.
     if (viewableProposal) {
         const submitted = viewableProposal;
+        const summaryNeed = need ?? {
+            orgName: submitted.orgName,
+            areaOfNeed: submitted.areaOfNeed,
+            subCategory: submitted.subCategory,
+        };
         async function handleWithdraw() {
             setWithdrawing(true);
             try {
@@ -178,11 +167,27 @@ export default function ProposePage() {
             <Shell>
                 <BackLink />
                 <SubmittedProposalView
-                    need={need}
+                    need={summaryNeed}
                     proposal={submitted}
                     withdrawing={withdrawing}
                     onWithdraw={() => void handleWithdraw()}
                 />
+            </Shell>
+        );
+    }
+
+    // Need loaded but not found / no longer open — only blocks new submissions.
+    if (!need) {
+        return (
+            <Shell>
+                <BackLink />
+                <EmptyCard
+                    title="This need is no longer open"
+                    body="It may have been filled or removed. Browse the Gig Board for other open needs."
+                />
+                <Link href="/dashboard/board" className="w-fit">
+                    <PrimaryButton>Back to Gig Board</PrimaryButton>
+                </Link>
             </Shell>
         );
     }

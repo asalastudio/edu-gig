@@ -27,18 +27,20 @@ export function collectProposedNeedIds(proposals: readonly ProposalNeedRef[]): S
 }
 
 /**
- * The consultant's viewable proposal for a need: pending first, else accepted.
- * Withdrawn / rejected rows are ignored so the propose form can show again.
+ * The consultant's viewable proposal for a need.
+ * Callers pass `listMine` order (newest first). The newest row is the current
+ * state: pending/accepted are viewable; withdrawn/rejected show the form again.
+ * A pending row anywhere still wins so a stale older accepted row cannot mask it.
  */
 export function findViewableProposal<T extends ProposalNeedRef>(
     proposals: readonly T[],
     needId: string
 ): T | undefined {
     const forNeed = proposals.filter((proposal) => proposal.needId === needId);
-    return (
-        forNeed.find((proposal) => proposal.status === "pending") ??
-        forNeed.find((proposal) => proposal.status === "accepted")
-    );
+    const pending = forNeed.find((proposal) => proposal.status === "pending");
+    if (pending) return pending;
+    const current = forNeed[0];
+    return current?.status === "accepted" ? current : undefined;
 }
 
 export function listPendingProposals<T extends { status: string }>(proposals: readonly T[]): T[] {

@@ -253,7 +253,7 @@ export default function BrowsePage() {
 
                             <div className="flex flex-col gap-3">
                                 <span className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
-                                    Support Type
+                                    Primary Support Area
                                 </span>
                                 <TaxonomyFilter
                                     label="Select Support"

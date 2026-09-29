@@ -9,6 +9,12 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { PrimaryButton } from "@/components/shared/button";
+import {
+    PRIMARY_SUPPORT_AREA_LABEL,
+    PRIMARY_SUPPORT_AREA_PLACEHOLDER,
+    SPECIFIC_EXPERTISE_NEEDED_LABEL,
+    SPECIFIC_EXPERTISE_NEEDED_PLACEHOLDER,
+} from "@/lib/school-posting-labels";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { isDistrictRole } from "@/lib/roles";
 import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
@@ -458,7 +464,7 @@ function PostNeedPageInner() {
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="areaId" className="text-sm font-semibold text-[var(--text-primary)]">Support Type *</label>
+                                        <label htmlFor="areaId" className="text-sm font-semibold text-[var(--text-primary)]">{PRIMARY_SUPPORT_AREA_LABEL} *</label>
                                         <select 
                                             id="areaId"
                                             className={cn(
@@ -473,7 +479,7 @@ function PostNeedPageInner() {
                                             }}
                                             aria-invalid={!!errors.areaOfNeed}
                                         >
-                                            <option value="">Select Support Type</option>
+                                            <option value="">{PRIMARY_SUPPORT_AREA_PLACEHOLDER}</option>
                                             {TAXONOMY.areasOfNeed.map(a => (
                                                 <option key={a.id} value={a.id}>{a.label}</option>
                                             ))}
@@ -483,7 +489,7 @@ function PostNeedPageInner() {
 
                                     {specs.length > 0 && (
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="specId" className="text-sm font-semibold text-[var(--text-primary)]">Area of Expertise <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
+                                        <label htmlFor="specId" className="text-sm font-semibold text-[var(--text-primary)]">{SPECIFIC_EXPERTISE_NEEDED_LABEL} <span className="text-[var(--text-tertiary)]">(required to publish)</span></label>
                                         <select 
                                             id="specId"
                                             className="w-full h-12 px-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all disabled:opacity-50"
@@ -495,7 +501,7 @@ function PostNeedPageInner() {
                                             disabled={!areaId}
                                             aria-invalid={!!errors.subCategory}
                                         >
-                                            <option value="">Select Area of Expertise</option>
+                                            <option value="">{SPECIFIC_EXPERTISE_NEEDED_PLACEHOLDER}</option>
                                             {specs.map(s => (
                                                 <option key={s.id} value={s.id}>{s.label}</option>
                                             ))}

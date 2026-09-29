@@ -13,6 +13,16 @@ const BG_COLOR = "#ffffff";
 const PANEL_COLOR = "#f7f8f5";
 const APP_URL = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_APP_URL) || "https://k12gig.com";
 
+/** Educator settings is the page that actually persists email opt-out. */
+export const EDUCATOR_NOTIFICATION_SETTINGS_PATH = "/dashboard/educator/settings";
+export const DISTRICT_NOTIFICATION_SETTINGS_PATH = "/dashboard/district/settings";
+
+export function notificationSettingsUrl(role: "educator" | "district" = "educator"): string {
+    const path =
+        role === "district" ? DISTRICT_NOTIFICATION_SETTINGS_PATH : EDUCATOR_NOTIFICATION_SETTINGS_PATH;
+    return `${APP_URL}${path}`;
+}
+
 /** Extremely minimal HTML-escape for text that's being embedded into markup. */
 function escapeHtml(input: string): string {
     return String(input)
@@ -35,11 +45,9 @@ function money(n: number): string {
 }
 
 function renderLayout(opts: { title: string; bodyHtml: string; unsubscribeUrl?: string }): string {
-    // Existing transactional templates leave `unsubscribeUrl` unset so the
-    // literal `{{unsubscribe_url}}` placeholder is preserved for downstream
-    // substitution. Non-transactional templates (e.g. reminders) pass a real
-    // URL so the footer link points at the recipient's settings/opt-out page.
-    const unsubscribeUrl = opts.unsubscribeUrl ?? "{{unsubscribe_url}}";
+    // Every app email must link to a real notification-settings page. There is
+    // no Resend template substitution for `{{unsubscribe_url}}` in this repo.
+    const unsubscribeUrl = opts.unsubscribeUrl ?? notificationSettingsUrl();
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -61,7 +69,7 @@ ${opts.bodyHtml}
 <div><strong>K12Gig</strong> — The K-12 Educator Marketplace</div>
 <div style="margin-top:6px;">
 You received this email because of activity on your K12Gig account.
-<a href="${unsubscribeUrl}" style="color:${MUTED_COLOR};text-decoration:underline;">Unsubscribe</a>
+<a href="${escapeHtml(unsubscribeUrl)}" style="color:${MUTED_COLOR};text-decoration:underline;">Manage notifications</a>
 </div>
 </td></tr>
 </table>
@@ -89,6 +97,7 @@ export type BookingConfirmationInput = {
     educatorPayout: number;
     startDate: string;
     paymentMethod: "card" | "ach" | "invoice";
+    unsubscribeUrl?: string;
 };
 
 export function bookingConfirmation(input: BookingConfirmationInput): EmailPayload {
@@ -102,6 +111,7 @@ export function bookingConfirmation(input: BookingConfirmationInput): EmailPaylo
         educatorPayout,
         startDate,
         paymentMethod,
+        unsubscribeUrl,
     } = input;
 
     const subject = `Booking confirmed: ${gigTitle}`;
@@ -163,7 +173,7 @@ ${paymentMethod === "invoice" ? `<p style="margin:20px 0 0;color:${MUTED_COLOR};
         .filter(Boolean)
         .join("\n");
 
-    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+    return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
 }
 
 // ─── 2. New message alert ───────────────────────────────────
@@ -173,10 +183,11 @@ export type NewMessageAlertInput = {
     recipientFirstName: string;
     messagePreview: string;
     conversationUrl: string;
+    unsubscribeUrl?: string;
 };
 
 export function newMessageAlert(input: NewMessageAlertInput): EmailPayload {
-    const { senderName, recipientFirstName, messagePreview, conversationUrl } = input;
+    const { senderName, recipientFirstName, messagePreview, conversationUrl, unsubscribeUrl } = input;
     const subject = `New message from ${senderName}`;
 
     const preview = messagePreview.length > 240 ? `${messagePreview.slice(0, 240)}…` : messagePreview;
@@ -207,7 +218,7 @@ ${escapeHtml(preview)}
         `— K12Gig, The K-12 Educator Marketplace`,
     ].join("\n");
 
-    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+    return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
 }
 
 // ─── 3. New proposal alert ──────────────────────────────────
@@ -219,10 +230,11 @@ export type NewProposalAlertInput = {
     proposedRate?: number;
     proposedRateUnit?: "hourly" | "daily" | "fixed";
     needUrl: string;
+    unsubscribeUrl?: string;
 };
 
 export function newProposalAlert(input: NewProposalAlertInput): EmailPayload {
-    const { educatorName, needTitle, orgName, proposedRate, proposedRateUnit, needUrl } = input;
+    const { educatorName, needTitle, orgName, proposedRate, proposedRateUnit, needUrl, unsubscribeUrl } = input;
     const subject = `New proposal on "${needTitle}"`;
 
     let rateLabel = "Rate not specified";
@@ -260,7 +272,7 @@ export function newProposalAlert(input: NewProposalAlertInput): EmailPayload {
         `— K12Gig, The K-12 Educator Marketplace`,
     ].join("\n");
 
-    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+    return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
 }
 
 // ─── 4. Proposal accepted alert ─────────────────────────────
@@ -270,10 +282,11 @@ export type ProposalAcceptedAlertInput = {
     orgName: string;
     educatorFirstName: string;
     needUrl: string;
+    unsubscribeUrl?: string;
 };
 
 export function proposalAcceptedAlert(input: ProposalAcceptedAlertInput): EmailPayload {
-    const { needTitle, orgName, educatorFirstName, needUrl } = input;
+    const { needTitle, orgName, educatorFirstName, needUrl, unsubscribeUrl } = input;
     const subject = `Your proposal was accepted — ${needTitle}`;
 
     const bodyHtml = `
@@ -300,7 +313,7 @@ export function proposalAcceptedAlert(input: ProposalAcceptedAlertInput): EmailP
         `— K12Gig, The K-12 Educator Marketplace`,
     ].join("\n");
 
-    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+    return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
 }
 
 // ─── 4b. Proposal rejected alert ────────────────────────────
@@ -313,10 +326,11 @@ export type ProposalRejectedAlertInput = {
     educatorFirstName: string;
     needUrl: string;
     reason?: ProposalRejectedReason;
+    unsubscribeUrl?: string;
 };
 
 export function proposalRejectedAlert(input: ProposalRejectedAlertInput): EmailPayload {
-    const { needTitle, orgName, educatorFirstName, needUrl, reason = "rejected" } = input;
+    const { needTitle, orgName, educatorFirstName, needUrl, reason = "rejected", unsubscribeUrl } = input;
     const subject = `Update on your proposal — ${needTitle}`;
 
     const reasonCopy =
@@ -348,7 +362,7 @@ export function proposalRejectedAlert(input: ProposalRejectedAlertInput): EmailP
         `— K12Gig, The K-12 Educator Marketplace`,
     ].join("\n");
 
-    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+    return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
 }
 
 export type EngagementStatusAlertInput = {
@@ -358,10 +372,11 @@ export type EngagementStatusAlertInput = {
     areaLabel: string;
     statusLabel: string;
     engagementUrl: string;
+    unsubscribeUrl?: string;
 };
 
 export function engagementStatusAlert(input: EngagementStatusAlertInput): EmailPayload {
-    const { counterpartFirstName, actorName, orgName, areaLabel, statusLabel, engagementUrl } = input;
+    const { counterpartFirstName, actorName, orgName, areaLabel, statusLabel, engagementUrl, unsubscribeUrl } = input;
     const subject = `${orgName} updated the engagement — ${areaLabel}`;
 
     const bodyHtml = `
@@ -385,7 +400,7 @@ export function engagementStatusAlert(input: EngagementStatusAlertInput): EmailP
         `— K12Gig, The K-12 Educator Marketplace`,
     ].join("\n");
 
-    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+    return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
 }
 
 export function refundIssuedAlert(input: {
@@ -393,6 +408,7 @@ export function refundIssuedAlert(input: {
     orderId: string;
     refundAmount: number;
     reason?: string;
+    unsubscribeUrl?: string;
 }): EmailPayload {
     const subject = `Refund issued for order ${input.orderId}`;
     const reason = input.reason ? `Reason: ${input.reason}` : "Reason: Not provided";
@@ -401,7 +417,7 @@ export function refundIssuedAlert(input: {
 <p><strong>Amount:</strong> ${escapeHtml(money(input.refundAmount))}</p>
 <p><strong>${escapeHtml(reason)}</strong></p>`;
     const text = `Refund issued for order ${input.orderId}\nAmount: ${money(input.refundAmount)}\n${reason}`;
-    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+    return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl: input.unsubscribeUrl }), text };
 }
 
 export function disputeCreatedAdminAlert(input: {
@@ -409,6 +425,7 @@ export function disputeCreatedAdminAlert(input: {
     disputeId: string;
     amount: number;
     reason?: string;
+    unsubscribeUrl?: string;
 }): EmailPayload {
     const subject = `Stripe dispute opened: ${input.orderId}`;
     const reason = input.reason || "not_provided";
@@ -419,7 +436,7 @@ export function disputeCreatedAdminAlert(input: {
 <strong>Amount:</strong> ${escapeHtml(money(input.amount))}<br/>
 <strong>Reason:</strong> ${escapeHtml(reason)}</p>`;
     const text = `Dispute flagged\nOrder: ${input.orderId}\nDispute: ${input.disputeId}\nAmount: ${money(input.amount)}\nReason: ${reason}`;
-    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+    return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl: input.unsubscribeUrl }), text };
 }
 
 // ─── 5. New need alert (RFP match) ──────────────────────────
@@ -429,10 +446,11 @@ export type NewNeedAlertInput = {
     areaLabel: string;
     gradeLevel?: string;
     needsBoardUrl: string;
+    unsubscribeUrl?: string;
 };
 
 export function newNeedAlert(input: NewNeedAlertInput): EmailPayload {
-    const { orgName, areaLabel, gradeLevel, needsBoardUrl } = input;
+    const { orgName, areaLabel, gradeLevel, needsBoardUrl, unsubscribeUrl } = input;
     const subject = `New district need matches your profile: ${areaLabel}`;
 
     const gradeRow = gradeLevel
@@ -468,7 +486,7 @@ ${gradeRow}
         .filter(Boolean)
         .join("\n");
 
-    return { subject, html: renderLayout({ title: subject, bodyHtml }), text };
+    return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
 }
 
 // ─── 6. Profile completion reminder (non-transactional) ─────

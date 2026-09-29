@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Post a Need", () => {
+test.describe("Post a gig", () => {
     test("incomplete preview progress is preserved for sign-up instead of appearing published", async ({ page }) => {
         await page.goto("/post");
 
@@ -9,8 +9,13 @@ test.describe("Post a Need", () => {
 
         // Step 1 — Role
         await expect(page.getByRole("heading", { name: /^The Role$/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: /Post a Need/i })).toHaveCount(0);
+        await expect(page.getByLabel(/Primary Support Area/i)).toBeVisible();
+        await expect(page.getByText(/Support Type/i)).toHaveCount(0);
         await page.locator("#orgName").fill("Ann Arbor Public Schools");
         await page.locator("#areaId").selectOption("instruction_curriculum");
+        await expect(page.getByLabel(/Specific Expertise Needed/i)).toBeVisible();
+        await expect(page.getByText(/Area of Expertise/i)).toHaveCount(0);
 
         // Use nth(0) since there's only one Continue button visible per step.
         await page.locator('button:has-text("Continue")').click();
@@ -40,7 +45,7 @@ test.describe("Post a Need", () => {
         });
     });
 
-    test("Keynote Speaking is a top-level Support Type and does not require expertise", async ({ page }) => {
+    test("Keynote Speaking is a top-level Primary Support Area and does not require expertise", async ({ page }) => {
         await page.goto("/post");
         await page.getByRole("button", { name: /Preview the form/i }).click();
 
@@ -50,5 +55,6 @@ test.describe("Post a Need", () => {
 
         await expect(page.locator("#specId")).toHaveCount(0);
         await expect(page.getByText(/Area of Expertise/i)).toHaveCount(0);
+        await expect(page.getByText(/Specific Expertise Needed/i)).toHaveCount(0);
     });
 });

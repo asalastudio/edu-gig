@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+    PRIMARY_SUPPORT_AREA_PUBLISH_MESSAGE,
+    SPECIFIC_EXPERTISE_NEEDED_PUBLISH_MESSAGE,
+} from "./school-posting-labels";
+import {
     getNeedPublishIssues,
     isNeedPublishReady,
     normalizeNeedInput,
@@ -75,6 +79,9 @@ describe("getNeedPublishIssues", () => {
         });
 
         expect(withKnownArea.some((issue) => issue.field === "subCategory")).toBe(true);
+        expect(withKnownArea.find((issue) => issue.field === "subCategory")?.message).toBe(
+            SPECIFIC_EXPERTISE_NEEDED_PUBLISH_MESSAGE
+        );
         expect(withUnknownLegacyArea.some((issue) => issue.field === "subCategory")).toBe(false);
         expect(
             getNeedPublishIssues({
@@ -100,6 +107,15 @@ describe("getNeedPublishIssues", () => {
             ])
         );
         expect(issues.some((issue) => issue.field === "duration")).toBe(false);
+    });
+
+    it("asks for a primary support area when the area is missing", () => {
+        const issues = getNeedPublishIssues({
+            orgName: "Harborview District",
+        });
+        expect(issues.find((issue) => issue.field === "areaOfNeed")?.message).toBe(
+            PRIMARY_SUPPORT_AREA_PUBLISH_MESSAGE
+        );
     });
 
     it("accepts a complete, useful need", () => {

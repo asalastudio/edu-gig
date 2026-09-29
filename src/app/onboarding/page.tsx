@@ -434,6 +434,7 @@ function OnboardingWithClerk() {
                                     profileType={profileType}
                                     onProfileTypeChange={setProfileType}
                                     completion={educatorCompletion}
+                                    resumeFileName={resumeFileName ?? undefined}
                                 />
                             )}
 
@@ -753,6 +754,7 @@ function EducatorStep(props: {
     profileType: "individual" | "firm";
     onProfileTypeChange: (value: "individual" | "firm") => void;
     completion: number;
+    resumeFileName?: string;
 }) {
     if (props.step === 0) {
         return (
@@ -930,7 +932,8 @@ function EducatorStep(props: {
                 items={[
                     ...(props.businessName.trim() ? [["Business", props.businessName.trim()] as [string, string]] : []),
                     ["Headline", props.headline],
-                    ["Experience", `${Number(props.yearsExperience) || 0} years`],
+                    ["Years in education", `${Number(props.yearsExperience) || 0} years`],
+                    ["Resume / CV", props.resumeFileName?.trim() || "Add below, or later in settings"],
                     ["Areas", props.areasOfNeed.length ? `${props.areasOfNeed.length} selected` : "None selected"],
                     ["Grades", props.gradeLevelBands.length ? `${props.gradeLevelBands.length} selected` : "None selected"],
                     ["Coverage", props.coverageRegions.length ? `${props.coverageRegions.length} selected` : "None selected"],

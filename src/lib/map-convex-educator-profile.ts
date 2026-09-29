@@ -78,6 +78,7 @@ export function mapConvexEducatorToProfileView(
         bio: educator.bio,
         yearsExperience: educator.yearsExperience,
         placements: Math.min(50, Math.max(0, educator.profileCompletePct / 5)),
+        // Reviews Phase 1: do not surface public ratings. Underlying reviews stay stored.
         avgRating: 0,
         reviewCount: 0,
         location: "Michigan (see coverage regions)",

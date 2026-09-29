@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TAXONOMY, getAreaOfNeedLabel, getAreaOfNeedMatchIds } from "./taxonomy";
+import { TAXONOMY, formatNeedTitle, getAreaOfNeedLabel, getAreaOfNeedMatchIds } from "./taxonomy";
 
 describe("TAXONOMY.engagementTypes", () => {
     it("keeps consulting as the stored default even though the picker is hidden", () => {
@@ -22,6 +22,13 @@ describe("TAXONOMY support types", () => {
 
     it("resolves stored keynote ids to the top-level label", () => {
         expect(getAreaOfNeedLabel("keynote")).toBe("Keynote Speaking");
+    });
+
+    it("resolves raw taxonomy ids to human-readable labels for emails", () => {
+        expect(getAreaOfNeedLabel("ai_edtech")).toBe("AI & Educational Technology");
+        expect(formatNeedTitle("ai_edtech")).toBe("AI & Educational Technology");
+        expect(formatNeedTitle("", "your posting")).toBe("your posting");
+        expect(formatNeedTitle(undefined, "the posting")).toBe("the posting");
     });
 
     it("matches Keynote independently from Leadership & Operations", () => {

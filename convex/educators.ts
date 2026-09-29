@@ -116,6 +116,7 @@ export const listForBrowse = query({
                 headline: educator.headline,
                 avatarUrl: user.avatarUrl,
                 verificationTier: verificationToTier(educator.verificationStatus),
+                // Reviews Phase 1: keep aggregates off the public directory. Data stays in `reviews`.
                 overallRating: 0,
                 reviewCount: 0,
                 gradeLevels: educator.gradeLevelBands,

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/shared/brand-logo";
+import { FooterAccountLinks } from "@/components/shared/footer-account-links";
 
 export function SiteFooter() {
     return (
@@ -15,10 +16,10 @@ export function SiteFooter() {
                 <div className="flex flex-col gap-4">
                     <h4 className="text-sm font-semibold text-white/40 uppercase tracking-wider">Explore</h4>
                     <Link href="/browse" className="text-sm text-white/70 hover:text-white">Find consultants</Link>
-                    <Link href="/post" className="text-sm text-white/70 hover:text-white">Post a gig</Link>
+                    <FooterAccountLinks slot="gig" />
                     <Link href="/#for-districts" className="text-sm text-white/70 hover:text-white">How Districts Hire</Link>
                     <Link href="/#for-educators" className="text-sm text-white/70 hover:text-white">For Consultants</Link>
-                    <Link href="/login" className="text-sm text-white/80 hover:text-white font-semibold">Sign in</Link>
+                    <FooterAccountLinks slot="account" />
                 </div>
                 
                 <div className="flex flex-col gap-4">

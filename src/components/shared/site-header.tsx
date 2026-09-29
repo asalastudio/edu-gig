@@ -2,68 +2,30 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 import { PrimaryButton } from "./button";
 import { ArrowRight, List, X } from "@phosphor-icons/react";
 import { BrandLogo } from "@/components/shared/brand-logo";
-import { isDistrictRole } from "@/lib/roles";
-
-const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+import { hasClerk, SIGNED_OUT_NAV, useAccountNav, type AccountNav } from "./use-account-nav";
 
 /** Avoid calling `useUser` when Clerk isn't configured (no ClerkProvider) — required for static build. */
 export function SiteHeader() {
     if (!hasClerk) {
-        return <SiteHeaderView loading={false} signedIn={false} dashboardHref="/onboarding" dashboardLabel="Finish setup" />;
+        return <SiteHeaderView {...SIGNED_OUT_NAV} />;
     }
     return <SiteHeaderWithClerk />;
 }
 
 function SiteHeaderWithClerk() {
-    // Auth state comes from Clerk (the actual session) — not the Convex
-    // profile row, which only exists after onboarding completes. Otherwise a
-    // signed-in user who hasn't finished setup wrongly reads as logged out.
-    const { isLoaded, isSignedIn } = useUser();
-    const viewer = useQuery(api.users.viewer, {});
-    const signedIn = !!isSignedIn;
-    const loading = !isLoaded || (signedIn && viewer === undefined);
-
-    let dashboardHref = "/onboarding";
-    let dashboardLabel = "Finish setup";
-    if (viewer?.onboarded) {
-        dashboardLabel = "Dashboard";
-        if (viewer.role === "superadmin") {
-            dashboardHref = "/dashboard/admin";
-        } else if (isDistrictRole(viewer.role)) {
-            dashboardHref = "/dashboard/district";
-        } else {
-            dashboardHref = "/dashboard/educator";
-        }
-    }
-
-    return (
-        <SiteHeaderView
-            loading={loading}
-            signedIn={signedIn}
-            dashboardHref={dashboardHref}
-            dashboardLabel={dashboardLabel}
-        />
-    );
+    return <SiteHeaderView {...useAccountNav()} />;
 }
 
-function SiteHeaderView({
-    loading,
-    signedIn,
-    dashboardHref,
-    dashboardLabel,
-}: {
-    loading: boolean;
-    signedIn: boolean;
-    dashboardHref: string;
-    dashboardLabel: string;
-}) {
+function SiteHeaderView({ loading, signedIn, isConsultant, dashboardHref, dashboardLabel }: AccountNav) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    // Consultants can't post gigs; point them at the Gig Board instead.
+    const gigLink = isConsultant
+        ? { href: "/dashboard/board", label: "Gig Board" }
+        : { href: "/post", label: "Post a gig" };
 
     return (
         <header className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-md border-b border-[var(--border-default)] sticky top-0 z-50 shadow-[0_1px_0_rgba(255,255,255,0.7)] dark:shadow-none">
@@ -74,7 +36,7 @@ function SiteHeaderView({
                 
                 <nav className="hidden lg:flex items-center gap-6 text-sm font-semibold text-[var(--text-secondary)]">
                     <Link href="/browse" className="hover:text-[var(--accent-primary)] transition-colors">Find consultants</Link>
-                    <Link href="/post" className="hover:text-[var(--accent-primary)] transition-colors">Post a gig</Link>
+                    <Link href={gigLink.href} className="hover:text-[var(--accent-primary)] transition-colors">{gigLink.label}</Link>
                     <Link href="/pricing" className="hover:text-[var(--accent-primary)] transition-colors">Pricing</Link>
                     <Link href="/#for-districts" className="hover:text-[var(--accent-primary)] transition-colors">How It Works</Link>
                 </nav>
@@ -128,7 +90,7 @@ function SiteHeaderView({
             {mobileMenuOpen && (
                 <div className="lg:hidden absolute top-16 left-0 w-full bg-[var(--bg-surface)] border-b border-[var(--border-default)] shadow-[var(--shadow-soft)] flex flex-col p-6 gap-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <Link href="/browse" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Find consultants</Link>
-                    <Link href="/post" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Post a gig</Link>
+                    <Link href={gigLink.href} className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>{gigLink.label}</Link>
                     <Link href="/pricing" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
                     <Link href="/#for-districts" className="text-[var(--text-primary)] font-semibold" onClick={() => setMobileMenuOpen(false)}>How It Works</Link>
                     

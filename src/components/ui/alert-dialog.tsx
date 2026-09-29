@@ -144,15 +144,6 @@ function AlertDialogMedia({
   )
 }
 
-// The shadcn Button variants use theme tokens (bg-primary, bg-destructive,
-// bg-background) that this app never maps in Tailwind, so they render
-// transparent. Dialog buttons get explicit brand colors instead.
-const DIALOG_BUTTON_BRAND: Partial<Record<NonNullable<React.ComponentProps<typeof Button>["variant"]>, string>> = {
-  default: "bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)] hover:opacity-90",
-  destructive: "bg-red-600 text-white hover:bg-red-700",
-  outline: "border-[var(--border-strong)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
-}
-
 function AlertDialogAction({
   className,
   variant = "default",
@@ -164,7 +155,7 @@ function AlertDialogAction({
     <Button variant={variant} size={size} asChild>
       <AlertDialogPrimitive.Action
         data-slot="alert-dialog-action"
-        className={cn(variant && DIALOG_BUTTON_BRAND[variant], className)}
+        className={cn(className)}
         {...props}
       />
     </Button>
@@ -182,7 +173,7 @@ function AlertDialogCancel({
     <Button variant={variant} size={size} asChild>
       <AlertDialogPrimitive.Cancel
         data-slot="alert-dialog-cancel"
-        className={cn(variant && DIALOG_BUTTON_BRAND[variant], className)}
+        className={cn(className)}
         {...props}
       />
     </Button>

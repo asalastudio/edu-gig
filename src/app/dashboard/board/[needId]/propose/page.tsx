@@ -10,15 +10,9 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
-import { getAreaOfNeedLabel, TAXONOMY } from "@/lib/taxonomy";
-import {
-    ArrowLeft,
-    Buildings,
-    Briefcase,
-    CurrencyDollar,
-    FileArrowUp,
-    X,
-} from "@phosphor-icons/react";
+import { NeedSummaryCard, SubmittedProposalView } from "@/components/educator/submitted-proposal-view";
+import { findViewableProposal } from "@/lib/proposed-needs";
+import { ArrowLeft, FileArrowUp, X } from "@phosphor-icons/react";
 
 type OpenNeed = {
     _id: Id<"needs">;
@@ -34,31 +28,6 @@ type OpenNeed = {
 };
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-
-function gradeLabel(gradeId: string | undefined): string | null {
-    if (!gradeId) return null;
-    const match = TAXONOMY.gradeLevelBands.find((g) => g.id === gradeId);
-    return match?.label ?? gradeId;
-}
-
-/** Prominent "who posted this gig" source block, mirrors the Gig Board's NeedSource. */
-function NeedSource({ orgName }: { orgName: string }) {
-    return (
-        <div className="inline-flex items-center gap-2.5">
-            <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] shrink-0">
-                <Buildings weight="fill" className="w-5 h-5" />
-            </span>
-            <span className="flex flex-col leading-tight min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-tertiary)]">
-                    Posted by
-                </span>
-                <span className="text-base font-bold text-[var(--text-primary)] truncate">
-                    {orgName}
-                </span>
-            </span>
-        </div>
-    );
-}
 
 function Shell({ children }: { children: React.ReactNode }) {
     return (
@@ -113,12 +82,14 @@ export default function ProposePage() {
 
     const generateAttachmentUploadUrl = useMutation(api.proposals.generateAttachmentUploadUrl);
     const submitProposal = useMutation(api.proposals.submit);
+    const withdrawProposal = useMutation(api.proposals.withdraw);
 
     const [message, setMessage] = useState("");
     const [file, setFile] = useState<File | null>(null);
     const [proposedRate, setProposedRate] = useState("");
     const [proposedRateUnit, setProposedRateUnit] = useState<"hourly" | "daily" | "fixed">("hourly");
     const [submitting, setSubmitting] = useState(false);
+    const [withdrawing, setWithdrawing] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
     const need = useMemo(
@@ -126,17 +97,10 @@ export default function ProposePage() {
         [needs, needId]
     );
 
-    const alreadyProposed = useMemo(() => {
-        for (const p of myProposals ?? []) {
-            if (
-                (p.needId as unknown as string) === (needId as unknown as string) &&
-                (p.status === "pending" || p.status === "accepted")
-            ) {
-                return true;
-            }
-        }
-        return false;
-    }, [myProposals, needId]);
+    const viewableProposal = useMemo(
+        () => findViewableProposal(myProposals ?? [], needId as unknown as string),
+        [myProposals, needId]
+    );
 
     // Signed out
     if (viewer === null) {
@@ -145,7 +109,7 @@ export default function ProposePage() {
                 <BackLink />
                 <EmptyCard
                     title="Sign in as an educator to submit a proposal"
-                    body="Open needs appear here once you're signed in with an educator account."
+                    body="Open gigs appear here once you're signed in with a consultant account."
                 />
                 <Link href="/login?intent=educator" className="w-fit">
                     <PrimaryButton>Sign in</PrimaryButton>
@@ -167,8 +131,8 @@ export default function ProposePage() {
         );
     }
 
-    // Loading (viewer or needs still resolving)
-    if (viewer === undefined || needs === undefined) {
+    // Loading (viewer, needs, or the consultant's proposals still resolving)
+    if (viewer === undefined || needs === undefined || myProposals === undefined) {
         return (
             <Shell>
                 <BackLink />
@@ -179,13 +143,46 @@ export default function ProposePage() {
         );
     }
 
-    // Need loaded but not found / no longer open
+    // Existing proposal stays readable after the need leaves the open board.
+    if (viewableProposal) {
+        const submitted = viewableProposal;
+        const summaryNeed = need ?? {
+            orgName: submitted.orgName,
+            areaOfNeed: submitted.areaOfNeed,
+            subCategory: submitted.subCategory,
+        };
+        async function handleWithdraw() {
+            setWithdrawing(true);
+            try {
+                await withdrawProposal({ proposalId: submitted._id });
+                toast.success("Proposal withdrawn. You can submit a new one.");
+            } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Could not withdraw this proposal.");
+            } finally {
+                setWithdrawing(false);
+            }
+        }
+
+        return (
+            <Shell>
+                <BackLink />
+                <SubmittedProposalView
+                    need={summaryNeed}
+                    proposal={submitted}
+                    withdrawing={withdrawing}
+                    onWithdraw={() => void handleWithdraw()}
+                />
+            </Shell>
+        );
+    }
+
+    // Need loaded but not found / no longer open — only blocks new submissions.
     if (!need) {
         return (
             <Shell>
                 <BackLink />
                 <EmptyCard
-                    title="This need is no longer open"
+                    title="This gig is no longer open"
                     body="It may have been filled or removed. Browse the Gig Board for other open needs."
                 />
                 <Link href="/dashboard/board" className="w-fit">
@@ -194,30 +191,6 @@ export default function ProposePage() {
             </Shell>
         );
     }
-
-    // Already submitted
-    if (alreadyProposed) {
-        return (
-            <Shell>
-                <BackLink />
-                <PageHeader
-                    title="Proposal already submitted"
-                    description={`You've already submitted a proposal for this gig from ${need.orgName}.`}
-                />
-                <div className="p-8 border border-[var(--border-subtle)] rounded-lg bg-white">
-                    <p className="text-[var(--text-secondary)] mb-6">
-                        The district can see your proposal and will reach out if it&apos;s a match.
-                        You can only have one active proposal per need.
-                    </p>
-                    <Link href="/dashboard/board" className="w-fit">
-                        <PrimaryButton>Back to Gig Board</PrimaryButton>
-                    </Link>
-                </div>
-            </Shell>
-        );
-    }
-
-    const grade = gradeLabel(need.gradeLevel);
 
     function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
         setFormError(null);
@@ -290,41 +263,7 @@ export default function ProposePage() {
                 description="Respond to this district-posted gig. Share how you can help and attach your resume or a proposal doc."
             />
 
-            {/* ── RFP summary — the need you're responding to ── */}
-            <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col gap-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-tertiary)]">
-                    You&apos;re responding to
-                </p>
-                <NeedSource orgName={need.orgName} />
-                <h2 className="font-heading text-2xl font-bold text-[var(--text-primary)]">
-                    {getAreaOfNeedLabel(need.areaOfNeed)}
-                    {need.subCategory ? (
-                        <span className="text-[var(--text-secondary)] font-semibold text-lg">
-                            {" · "}
-                            {getAreaOfNeedLabel(need.subCategory)}
-                        </span>
-                    ) : null}
-                </h2>
-                <div className="flex flex-wrap gap-3 text-sm font-semibold text-[var(--text-secondary)]">
-                    {grade && (
-                        <span className="inline-flex items-center gap-1.5 bg-[var(--bg-subtle)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">
-                            <Briefcase className="w-4 h-4 text-[var(--text-tertiary)]" />
-                            {grade}
-                        </span>
-                    )}
-                    {need.compensationRange && (
-                        <span className="inline-flex items-center gap-1.5 bg-[var(--bg-subtle)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">
-                            <CurrencyDollar className="w-4 h-4 text-[var(--text-tertiary)]" />
-                            {need.compensationRange}
-                        </span>
-                    )}
-                </div>
-                {need.description && (
-                    <p className="text-base text-[var(--text-primary)] whitespace-pre-wrap">
-                        {need.description}
-                    </p>
-                )}
-            </section>
+            <NeedSummaryCard need={need} />
 
             {/* ── Proposal form ── */}
             <form

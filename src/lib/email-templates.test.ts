@@ -280,6 +280,18 @@ describe("newNeedAlert", () => {
         expect(out.html).not.toContain("Grade level");
         expect(out.html).toContain("Math Interventionist");
     });
+
+    it("uses gig wording and the Primary support area label (Chris renamed needs to gigs)", () => {
+        const out = newNeedAlert({
+            orgName: "Harborview District",
+            areaLabel: "Keynote Speaking",
+            needsBoardUrl: "https://k12gig.com/dashboard/board",
+        });
+        expect(out.subject).toBe("New district gig matches your profile: Keynote Speaking");
+        expect(out.html).toContain("Primary support area");
+        expect(out.text).toContain("View open gigs:");
+        expect(`${out.subject} ${out.html} ${out.text}`).not.toMatch(/\bneeds?\b/i);
+    });
 });
 
 describe("profileCompletionReminder", () => {

@@ -9,13 +9,14 @@ import { SiteFooter } from "@/components/shared/site-footer";
 import { AuthAccountSwitch } from "@/components/shared/auth-account-switch";
 import { AUTH_INTENT_PARAM, afterAuthPath, authPagePath, rememberAuthIntent, safeRedirectPath } from "@/lib/auth-intent";
 import { clerkCardAppearance } from "@/lib/clerk-appearance";
+import { useCurrentOrigin } from "@/lib/use-current-origin";
 
 export default function SignInPage() {
     const searchParams = useSearchParams();
     const intentParam = searchParams.get(AUTH_INTENT_PARAM);
     const intent = intentParam === "district" || intentParam === "educator" ? intentParam : null;
     const redirectParam = searchParams.get("redirect_url") ?? searchParams.get("redirectUrl") ?? searchParams.get("next");
-    const currentOrigin = typeof window === "undefined" ? undefined : window.location.origin;
+    const currentOrigin = useCurrentOrigin();
     const safeNext = safeRedirectPath(redirectParam, currentOrigin);
     const afterAuthUrl = afterAuthPath(intent, safeNext);
 
@@ -31,7 +32,7 @@ export default function SignInPage() {
         return (
             <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
                 <SiteHeader />
-                <main className="flex-1 max-w-lg mx-auto px-6 py-16 text-center">
+                <main id="main-content" className="flex-1 max-w-lg mx-auto px-6 py-16 text-center">
                     <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Authentication not configured</h1>
                     <p className="text-[var(--text-secondary)] mb-8">
                         Add <code className="text-sm bg-[var(--bg-subtle)] px-2 py-1 rounded">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code> and{" "}
@@ -58,7 +59,7 @@ export default function SignInPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
-            <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+            <main id="main-content" className="flex-1 flex flex-col items-center justify-center px-4 py-12">
                 <div className="k12-clerk-card w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
                     <div className="px-2 pt-2 pb-1 text-center sm:px-4">
                         <h1 className="font-heading text-xl font-bold text-[var(--text-primary)]">
@@ -68,11 +69,14 @@ export default function SignInPage() {
                             Welcome back! Please sign in to continue.
                         </p>
                     </div>
+                    {/* Reserve the production form's height (137px) so the page doesn't jump when Clerk loads. */}
+                    <div className="min-h-[137px]">
                     <SignIn
                         forceRedirectUrl={afterAuthUrl}
                         signUpUrl={authPagePath("/sign-up", intent, safeNext)}
                         appearance={clerkCardAppearance}
                     />
+                    </div>
                 </div>
                 <AuthAccountSwitch
                     mode="sign-up"

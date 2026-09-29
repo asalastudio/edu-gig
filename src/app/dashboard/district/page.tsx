@@ -12,7 +12,8 @@ import { SquaresFour, UserCircleCheck, Briefcase, Plus } from "@phosphor-icons/r
 import { cn } from "@/lib/utils";
 import { isDistrictRole } from "@/lib/roles";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
-import { formatDistrictKpis, formatOrderStatus, formatPipelineStatus, type PipelineRow } from "@/lib/map-dashboard";
+import { formatDistrictKpis, type PipelineRow } from "@/lib/map-dashboard";
+import { gigStatusStyle } from "@/lib/need-status";
 
 export default function DistrictDashboardPage() {
   const router = useRouter();
@@ -25,10 +26,10 @@ export default function DistrictDashboardPage() {
   const live = !!viewer && isDistrictRole(viewer.role);
   const districtKpis = useQuery(api.dashboards.districtKpis, live ? { now } : "skip");
   const pipeline = useQuery(api.dashboards.districtPipeline, live ? { now } : "skip");
-  const recent = useQuery(api.dashboards.districtRecentPlacements, live ? {} : "skip");
 
   const kpiValues = formatDistrictKpis(live && districtKpis ? districtKpis : null);
-  const showRecentPlacements = !!recent && recent.length > 0;
+  // No "Recent Placements" panel: Chris (Aug 5) found it duplicates the Talent
+  // Pipeline status column, which already shows placed gigs.
   const pipelineRows: PipelineRow[] =
     live && pipeline
       ? pipeline.map((p) => ({
@@ -41,7 +42,7 @@ export default function DistrictDashboardPage() {
   return (
     <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto w-full relative">
+      <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
         <div className="max-w-[1600px] w-full mx-auto px-6 lg:px-10 py-8 flex flex-col gap-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 border-b border-[var(--border-subtle)] pb-6">
             <div>
@@ -64,12 +65,12 @@ export default function DistrictDashboardPage() {
             <StatCard label="Active Engagements" value={kpiValues.engagementCount} icon={Briefcase} />
           </div>
 
-          <div className={cn("grid grid-cols-1 gap-6 pb-10", showRecentPlacements ? "xl:grid-cols-3" : "xl:grid-cols-1")}>
-            <div className={cn("flex flex-col p-0 border border-[var(--border-default)] shadow-[var(--shadow-soft)] rounded-lg bg-white overflow-hidden", showRecentPlacements && "xl:col-span-2")}>
+          <div className="grid grid-cols-1 gap-6 pb-10">
+            <div className="flex flex-col p-0 border border-[var(--border-default)] shadow-[var(--shadow-soft)] rounded-lg bg-white overflow-hidden">
               <div className="px-6 py-6 border-b border-[var(--border-subtle)] flex flex-col justify-between gap-4 bg-white sm:flex-row sm:items-center">
                 <div>
                   <h2 className="font-heading text-xl font-bold text-[var(--text-primary)]">Talent Pipeline</h2>
-                  <p className="text-sm text-[var(--text-secondary)] mt-1">Active needs and candidate statuses</p>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1">Active gigs and candidate statuses</p>
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -86,12 +87,12 @@ export default function DistrictDashboardPage() {
                     {pipelineRows.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="py-10 px-6 text-center text-sm font-semibold text-[var(--text-tertiary)]">
-                          No openings yet. <Link href="/post" className="text-[var(--accent-primary)] underline">Post your first need</Link>.
+                          No openings yet. <Link href="/post" className="text-[var(--accent-primary)] underline">Post your first gig</Link>.
                         </td>
                       </tr>
                     ) : (
                       pipelineRows.map((row) => {
-                        const label = formatPipelineStatus(row.status);
+                        const label = gigStatusStyle(row.status);
                         return (
                           <tr
                             key={row.id}
@@ -108,11 +109,9 @@ export default function DistrictDashboardPage() {
                             <td className="py-5 px-5">
                               <span className={cn(
                                 "px-3 py-1.5 font-bold rounded-lg text-xs leading-none border shadow-sm inline-block",
-                                label.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                  label.color === "amber" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                  "bg-blue-50 text-blue-700 border-blue-200"
+                                label.className
                               )}>
-                                {label.text}
+                                {label.label}
                               </span>
                             </td>
                             <td className="py-5 px-6 tabular-nums font-bold text-lg text-right text-[var(--text-primary)]">{row.daysOpen}</td>
@@ -125,25 +124,6 @@ export default function DistrictDashboardPage() {
               </div>
             </div>
 
-            {showRecentPlacements ? (
-              <div className="flex flex-col gap-6">
-                <div className="flex-1 p-6 border border-[var(--border-default)] shadow-[var(--shadow-soft)] rounded-lg bg-white flex flex-col">
-                  <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-6">Recent Placements</h2>
-                  <div className="flex flex-col gap-3">
-                    {recent!.map((placement) => {
-                      const label = formatOrderStatus(placement.status);
-                      return (
-                        <Link key={placement.id} href={`/dashboard/engagements/${placement.id}`} className="rounded-lg border border-[var(--border-subtle)] p-4 hover:border-[var(--accent-primary)]/40">
-                          <p className="font-bold text-[var(--text-primary)]">{getAreaOfNeedLabel(placement.title)}</p>
-                          <p className="text-sm text-[var(--text-secondary)] mt-1">{placement.consultantName}</p>
-                          <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-tertiary)] mt-2">{label.text}</p>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
       </main>

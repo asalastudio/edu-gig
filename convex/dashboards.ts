@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { getCurrentUserOrNull, isDistrictRole, getEducatorForUser, findDistrictForUser } from "./lib/auth";
 import { engagementStatusValidator } from "./lib/validators";
 import { startOfMonth } from "./lib/time";
+import { getAreaOfNeedLabel } from "../src/lib/taxonomy";
 
 const districtKpiValidator = v.object({
     activeOpenings: v.number(),
@@ -216,7 +217,8 @@ export const educatorPipeline = query({
 
         return engagements.map((engagement) => ({
             id: engagement._id,
-            title: engagement.title,
+            // Label from the taxonomy (older rows stored a title-cased id like "Keynote").
+            title: getAreaOfNeedLabel(engagement.areaOfNeed),
             district: engagement.orgName,
             status: engagement.status,
             amount: engagement.agreedRate,

@@ -38,31 +38,37 @@ export function CookieConsent() {
     };
 
     return (
-        <div className="fixed inset-x-3 bottom-2 z-[80] pointer-events-none sm:inset-x-auto sm:bottom-5 sm:right-5 sm:max-w-sm">
-            <div className="flex flex-col gap-2 rounded-lg border border-[var(--border-default)] bg-white p-3 shadow-[0_14px_44px_rgba(22,32,26,0.18)] pointer-events-auto sm:gap-3 sm:p-4">
-                <div>
-                    <p className="font-heading text-sm font-bold text-[var(--text-primary)]">
+        <section
+            aria-label="Cookie preferences"
+            className="fixed inset-x-3 bottom-2 z-[80] pointer-events-none sm:inset-x-auto sm:bottom-5 sm:right-5 sm:max-w-sm"
+        >
+            {/* Compact single row on phones so it doesn't cover forms; full card from sm up. */}
+            <div className="flex items-center gap-3 rounded-lg border border-[var(--border-default)] bg-white px-3 py-2 shadow-[0_14px_44px_rgba(22,32,26,0.18)] pointer-events-auto sm:flex-col sm:items-stretch sm:gap-3 sm:p-4">
+                <div className="min-w-0 flex-1">
+                    <p className="font-heading text-xs font-bold text-[var(--text-primary)] sm:text-sm">
                         Cookies for sign-in and security
                     </p>
-                    <p className="mt-1 text-xs leading-4 text-[var(--text-secondary)] sm:leading-5">
-                        We use required cookies for secure sign-in and optional analytics. See{" "}
+                    <p className="mt-0.5 text-[11px] leading-4 text-[var(--text-secondary)] sm:mt-1 sm:text-xs sm:leading-5">
+                        <span className="hidden sm:inline">We use required cookies for secure sign-in and optional analytics. See </span>
                         <Link href="/privacy" className="font-bold text-[var(--accent-primary)] hover:underline">Privacy</Link>
-                        {" "}and <Link href="/terms" className="font-bold text-[var(--accent-primary)] hover:underline">Terms</Link>.
+                        {" "}and <Link href="/terms" className="font-bold text-[var(--accent-primary)] hover:underline">Terms</Link>
+                        <span className="hidden sm:inline">.</span>
                     </p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row">
+                <div className="flex shrink-0 gap-2 sm:grid sm:grid-cols-2">
                     <button
                         type="button"
                         onClick={() => accept("essential")}
-                        className="inline-flex min-h-8 items-center justify-center rounded-lg border border-[var(--border-strong)] bg-white px-3 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] sm:min-h-9"
+                        className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[var(--border-strong)] bg-white px-3 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
                     >
-                        Essential only
+                        <span className="sm:hidden">Essential</span>
+                        <span className="hidden sm:inline">Essential only</span>
                     </button>
-                    <PrimaryButton type="button" onClick={() => accept("all")} className="min-h-8 px-3 py-2 text-xs sm:min-h-9">
+                    <PrimaryButton type="button" onClick={() => accept("all")} className="min-h-9 px-3 py-2 text-xs">
                         Accept all
                     </PrimaryButton>
                 </div>
             </div>
-        </div>
+        </section>
     );
 }

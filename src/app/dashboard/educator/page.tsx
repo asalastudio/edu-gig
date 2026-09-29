@@ -5,10 +5,10 @@ import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 import { Sidebar } from "@/components/shared/sidebar";
-import { Briefcase, CheckCircle, ChatCircle, Power, ArrowRight } from "@phosphor-icons/react";
+import { Briefcase, CheckCircle, ChatCircle, Clock, Power, ArrowRight } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { EDUCATOR_DASHBOARD_SUBTITLE } from "@/lib/dashboard-copy";
-import { formatAgreedRate, formatEducatorKpis, formatOrderStatus, type EducatorPipelineRow } from "@/lib/map-dashboard";
+import { formatAgreedRate, formatDateOnly, formatEducatorKpis, formatOrderStatus, type EducatorPipelineRow } from "@/lib/map-dashboard";
 import { PendingProposalsSection } from "@/components/educator/pending-proposals";
 
 export default function EducatorDashboardPage() {
@@ -48,14 +48,16 @@ export default function EducatorDashboardPage() {
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-[1600px] w-full mx-auto px-6 lg:px-10 py-8 flex flex-col gap-8">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 border-b border-[var(--border-subtle)] pb-6">
                         <div>
                             <div className="education-rule mb-4" />
                             <p className="eyebrow mb-3">Consultant Dashboard</p>
                             <h1 className="font-heading text-3xl font-bold text-[var(--text-primary)] tracking-tight mb-3 md:text-4xl lg:text-5xl">
-                                Welcome back, {displayName}
+                                Welcome back,{" "}
+                                {/* Own line on phones so the name loading in doesn't rewrap the heading. */}
+                                <span className="block sm:inline">{viewer === undefined ? "\u00a0" : displayName}</span>
                             </h1>
                             <p className="max-w-3xl text-base leading-7 text-[var(--text-secondary)] md:text-lg">
                                 {EDUCATOR_DASHBOARD_SUBTITLE}
@@ -65,6 +67,8 @@ export default function EducatorDashboardPage() {
                             <button
                                 onClick={handleAvailabilityToggle}
                                 disabled={availabilitySaving}
+                                aria-pressed={isActive}
+                                aria-label={isActive ? "Stop accepting new clients" : "Start accepting new clients"}
                                 className={cn(
                                     "relative flex items-center justify-center w-12 h-9 rounded-lg transition-colors shadow-inner",
                                     isActive ? "bg-emerald-500 text-white" : "bg-[var(--border-strong)] text-white"
@@ -85,10 +89,11 @@ export default function EducatorDashboardPage() {
 
                     <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[var(--border-subtle)] p-0 border border-[var(--border-default)] shadow-[var(--shadow-soft)] rounded-lg bg-white overflow-hidden">
                         {[
-                            { label: "Active Gigs", value: String(kpis?.activeCount ?? 0), sub: kpiValues.activeCount, icon: Briefcase, color: "blue" },
-                            { label: "Completed Engagements", value: String(kpis?.completedCount ?? 0), sub: kpiValues.pendingLabel, icon: CheckCircle, color: "emerald" },
+                            { label: "Active Gigs", value: String(kpis?.activeCount ?? 0), sub: "Accepted by a district", icon: Briefcase, color: "blue" },
+                            { label: "Pending Proposals", value: String(kpis?.pendingProposals ?? 0), sub: "Waiting on a district decision", icon: Clock, color: "amber" },
+                            { label: "Completed", value: String(kpis?.completedCount ?? 0), sub: "Engagements marked complete", icon: CheckCircle, color: "emerald" },
                         ].map((stat, i) => (
-                            <div key={i} className="flex-1 p-6 flex items-start justify-between min-w-[250px] hover:bg-[var(--bg-hover)] transition-colors">
+                            <div key={i} className="flex-1 p-6 flex items-start justify-between md:min-w-[200px] hover:bg-[var(--bg-hover)] transition-colors">
                                 <div className="flex flex-col">
                                     <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3">{stat.label}</span>
                                     <span className="font-heading text-3xl font-bold text-[var(--text-primary)]">{stat.value}</span>
@@ -96,7 +101,11 @@ export default function EducatorDashboardPage() {
                                 </div>
                                 <div className={cn(
                                     "p-4 rounded-lg shadow-sm border",
-                                    stat.color === "blue" ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                    stat.color === "blue"
+                                        ? "bg-blue-50 text-blue-600 border-blue-100"
+                                        : stat.color === "amber"
+                                          ? "bg-amber-50 text-amber-600 border-amber-100"
+                                          : "bg-emerald-50 text-emerald-600 border-emerald-100"
                                 )}>
                                     <stat.icon weight="duotone" className="w-8 h-8" />
                                 </div>
@@ -130,7 +139,7 @@ export default function EducatorDashboardPage() {
                                                     <div className="flex items-center gap-6 self-end sm:self-auto">
                                                         <div className="flex flex-col items-end">
                                                             <span className="font-bold text-[var(--text-primary)] text-xl">{formatAgreedRate(gig.amount)}</span>
-                                                            <span className="text-xs text-[var(--text-tertiary)] font-bold uppercase tracking-widest mt-1">{gig.startDate ?? ""}</span>
+                                                            <span className="text-xs text-[var(--text-tertiary)] font-bold uppercase tracking-widest mt-1">{formatDateOnly(gig.startDate)}</span>
                                                         </div>
                                                         <div className="h-12 w-12 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-center group-hover:bg-[var(--accent-primary)] group-hover:text-white transition-colors">
                                                             <ArrowRight weight="bold" className="w-5 h-5" />

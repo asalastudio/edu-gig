@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
     formatDistrictKpis,
     formatEducatorKpis,
-    formatPipelineStatus,
     formatOrderStatus,
     formatAgreedRate,
+    formatDateOnly,
 } from "./map-dashboard";
 
 describe("formatDistrictKpis", () => {
@@ -47,14 +47,6 @@ describe("formatEducatorKpis", () => {
     });
 });
 
-describe("formatPipelineStatus", () => {
-    it("maps each status to a colour", () => {
-        expect(formatPipelineStatus("interviewing").color).toBe("amber");
-        expect(formatPipelineStatus("placed").color).toBe("emerald");
-        expect(formatPipelineStatus("open").text).toBe("Sourcing");
-    });
-});
-
 describe("formatOrderStatus", () => {
     it("labels accepted engagements", () => {
         expect(formatOrderStatus("active").text).toBe("Accepted");
@@ -69,5 +61,15 @@ describe("formatOrderStatus", () => {
 describe("formatAgreedRate", () => {
     it("formats hourly rates", () => {
         expect(formatAgreedRate(95, "hourly")).toBe("$95/hr");
+    });
+});
+
+describe("formatDateOnly", () => {
+    it("formats ISO date-only strings as readable local dates", () => {
+        expect(formatDateOnly("2026-10-20")).toBe("Tue, Oct 20, 2026");
+    });
+    it("passes through free text and handles empty values", () => {
+        expect(formatDateOnly("ASAP")).toBe("ASAP");
+        expect(formatDateOnly(undefined)).toBe("");
     });
 });

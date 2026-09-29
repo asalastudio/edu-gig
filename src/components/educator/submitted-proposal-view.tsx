@@ -79,7 +79,7 @@ export function NeedSummaryCard({ need }: { need: SubmittedNeedSummary }) {
                 {need.subCategory ? (
                     <span className="text-[var(--text-secondary)] font-semibold text-lg">
                         {" · "}
-                        {need.subCategory.replace(/_/g, " ")}
+                        {getAreaOfNeedLabel(need.subCategory)}
                     </span>
                 ) : null}
             </h2>
@@ -124,7 +124,7 @@ export function SubmittedProposalView({
         <>
             <PageHeader
                 title="Proposal already submitted"
-                description={`You've already submitted a proposal for this need from ${need.orgName}.`}
+                description={`You've already submitted a proposal for this gig from ${need.orgName}.`}
             />
             <NeedSummaryCard need={need} />
             <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col gap-5">
@@ -163,7 +163,7 @@ export function SubmittedProposalView({
                 </div>
                 <p className="text-sm text-[var(--text-secondary)]">
                     The district can see your proposal and will reach out if it&apos;s a match.
-                    You can only have one active proposal per need.
+                    You can only have one active proposal per gig.
                 </p>
                 <div className="flex flex-wrap items-center gap-3 pt-1">
                     {canWithdraw && (
@@ -182,7 +182,7 @@ export function SubmittedProposalView({
                                     <AlertDialogTitle>Withdraw this proposal?</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         The district will no longer see it as pending. You can submit a new
-                                        proposal for this need afterward.
+                                        proposal for this gig afterward.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

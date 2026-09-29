@@ -22,7 +22,7 @@ export default function GigCheckoutPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
             <SiteHeader />
-            <main className="flex-1 py-16 px-6">
+            <main id="main-content" className="flex-1 py-16 px-6">
                 <div className="max-w-2xl mx-auto rounded-lg border border-[var(--border-subtle)] bg-white p-8 text-center">
                     <h1 className="font-heading text-3xl font-bold mb-3">Checkout is not part of K12Gig</h1>
                     <p className="text-[var(--text-secondary)] leading-7 mb-6">

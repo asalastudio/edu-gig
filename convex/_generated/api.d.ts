@@ -11,7 +11,6 @@
 import type * as admin from "../admin.js";
 import type * as beta_founding_profiles from "../beta_founding_profiles.js";
 import type * as beta_launch from "../beta_launch.js";
-import type * as contracts from "../contracts.js";
 import type * as credentials from "../credentials.js";
 import type * as crons from "../crons.js";
 import type * as dashboards from "../dashboards.js";
@@ -24,6 +23,8 @@ import type * as gigs from "../gigs.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_createEngagement from "../lib/createEngagement.js";
 import type * as lib_customFunctions from "../lib/customFunctions.js";
+import type * as lib_onboardingPolicy from "../lib/onboardingPolicy.js";
+import type * as lib_proposalAcceptance from "../lib/proposalAcceptance.js";
 import type * as lib_time from "../lib/time.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as messages from "../messages.js";
@@ -47,7 +48,6 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   beta_founding_profiles: typeof beta_founding_profiles;
   beta_launch: typeof beta_launch;
-  contracts: typeof contracts;
   credentials: typeof credentials;
   crons: typeof crons;
   dashboards: typeof dashboards;
@@ -60,6 +60,8 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/createEngagement": typeof lib_createEngagement;
   "lib/customFunctions": typeof lib_customFunctions;
+  "lib/onboardingPolicy": typeof lib_onboardingPolicy;
+  "lib/proposalAcceptance": typeof lib_proposalAcceptance;
   "lib/time": typeof lib_time;
   "lib/validators": typeof lib_validators;
   messages: typeof messages;

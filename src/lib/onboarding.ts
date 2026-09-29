@@ -61,7 +61,7 @@ export const DISTRICT_FIRST_ACTIONS: Array<{
     {
         id: "workspace",
         label: "Review my district account",
-        description: "Review needs, messages, saved educators, and account settings first.",
+        description: "Review posted gigs, messages, saved consultants, and account settings first.",
         href: "/dashboard/district",
     },
 ];

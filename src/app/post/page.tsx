@@ -3,11 +3,12 @@
 import React, { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
+import { Sidebar } from "@/components/shared/sidebar";
 import { PrimaryButton } from "@/components/shared/button";
 import {
     PRIMARY_SUPPORT_AREA_LABEL,
@@ -73,6 +74,7 @@ function PostNeedPageInner() {
     // Errors
     const [errors, setErrors] = useState<Partial<Record<NeedPublishField, string>>>({});
 
+    const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
     const viewer = useQuery(api.users.viewer, hasClerk ? {} : "skip");
     const canPersist = !!viewer && isDistrictRole(viewer.role);
     const district = useQuery(api.districts.getMine, canPersist ? {} : "skip");
@@ -111,9 +113,9 @@ function PostNeedPageInner() {
     useEffect(() => {
         if (!requestedDraftId || !canPersist || !existingDraftResult) return;
         if (existingDraftResult.status === "unavailable") {
-            setSubmitError("Draft unavailable. Return to Posted Needs and choose a draft you can edit.");
+            setSubmitError("Draft unavailable. Return to Posted Gigs and choose a draft you can edit.");
         } else if (existingDraftResult.status === "not_draft") {
-            setSubmitError("This need has already been published and can no longer be edited as a draft.");
+            setSubmitError("This gig has already been published and can no longer be edited as a draft.");
         }
     }, [requestedDraftId, canPersist, existingDraftResult]);
 
@@ -303,7 +305,7 @@ function PostNeedPageInner() {
             setSubmitError(
                 err instanceof Error
                     ? err.message
-                    : "Could not save or publish this need. Please try again."
+                    : "Could not save or publish this gig. Please try again."
             );
             return;
         } finally {
@@ -312,19 +314,22 @@ function PostNeedPageInner() {
 
         setIsSuccess(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
+        // Inside the dashboard shell the page scrolls in <main>, not the window.
+        document.getElementById("main-content")?.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const signedOut = !hasClerk || viewer === null;
     const wrongRole = !!viewer && !isDistrictRole(viewer.role);
     const sessionReady = !hasClerk || viewer !== undefined;
 
-    return (
-        <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
-            <SiteHeader />
-            
-            <main className="flex-1 max-w-3xl mx-auto w-full px-6 lg:px-12 py-12">
-                <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-8 w-fit">
-                    <ArrowLeft className="w-4 h-4" /> Home
+    // Signed-in users keep the dashboard shell (Sidebar); the shell is chosen from the
+    // auth session, which resolves before `viewer`, so it never swaps after first paint.
+    const inDashboard = hasClerk && isAuthenticated;
+
+    const body = (
+            <div className="max-w-3xl mx-auto w-full px-6 lg:px-12 py-12">
+                <Link href={inDashboard ? (wrongRole ? "/dashboard/educator" : "/dashboard/district") : "/"} className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-8 w-fit">
+                    <ArrowLeft className="w-4 h-4" /> {inDashboard ? "Dashboard" : "Home"}
                 </Link>
 
                 {hasClerk && viewer === undefined && (
@@ -339,7 +344,7 @@ function PostNeedPageInner() {
                             Sign in to post a gig
                         </h1>
                         <p className="text-lg text-[var(--text-secondary)] mb-6">
-                            K12Gig saves district requests to your account so educators can respond, message you, and move toward booking.
+                            K12Gig saves your gig to your district account so consultants can respond with proposals.
                             Sign in or create a district account before posting.
                         </p>
                         {(educatorName || requestedSlot) && (
@@ -372,7 +377,7 @@ function PostNeedPageInner() {
                     <div className="bg-white p-8 md:p-10 rounded-lg shadow-sm border border-[var(--border-subtle)]">
                         <h1 className="font-heading text-3xl font-bold text-[var(--text-primary)] mb-3">Use a district account to post</h1>
                         <p className="text-[var(--text-secondary)] mb-6">
-                            Educator accounts can browse open needs and manage gigs. Posting new district demand requires a district hiring account.
+                            Consultant accounts can browse open gigs and send proposals. Posting a gig requires a district account.
                         </p>
                         <Link href="/login">
                             <PrimaryButton>Choose another account</PrimaryButton>
@@ -392,7 +397,7 @@ function PostNeedPageInner() {
                                 This link is invalid, the draft was already published, or it belongs to another district account.
                             </p>
                             <Link href="/dashboard/board">
-                                <PrimaryButton>Return to Posted Needs</PrimaryButton>
+                                <PrimaryButton>Return to Posted Gigs</PrimaryButton>
                             </Link>
                         </div>
                     ) : (
@@ -615,7 +620,7 @@ function PostNeedPageInner() {
                                             }}
                                             aria-invalid={!!errors.description}
                                             rows={5}
-                                            placeholder="Describe the role, requirements, and any context that will help educators understand the opportunity."
+                                            placeholder="Describe the role, requirements, and any context that will help consultants understand the opportunity."
                                             className="w-full p-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
                                         ></textarea>
                                         {errors.description && <span className="text-sm text-red-500 font-medium">{errors.description}</span>}
@@ -649,7 +654,7 @@ function PostNeedPageInner() {
                                         </PrimaryButton>
                                     ) : (
                                         <PrimaryButton type="submit" disabled={submitting} className="shadow-md bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90">
-                                            {submitting ? "Saving…" : "Publish need"}
+                                            {submitting ? "Saving…" : "Publish gig"}
                                         </PrimaryButton>
                                     )}
                                 </div>
@@ -663,14 +668,14 @@ function PostNeedPageInner() {
                         <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-emerald-50/50">
                             <CheckCircle weight="fill" className="w-12 h-12 text-emerald-500" />
                         </div>
-                        <h2 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-4">Your need has been posted!</h2>
+                        <h2 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-4">Your gig has been posted!</h2>
                         <p className="text-lg text-[var(--text-secondary)] max-w-lg mb-10">
-                            Matched educators can now review the opportunity and respond from the Gig Board.
+                            Matching consultants can now review it and send proposals from the Gig Board.
                         </p>
                         <div className="flex flex-wrap gap-4 justify-center">
-                            <Link href="/">
+                            <Link href="/dashboard/board">
                                 <button className="px-6 py-3 rounded-lg border border-[var(--border-strong)] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-surface)] transition-colors shadow-sm">
-                                    Return Home
+                                    View posted gigs
                                 </button>
                             </Link>
                             <Link href="/dashboard/district">
@@ -681,8 +686,26 @@ function PostNeedPageInner() {
                         </div>
                     </div>
                 )}
-            </main>
+            </div>
+    );
 
+    if (hasClerk && authLoading) {
+        return <div className="min-h-screen bg-[var(--bg-app)]" aria-busy="true" />;
+    }
+
+    return inDashboard ? (
+        <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
+            <Sidebar />
+            <main id="main-content" className="flex-1 overflow-y-auto w-full">
+                {body}
+            </main>
+        </div>
+    ) : (
+        <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
+            <SiteHeader />
+            <main id="main-content" className="flex-1 min-h-[calc(100vh-4rem)]">
+                {body}
+            </main>
             <SiteFooter />
         </div>
     );

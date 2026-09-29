@@ -13,7 +13,7 @@ export default function PricingPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)]">
             <SiteHeader />
-            <main className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-12 lg:px-12 lg:py-14">
+            <main id="main-content" className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-12 lg:px-12 lg:py-14">
                 <section className="max-w-3xl">
                     <div className="education-rule mb-4" />
                     <h1 className="font-heading text-4xl font-bold leading-tight md:text-5xl">Transparent consultant rates. Payment stays between you.</h1>
@@ -25,7 +25,7 @@ export default function PricingPage() {
                 <section className="grid gap-6 md:grid-cols-3">
                     {[
                         ["Consultant rate", "Shown on directory cards and profiles when the consultant has published a starting hourly or daily rate. That rate is what they ask to receive."],
-                        ["No platform checkout", "K12Gig does not charge an 18% fee, process cards, send ACH payouts, or issue 1099s. Those steps happen between the district and the consultant."],
+                        ["No platform fee", "K12Gig doesn't charge a fee or process payments. Districts pay consultants directly, using their usual contracting process."],
                         ["Off-platform contracts", "After a proposal is accepted, districts and consultants coordinate the working agreement, signature, and payment directly. K12Gig does not store or e-sign contracts."],
                     ].map(([title, body]) => (
                         <div key={title} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-subtle)] md:p-6">

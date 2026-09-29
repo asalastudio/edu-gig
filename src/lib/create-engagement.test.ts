@@ -33,8 +33,10 @@ const need = {
 };
 
 describe("titleFromNeed", () => {
-    it("title-cases taxonomy codes for engagement titles", () => {
-        expect(titleFromNeed({ areaOfNeed: "instruction_curriculum" })).toBe("Instruction Curriculum");
+    it("uses the taxonomy label for engagement titles", () => {
+        expect(titleFromNeed({ areaOfNeed: "instruction_curriculum" })).toBe("Instruction & Curriculum");
+        expect(titleFromNeed({ areaOfNeed: "keynote" })).toBe("Keynote Speaking");
+        expect(titleFromNeed({ areaOfNeed: "ai_edtech" })).toBe("AI & Educational Technology");
     });
 });
 
@@ -52,7 +54,7 @@ describe("engagementInsertFields", () => {
         expect(fields.needId).toBe(needId);
         expect(fields.agreedRate).toBe(125);
         expect(fields.agreedRateUnit).toBe("hourly");
-        expect(fields.title).toBe("Instruction Curriculum");
+        expect(fields.title).toBe("Instruction & Curriculum");
         expect(fields.orgName).toBe("Austin ISD");
     });
 

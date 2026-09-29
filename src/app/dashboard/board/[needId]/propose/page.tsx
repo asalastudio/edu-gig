@@ -34,7 +34,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <Toaster position="top-right" richColors />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-3xl w-full mx-auto px-8 lg:px-12 py-10 flex flex-col gap-8">
                     {children}
                 </div>
@@ -108,8 +108,8 @@ export default function ProposePage() {
             <Shell>
                 <BackLink />
                 <EmptyCard
-                    title="Sign in as an educator to submit a proposal"
-                    body="Open needs appear here once you're signed in with an educator account."
+                    title="Sign in as a consultant to submit a proposal"
+                    body="Open gigs appear here once you're signed in with a consultant account."
                 />
                 <Link href="/login?intent=educator" className="w-fit">
                     <PrimaryButton>Sign in</PrimaryButton>
@@ -124,8 +124,8 @@ export default function ProposePage() {
             <Shell>
                 <BackLink />
                 <EmptyCard
-                    title="This page is for educators"
-                    body="Districts post needs — educators respond with proposals."
+                    title="This page is for consultants"
+                    body="Districts post gigs — consultants respond with proposals."
                 />
             </Shell>
         );
@@ -182,7 +182,7 @@ export default function ProposePage() {
             <Shell>
                 <BackLink />
                 <EmptyCard
-                    title="This need is no longer open"
+                    title="This gig is no longer open"
                     body="It may have been filled or removed. Browse the Gig Board for other open needs."
                 />
                 <Link href="/dashboard/board" className="w-fit">
@@ -260,7 +260,7 @@ export default function ProposePage() {
             <BackLink />
             <PageHeader
                 title="Submit a proposal"
-                description="Respond to this district-posted need. Share how you can help and attach your resume or a proposal doc."
+                description="Respond to this district-posted gig. Share how you can help and attach your resume or a proposal doc."
             />
 
             <NeedSummaryCard need={need} />
@@ -282,7 +282,7 @@ export default function ProposePage() {
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         rows={8}
-                        placeholder="Introduce yourself and describe how you can help with this need."
+                        placeholder="Introduce yourself and describe how you can help with this gig."
                         className="w-full p-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
                         required
                     />
@@ -349,6 +349,7 @@ export default function ProposePage() {
                     <div className="grid grid-cols-2 gap-3">
                         <input
                             id="proposal-rate"
+                            aria-label="Proposed rate (dollars)"
                             type="number"
                             min={0}
                             value={proposedRate}
@@ -358,6 +359,7 @@ export default function ProposePage() {
                         />
                         <select
                             id="proposal-unit"
+                            aria-label="Rate type"
                             value={proposedRateUnit}
                             onChange={(e) =>
                                 setProposedRateUnit(e.target.value as "hourly" | "daily" | "fixed")

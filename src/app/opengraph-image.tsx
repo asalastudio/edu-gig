@@ -4,7 +4,7 @@ import { ImageResponse } from "next/og";
 // Next.js 16.3 deprecates the Edge Runtime for this route type.
 export const runtime = "nodejs";
 
-export const alt = "K12Gig — The K-12 Educator Marketplace";
+export const alt = "K12Gig — The K-12 Consultant Marketplace";
 export const size = {
     width: 1200,
     height: 630,

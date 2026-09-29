@@ -163,7 +163,7 @@ export default function EducatorSettingsPage() {
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-10">
                     <Link
                         href="/dashboard/educator"
@@ -212,7 +212,7 @@ export default function EducatorSettingsPage() {
                                     <div className="flex flex-col gap-3 pt-2 border-t border-[var(--border-subtle)]">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-sm font-semibold text-[var(--text-primary)]">Email preferences</span>
-                                            <span className="text-sm text-[var(--text-secondary)]">Reminders and new-need alerts. Booking and account emails are always sent.</span>
+                                            <span className="text-sm text-[var(--text-secondary)]">Reminders and new-gig alerts. Proposal and account emails are always sent.</span>
                                         </div>
                                         <label className="flex items-start gap-3 cursor-pointer">
                                             <input
@@ -221,7 +221,7 @@ export default function EducatorSettingsPage() {
                                                 onChange={(e) => handleToggleEmailReminders(e.target.checked)}
                                                 className="mt-0.5 h-4 w-4 rounded border-[var(--border-subtle)] accent-[var(--accent-primary)]"
                                             />
-                                            <span className="text-sm text-[var(--text-primary)]">Email me reminders and new-need alerts</span>
+                                            <span className="text-sm text-[var(--text-primary)]">Email me reminders and new-gig alerts</span>
                                         </label>
                                         {emailPrefSaved && <p className="text-sm font-medium text-[var(--text-secondary)]">Saved.</p>}
                                     </div>

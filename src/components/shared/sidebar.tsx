@@ -87,7 +87,7 @@ export function Sidebar() {
             ...(!isEducator ? [{ href: "/browse", label: "Directory", icon: Users }] : []),
             {
                 href: "/dashboard/board",
-                label: isEducator ? "Gig Board" : "Posted Needs",
+                label: isEducator ? "Gig Board" : "Posted Gigs",
                 icon: Briefcase,
             },
             ...(isEducator
@@ -165,7 +165,7 @@ export function Sidebar() {
     return (
         <>
             {/* Desktop sidebar — unchanged behavior at lg+ */}
-            <aside className="hidden lg:flex w-[232px] h-screen flex-col bg-[#17261F] border-r border-[#2B4338] px-3 py-4 text-[var(--text-inverse)] shadow-[8px_0_28px_rgba(20,36,29,0.12)]">
+            <aside aria-label="Dashboard navigation" className="hidden lg:flex w-[232px] h-screen flex-col bg-[#17261F] border-r border-[#2B4338] px-3 py-4 text-[var(--text-inverse)] shadow-[8px_0_28px_rgba(20,36,29,0.12)]">
                 {sidebarBody}
             </aside>
 
@@ -198,7 +198,7 @@ export function Sidebar() {
                         onClick={closeMobileMenu}
                         aria-hidden="true"
                     />
-                    <aside className="absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col bg-[#17261F] px-3 py-4 text-[var(--text-inverse)] shadow-[8px_0_28px_rgba(0,0,0,0.45)]">
+                    <aside aria-label="Dashboard menu" className="absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col bg-[#17261F] px-3 py-4 text-[var(--text-inverse)] shadow-[8px_0_28px_rgba(0,0,0,0.45)]">
                         <button
                             type="button"
                             aria-label="Close navigation menu"

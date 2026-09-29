@@ -3,17 +3,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageHeader } from "@/components/shared/page-header";
 import { TaxonomyFilter } from "@/components/shared/taxonomy-filter";
 import { EducatorCard, type EducatorCardProps } from "@/components/shared/educator-card";
 import { TAXONOMY, getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxonomy";
-import { VERIFIED_ONLY_HELPER } from "@/lib/directory-copy";
 import { filterEducatorRoster } from "@/lib/filter-educators";
 import { PrimaryButton } from "@/components/shared/button";
-import { ArrowLeft, FadersHorizontal, Funnel, Info } from "@phosphor-icons/react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowLeft, FadersHorizontal, Funnel } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -43,6 +41,7 @@ function savedEducatorIdsFromStorage(): string[] {
 export default function BrowsePage() {
     const router = useRouter();
     const viewer = useQuery(api.users.viewer, {});
+    const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
     const districtOK = !!viewer && isDistrictRole(viewer.role);
 
     // Educators must not be able to browse other educators. Bounce a signed-in
@@ -77,7 +76,6 @@ export default function BrowsePage() {
     const [selectedAreas, setSelectedAreas] = useState<string[]>(() => searchParamList("area"));
     const [selectedGrades, setSelectedGrades] = useState<string[]>(() => searchParamList("grade"));
     const [selectedRegions, setSelectedRegions] = useState<string[]>(() => searchParamList("region", "location"));
-    const [verifiedOnly, setVerifiedOnly] = useState(false);
     const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
     const [showSavedOnly, setShowSavedOnly] = useState(false);
     const [savedEducatorIds] = useState<string[]>(() => savedEducatorIdsFromStorage());
@@ -90,7 +88,6 @@ export default function BrowsePage() {
         setSelectedAreas([]);
         setSelectedGrades([]);
         setSelectedRegions([]);
-        setVerifiedOnly(false);
         setShowSavedOnly(false);
     };
 
@@ -100,7 +97,7 @@ export default function BrowsePage() {
         selectedGrades,
         selectedRegions,
         selectedEngagements: [],
-        verifiedOnly,
+        verifiedOnly: false,
         availableNow: false,
         showSavedOnly,
         savedEducatorIds,
@@ -111,8 +108,7 @@ export default function BrowsePage() {
         ...selectedAreas.map((id) => ({ id: `area:${id}`, label: getAreaOfNeedLabel(id), clear: () => setSelectedAreas((prev) => prev.filter((v) => v !== id)) })),
         ...selectedGrades.map((id) => ({ id: `grade:${id}`, label: TAXONOMY.gradeLevelBands.find((g) => g.id === id)?.label ?? id, clear: () => setSelectedGrades((prev) => prev.filter((v) => v !== id)) })),
         ...selectedRegions.map((id) => ({ id: `region:${id}`, label: getCoverageRegionLabel(id), clear: () => setSelectedRegions((prev) => prev.filter((v) => v !== id)) })),
-        ...(verifiedOnly ? [{ id: "verified", label: "Verified only", clear: () => setVerifiedOnly(false) }] : []),
-        ...(showSavedOnly ? [{ id: "saved", label: "Saved educators", clear: () => setShowSavedOnly(false) }] : []),
+        ...(showSavedOnly ? [{ id: "saved", label: "Saved consultants", clear: () => setShowSavedOnly(false) }] : []),
     ];
 
     const canUseDirectory = convexLive;
@@ -122,14 +118,14 @@ export default function BrowsePage() {
         if (sessionChecking) {
             return {
                 title: "Preparing the directory",
-                body: "We’re checking your session before loading district-ready educator profiles.",
+                body: "We’re checking your session before loading consultant profiles.",
                 action: null,
             };
         }
         if (needsDistrictSignIn) {
             return {
                 title: "Sign in to view the live directory",
-                body: "The educator directory is available to district hiring teams. Sign in or create a district account to browse verified profiles, save favorites, and start booking.",
+                body: "The consultant directory is available to district hiring teams. Sign in or create a district account to browse consultant profiles, save favorites, and message consultants.",
                 action: (
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Link href="/login">
@@ -147,7 +143,7 @@ export default function BrowsePage() {
         if (wrongAccountType) {
             return {
                 title: "Use a district account",
-                body: "Educator accounts can manage profiles and gigs. Browse access is reserved for district hiring teams.",
+                body: "Consultant accounts manage their profile and proposals. Browsing consultants is reserved for district hiring teams.",
                 action: (
                     <Link href="/login">
                         <PrimaryButton>Choose another account</PrimaryButton>
@@ -156,7 +152,7 @@ export default function BrowsePage() {
             };
         }
         return {
-            title: "No educators found",
+            title: "No consultants found",
             body: "Try removing a filter or broadening the coverage area to see more profiles.",
             action: (
                 <PrimaryButton
@@ -182,22 +178,30 @@ export default function BrowsePage() {
                     title="Find consultants"
                     description={
                         needsDistrictSignIn
-                            ? "The live educator directory is available to district hiring teams."
-                            : "Browse and connect with verified specialists for your district's needs."
+                            ? "The consultant directory is available to district hiring teams."
+                            : "Browse and connect with specialists for your district's needs."
                     }
                     actions={
                         districtOK ? (
                             <PrimaryButton onClick={() => setShowSavedOnly((v) => !v)}>
-                                {showSavedOnly ? "Show All" : `Saved Educators (${savedEducatorIds.length})`}
+                                {showSavedOnly ? "Show All" : `Saved Consultants (${savedEducatorIds.length})`}
                             </PrimaryButton>
                         ) : undefined
                     }
                 />
 
-                {USE_CONVEX_BROWSE && needsDistrictSignIn && (
-                    <div className="mt-4 rounded-lg border border-[var(--accent-primary)]/25 bg-[var(--accent-primary)]/5 px-4 py-4 md:flex md:items-center md:justify-between md:gap-4">
+                {/* While the session check runs, hold the banner's space (invisibly) so signed-out
+                    visitors — most traffic here — don't see the page jump when it appears. */}
+                {USE_CONVEX_BROWSE && (needsDistrictSignIn || sessionChecking) && (
+                    <div
+                        aria-hidden={sessionChecking || undefined}
+                        className={cn(
+                            "mt-4 rounded-lg border border-[var(--accent-primary)]/25 bg-[var(--accent-primary)]/5 px-4 py-4 md:flex md:items-center md:justify-between md:gap-4",
+                            sessionChecking && "invisible"
+                        )}
+                    >
                         <p className="text-sm font-medium text-[var(--text-secondary)]">
-                            Sign in with a district account to browse verified educators and use filters on the live roster.
+                            Sign in with a district account to browse consultants and use filters on the live roster.
                         </p>
                         <div className="mt-3 flex flex-col gap-2 sm:flex-row md:mt-0 md:shrink-0">
                             <Link href="/login">
@@ -212,22 +216,17 @@ export default function BrowsePage() {
                     </div>
                 )}
 
-                {USE_CONVEX_BROWSE && !needsDistrictSignIn && (
+                {USE_CONVEX_BROWSE && !needsDistrictSignIn && !sessionChecking && !convexLive && (
                     <div
                         className={cn(
                             "mt-4 inline-flex w-fit max-w-full rounded-lg border px-3 py-2 text-xs font-semibold",
-                            convexLive
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                                : convexLoading
-                                  ? "border-amber-200 bg-amber-50 text-amber-950"
-                                  : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)]"
+                            convexLoading
+                                ? "border-amber-200 bg-amber-50 text-amber-950"
+                                : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)]"
                         )}
                     >
                         {convexLoading && "Loading district directory…"}
-                        {!convexLoading && convexLive && "Showing verified district directory."}
-                        {!convexLoading && !convexLive && viewer === null && "Sign in with a district account to save educators and use the live roster."}
-                        {!convexLoading && !convexLive && viewer && !districtOK && "Use a district account to access live district hiring tools."}
-                        {!convexLoading && !convexLive && viewer === undefined && "Checking session…"}
+                        {!convexLoading && viewer && !districtOK && "Use a district account to access live district hiring tools."}
                     </div>
                 )}
 
@@ -244,9 +243,9 @@ export default function BrowsePage() {
                     {/* Facet Panel */}
                     <aside className={`w-full lg:w-[280px] flex-shrink-0 flex-col gap-6 lg:flex ${mobileFilterOpen ? 'flex' : 'hidden'}`}>
                         <div className="surface-raised p-5 flex flex-col gap-5 sticky top-24">
-                            <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+                            <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
                                 <FadersHorizontal weight="bold" className="w-4 h-4 text-[var(--text-tertiary)]" /> Filters
-                            </h3>
+                            </h2>
 
                             <div className="flex flex-col gap-3">
                                 <span className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
@@ -284,37 +283,9 @@ export default function BrowsePage() {
                                 />
                             </div>
 
-                            <div className="h-px bg-[var(--border-subtle)] w-full my-1" />
-
-                            <div className="flex flex-col gap-2">
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input 
-                                        type="checkbox" 
-                                        className="w-4 h-4 rounded border-[var(--border-strong)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
-                                        checked={verifiedOnly}
-                                        onChange={(e) => setVerifiedOnly(e.target.checked)}
-                                    />
-                                    <span className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Verified Only</span>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <button
-                                                type="button"
-                                                className="inline-flex text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                                                aria-label="What verified means"
-                                            >
-                                                <Info className="w-4 h-4" weight="bold" />
-                                            </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top" className="max-w-xs text-xs">
-                                            {VERIFIED_ONLY_HELPER}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </label>
-                                <p className="text-xs leading-5 text-[var(--text-tertiary)] pl-7">
-                                    {VERIFIED_ONLY_HELPER}
-                                </p>
-                            </div>
-
+                            {/* "Verified only" is hidden for launch: background checks are off in
+                                production, so the filter implied a verification system that isn't
+                                running yet (Chris, Sep 4). filterEducatorRoster still supports it. */}
                             <div className="h-px bg-[var(--border-subtle)] w-full my-1" />
 
                             <button
@@ -327,7 +298,7 @@ export default function BrowsePage() {
                     </aside>
 
                     {/* Results Grid */}
-                    <main className="flex-1 flex flex-col">
+                    <section aria-label="Results" className="flex-1 flex flex-col">
                         {activeFilterChips.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-5">
                                 {activeFilterChips.map((chip) => (
@@ -347,7 +318,7 @@ export default function BrowsePage() {
                                 {canUseDirectory
                                     ? `Showing ${filteredEducators.length} result${filteredEducators.length !== 1 ? "s" : ""}`
                                     : needsDistrictSignIn
-                                      ? "Sign in to see educator results"
+                                      ? "Sign in to see consultant results"
                                       : sessionChecking
                                         ? "Checking your session…"
                                         : `Showing ${filteredEducators.length} result${filteredEducators.length !== 1 ? "s" : ""}`}
@@ -369,28 +340,36 @@ export default function BrowsePage() {
                                 <div className="w-16 h-16 bg-[var(--bg-subtle)] rounded-full flex items-center justify-center mb-4">
                                     <Funnel weight="regular" className="w-8 h-8 text-[var(--text-tertiary)]" />
                                 </div>
-                                <h3 className="text-xl font-heading font-bold text-[var(--text-primary)] mb-2">{emptyState.title}</h3>
+                                <h2 className="text-xl font-heading font-bold text-[var(--text-primary)] mb-2">{emptyState.title}</h2>
                                 <p className="text-sm leading-6 text-[var(--text-secondary)] max-w-sm mb-6">{emptyState.body}</p>
                                 {emptyState.action}
                             </div>
                         )}
-                    </main>
+                    </section>
 
                 </div>
             </div>
     );
 
-    return signedIn ? (
+    // Pick the shell from the auth session, which resolves before the Convex profile does;
+    // choosing from `viewer` rendered the public shell first and then swapped (layout shift).
+    if (authLoading) {
+        return <div className="min-h-screen bg-[var(--bg-app)]" aria-busy="true" />;
+    }
+
+    return signedIn || isAuthenticated ? (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
-            <div className="flex-1 overflow-y-auto w-full flex flex-col">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full flex flex-col">
                 {directoryBody}
-            </div>
+            </main>
         </div>
     ) : (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
             <SiteHeader />
-            {directoryBody}
+            <main id="main-content" className="flex-1 flex flex-col">
+                {directoryBody}
+            </main>
             <SiteFooter />
         </div>
     );

@@ -81,13 +81,13 @@ export default function EducatorProfilePage() {
     const resolvingOwnership = viewer?.role === "educator" && mine === undefined;
 
     if (resolvingOwnership || (useConvexProfile && (convexData === undefined || credentialRows === undefined))) {
+        // No header/footer here: the loaded profile may render inside the dashboard shell
+        // instead, and swapping shells after load shifted the whole page.
         return (
-            <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
-                <SiteHeader />
-                <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
+            <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans" aria-busy="true">
+                <main id="main-content" className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
                     <p className="text-[var(--text-secondary)]">Loading profile…</p>
                 </main>
-                <SiteFooter />
             </div>
         );
     }
@@ -96,7 +96,7 @@ export default function EducatorProfilePage() {
         return (
             <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
                 <SiteHeader />
-                <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
+                <main id="main-content" className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
                     <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Educator not found</h1>
                     <p className="text-[var(--text-secondary)] mb-8">This profile isn’t available or the link is invalid.</p>
                     <PrimaryButton onClick={() => router.push("/browse")}>Back to directory</PrimaryButton>
@@ -132,7 +132,7 @@ export default function EducatorProfilePage() {
         return (
             <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
                 <SiteHeader />
-                <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
+                <main id="main-content" className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
                     <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">{headline}</h1>
                     <p className="text-[var(--text-secondary)] mb-8">{body}</p>
                     <PrimaryButton onClick={() => router.push("/browse")}>Back to directory</PrimaryButton>
@@ -201,7 +201,7 @@ export default function EducatorProfilePage() {
         return (
             <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
                 <SiteHeader />
-                <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
+                <main id="main-content" className="flex-1 max-w-2xl mx-auto w-full px-6 py-16 text-center">
                     <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-4">Educator not found</h1>
                     <p className="text-[var(--text-secondary)] mb-8">No demo profile matches this link. Try another educator from the directory.</p>
                     <PrimaryButton onClick={() => router.push("/browse")}>Back to directory</PrimaryButton>
@@ -217,7 +217,7 @@ export default function EducatorProfilePage() {
         : "Rate available by request";
     const savedLabel = saved ? "Saved" : "Save to List";
     const profileMain = (
-            <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+            <main id="main-content" className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
                 {isOwnProfile && (
                     <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                         <p className="text-sm font-semibold text-amber-900">
@@ -250,7 +250,7 @@ export default function EducatorProfilePage() {
                     {/* Hero Profile Header */}
                     <div className="bg-white p-8 md:p-12 flex flex-col md:flex-row items-center md:items-start gap-8 relative border-b border-[var(--border-subtle)]">
                         <Avatar className="h-32 w-32 md:h-40 md:w-40 rounded-full ring-4 ring-[var(--bg-subtle)] shadow-md bg-white flex-shrink-0">
-                            <AvatarImage src={profile.avatarUrl} className="object-cover" />
+                            <AvatarImage src={profile.avatarUrl} alt="" className="object-cover" />
                             <AvatarFallback className="bg-[var(--accent-primary)] text-white text-4xl font-heading font-bold">
                                 {profile.initials}
                             </AvatarFallback>
@@ -523,13 +523,13 @@ export default function EducatorProfilePage() {
     );
 
     const mobileCta = isOwnProfile ? (
-            <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-[var(--border-subtle)] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-50">
+            <aside aria-label="Profile actions" className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-[var(--border-subtle)] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-50">
                 <Link href="/dashboard/educator/settings" className="flex items-center justify-center gap-2 w-full h-11 rounded-lg border border-[var(--border-strong)] font-bold text-[var(--text-primary)]">
                     <ArrowLeft weight="bold" className="w-5 h-5" /> Back to settings
                 </Link>
-            </div>
+            </aside>
     ) : (
-            <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-[var(--border-subtle)] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-50">
+            <aside aria-label="Contact consultant" className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-[var(--border-subtle)] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-50">
                 <div className="flex items-center gap-3">
                     <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-tertiary)]">From</p>
@@ -542,7 +542,7 @@ export default function EducatorProfilePage() {
                         Message
                     </PrimaryButton>
                 </div>
-            </div>
+            </aside>
     );
 
     return signedIn ? (

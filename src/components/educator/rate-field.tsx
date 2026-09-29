@@ -32,6 +32,7 @@ export function RateField({
                     value={amount}
                     onChange={(e) => onAmountChange(e.target.value)}
                     placeholder="e.g. 95"
+                    aria-label={`${label} (dollars)`}
                     className="field-control !pl-8"
                 />
             </div>

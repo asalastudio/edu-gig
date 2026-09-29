@@ -109,11 +109,11 @@ function MessagesPageInner() {
     const starterMessages = isEducator
         ? [
               { label: "Confirm availability", text: `Hi ${activeThreadName}, thanks for reaching out — I'm available and interested.` },
-              { label: "Share my fit", text: `Hi ${activeThreadName}, happy to share more about how I'd fit this need.` },
+              { label: "Share my fit", text: `Hi ${activeThreadName}, happy to share more about how I'd fit this gig.` },
               { label: "Send details", text: `Hi ${activeThreadName}, here are the details you asked about.` },
           ]
         : [
-              { label: "Ask availability", text: `Hi ${activeThreadName}, we'd like to confirm your availability for an upcoming need.` },
+              { label: "Ask availability", text: `Hi ${activeThreadName}, we'd like to confirm your availability for an upcoming gig.` },
               { label: "Ask about fit", text: `Hi ${activeThreadName}, can you share a bit more about your fit for this role?` },
               { label: "Ask what they need", text: `Hi ${activeThreadName}, what details would help you decide if this request is a good match?` },
           ];
@@ -146,14 +146,14 @@ function MessagesPageInner() {
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full">
                 <div className="max-w-[1200px] w-full mx-auto px-8 lg:px-12 py-10">
                     <PageHeader
                         title="Messages"
                         description={
                             isEducator
                                 ? "Coordinate availability, details, and next steps with districts that reach out."
-                                : "Coordinate availability, request details, and next steps with educators."
+                                : "Coordinate availability, request details, and next steps with consultants."
                         }
                         actions={
                             isEducator ? (
@@ -197,7 +197,7 @@ function MessagesPageInner() {
 
                     {!signedOut && (
                         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-[320px_minmax(0,1fr)]">
-                            <aside className="bg-white rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+                            <aside aria-label="Conversations" className="bg-white rounded-lg border border-[var(--border-subtle)] overflow-hidden">
                                 <div className="border-b border-[var(--border-subtle)] px-5 py-4">
                                     <p className="font-heading text-lg font-bold text-[var(--text-primary)]">
                                         Conversations
@@ -234,7 +234,7 @@ function MessagesPageInner() {
                                         <ChatCircleText className="mb-3 h-8 w-8 text-[var(--accent-primary)]" />
                                         {isEducator
                                             ? "No conversations yet. When a district messages you about a gig, the thread will appear here."
-                                            : "Start from an educator profile, then your district thread will appear here."}
+                                            : "Start from a consultant profile, then your district thread will appear here."}
                                     </div>
                                 ) : (
                                     convList.map((c) => (
@@ -308,7 +308,7 @@ function MessagesPageInner() {
                                         <p>
                                             {isEducator
                                                 ? "Select a conversation. Districts reach out here after reviewing your profile or proposal."
-                                                : "Select a conversation or message an educator from the directory."}
+                                                : "Select a conversation or message a consultant from the directory."}
                                         </p>
                                     </div>
                                 ) : activeConversation === undefined ? (

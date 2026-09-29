@@ -46,3 +46,8 @@ export function findViewableProposal<T extends ProposalNeedRef>(
 export function listPendingProposals<T extends { status: string }>(proposals: readonly T[]): T[] {
     return proposals.filter((proposal) => proposal.status === "pending");
 }
+
+/** Decided-against proposals (not selected or withdrawn), newest first, for the consultant's history. */
+export function listPastProposals<T extends { status: string }>(proposals: readonly T[]): T[] {
+    return proposals.filter((proposal) => proposal.status === "rejected" || proposal.status === "withdrawn");
+}

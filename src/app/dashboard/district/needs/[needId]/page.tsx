@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useConvex, useMutation, useQuery } from "convex/react";
@@ -11,10 +11,12 @@ import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
 import { getAreaOfNeedLabel, TAXONOMY } from "@/lib/taxonomy";
+import { formatFollowUpDeadline } from "@/lib/post-accept-copy";
 import { formatProposalStatus, formatProposedRate } from "@/lib/map-proposal";
 import { isDistrictRole } from "@/lib/roles";
 import { ArrowLeft, CheckCircle, Paperclip, Trash, XCircle } from "@phosphor-icons/react";
-import { canCancelNeed } from "@/lib/need-status";
+import { canCancelNeed, gigStatusStyle } from "@/lib/need-status";
+import { formatDateOnly } from "@/lib/map-dashboard";
 import { cn } from "@/lib/utils";
 import {
     AlertDialog,
@@ -38,17 +40,13 @@ function gradeLabel(gradeId: string | undefined | null): string | null {
     return match?.label ?? gradeId;
 }
 
-function engagementLabel(id: string | undefined | null): string | null {
-    if (!id) return null;
-    const match = TAXONOMY.engagementTypes.find((e) => e.id === id);
-    return match?.label ?? id;
-}
-
 export default function DistrictNeedDetailPage() {
     const params = useParams<{ needId: string }>();
     const router = useRouter();
     const rawId = typeof params.needId === "string" ? params.needId : "";
     const isValidIdShape = looksLikeConvexId(rawId);
+    // Snapshot for the "reach out by <date>" deadline shown in the accept dialog.
+    const now = useMemo(() => Date.now(), []);
 
     const viewer = useQuery(api.users.viewer, {});
     const isDistrict = !!viewer && isDistrictRole(viewer.role);
@@ -62,6 +60,10 @@ export default function DistrictNeedDetailPage() {
         api.proposals.listForNeed,
         isDistrict && isValidIdShape && need ? { needId: rawId as Id<"needs"> } : "skip"
     );
+
+    // Once placed, the accepted proposal links back to its engagement (districts had no way back after the accept redirect).
+    const engagements = useQuery(api.engagements.listMine, isDistrict && need?.status === "placed" ? {} : "skip");
+    const engagementByProposal = new Map((engagements ?? []).map((e) => [e.proposalId as string, e._id as string]));
 
     const acceptProposal = useMutation(api.proposals.accept);
     const rejectProposal = useMutation(api.proposals.reject);
@@ -119,7 +121,7 @@ export default function DistrictNeedDetailPage() {
         return (
             <ShellEmpty
                 title="Sign in to review proposals"
-                body="This page is for the district that posted this need."
+                body="This page is for the district that posted this gig."
             />
         );
     }
@@ -138,7 +140,7 @@ export default function DistrictNeedDetailPage() {
     if (!isValidIdShape) {
         return (
             <ShellEmpty
-                title="Need not found"
+                title="Gig not found"
                 body="That link doesn't point to a valid need. Return to your dashboard to open one from the pipeline."
                 showDashboardLink
             />
@@ -149,7 +151,7 @@ export default function DistrictNeedDetailPage() {
     if (isDistrict && need === null) {
         return (
             <ShellEmpty
-                title="Need not found"
+                title="Gig not found"
                 body="This need may have been removed or you may not have access."
                 showDashboardLink
             />
@@ -180,7 +182,7 @@ export default function DistrictNeedDetailPage() {
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
             <Toaster position="top-right" richColors />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-[1600px] w-full mx-auto px-8 lg:px-12 py-10 flex flex-col gap-10">
                     <Link
                         href="/dashboard/district"
@@ -189,10 +191,16 @@ export default function DistrictNeedDetailPage() {
                         <ArrowLeft className="w-4 h-4" /> Back to dashboard
                     </Link>
 
+                    {/* Header renders with the gig (not before it) so the details card doesn't jump down when the title wraps. */}
+                    {need && (
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <PageHeader
-                            title={need ? need.orgName : "Need detail"}
-                            description={need ? getAreaOfNeedLabel(need.areaOfNeed) : undefined}
+                            title={
+                                need.subCategory
+                                    ? `${getAreaOfNeedLabel(need.areaOfNeed)} · ${getAreaOfNeedLabel(need.subCategory)}`
+                                    : getAreaOfNeedLabel(need.areaOfNeed)
+                            }
+                            description={`Posted by ${need.orgName}`}
                         />
                         {showCancel && (
                             <AlertDialog>
@@ -230,21 +238,19 @@ export default function DistrictNeedDetailPage() {
                             </AlertDialog>
                         )}
                     </div>
+                    )}
 
                     {need ? (
                         <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm flex flex-col gap-4">
                             <div className="flex flex-wrap gap-3">
                                 <StatusPill status={need.status} />
                                 {need.subCategory && (
-                                    <Pill label={need.subCategory.replace(/_/g, " ")} />
+                                    <Pill label={getAreaOfNeedLabel(need.subCategory)} />
                                 )}
                                 {gradeLabel(need.gradeLevel) && <Pill label={gradeLabel(need.gradeLevel)!} />}
-                                {engagementLabel(need.engagementType) && (
-                                    <Pill label={engagementLabel(need.engagementType)!} />
-                                )}
                             </div>
                             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-                                {need.startDate && <Field label="Start date" value={need.startDate} />}
+                                {need.startDate && <Field label="Start date" value={formatDateOnly(need.startDate)} />}
                                 {need.duration && <Field label="Duration" value={need.duration} />}
                                 {need.compensationRange && (
                                     <Field label="Compensation" value={need.compensationRange} />
@@ -255,20 +261,21 @@ export default function DistrictNeedDetailPage() {
                                 />
                             </dl>
                             {need.description && (
-                                <div>
+                                <dl>
                                     <dt className="text-sm font-semibold text-[var(--text-tertiary)] uppercase tracking-widest mb-1">
                                         Description
                                     </dt>
-                                    <p className="text-base text-[var(--text-primary)] whitespace-pre-wrap">
+                                    <dd className="text-base text-[var(--text-primary)] whitespace-pre-wrap">
                                         {need.description}
-                                    </p>
-                                </div>
+                                    </dd>
+                                </dl>
                             )}
                         </section>
                     ) : (
-                        <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm text-[var(--text-secondary)]">
-                            Loading need…
-                        </section>
+                        <div aria-busy="true" className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm text-[var(--text-secondary)]">
+                            <h1 className="sr-only">Gig details</h1>
+                            Loading gig…
+                        </div>
                     )}
 
                     {need && (
@@ -291,7 +298,7 @@ export default function DistrictNeedDetailPage() {
                                         No proposals yet
                                     </h3>
                                     <p className="text-[var(--text-secondary)]">
-                                        Educators who respond to this need will appear here.
+                                        Consultants who respond to this gig will appear here.
                                     </p>
                                 </div>
                             )}
@@ -301,18 +308,18 @@ export default function DistrictNeedDetailPage() {
                                     const label = formatProposalStatus(row.proposal.status);
                                     const educatorName = row.user
                                         ? `${row.user.firstName ?? ""} ${row.user.lastName ?? ""}`.trim() ||
-                                          "Educator"
-                                        : "Educator";
+                                          "Consultant"
+                                        : "Consultant";
                                     const initials = educatorName
                                         .split(/\s+/)
                                         .map((p) => p[0] ?? "")
                                         .join("")
                                         .slice(0, 2)
                                         .toUpperCase();
-                                    const disableActions =
-                                        acting !== null ||
-                                        row.proposal.status !== "pending" ||
-                                        isPlaced;
+                                    // Decided proposals (accepted/rejected/withdrawn) and placed gigs
+                                    // show only their status badge, not greyed-out Accept/Reject.
+                                    const canDecide = row.proposal.status === "pending" && !isPlaced;
+                                    const disableActions = acting !== null;
 
                                     return (
                                         <div
@@ -371,6 +378,22 @@ export default function DistrictNeedDetailPage() {
                                                         />
                                                     )}
                                                 </div>
+                                                {row.proposal.status === "accepted" && (
+                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                        {engagementByProposal.has(row.proposal._id) && (
+                                                            <Link href={`/dashboard/engagements/${engagementByProposal.get(row.proposal._id)}`}>
+                                                                <PrimaryButton className="text-sm">Open engagement</PrimaryButton>
+                                                            </Link>
+                                                        )}
+                                                        <Link
+                                                            href={`/dashboard/messages?to=${encodeURIComponent(row.proposal.educatorUserId)}&name=${encodeURIComponent(educatorName)}`}
+                                                            className="inline-flex min-h-10 items-center rounded-lg border border-[var(--border-strong)] bg-white px-4 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                                                        >
+                                                            Message {educatorName}
+                                                        </Link>
+                                                    </div>
+                                                )}
+                                                {canDecide && (
                                                 <div className="flex flex-wrap gap-2 mt-2">
                                                     <AlertDialog>
                                                         <AlertDialogTrigger asChild>
@@ -388,7 +411,11 @@ export default function DistrictNeedDetailPage() {
                                                                 <AlertDialogTitle>Accept this proposal?</AlertDialogTitle>
                                                                 <AlertDialogDescription>
                                                                     This cannot be undone. Other pending proposals will be declined and emailed.
-                                                                    After you accept, reach out to {educatorName} within 3 business days. Contracts stay off-platform.
+                                                                    After you accept, reach out to {educatorName}{" "}
+                                                                    <strong className="font-bold text-[var(--text-primary)]">
+                                                                        by {formatFollowUpDeadline(now)} (3 business days)
+                                                                    </strong>
+                                                                    . Contracts stay off-platform.
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
@@ -411,6 +438,7 @@ export default function DistrictNeedDetailPage() {
                                                         Reject
                                                     </button>
                                                 </div>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -491,24 +519,9 @@ function Pill({ label }: { label: string }) {
 }
 
 function StatusPill({ status }: { status: string }) {
-    const color =
-        status === "placed"
-            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-            : status === "interviewing"
-              ? "bg-amber-50 text-amber-700 border-amber-200"
-              : status === "closed"
-                ? "bg-blue-50 text-blue-700 border-blue-200"
-                : "bg-blue-50 text-blue-700 border-blue-200";
-    const label =
-        status === "placed"
-            ? "Placed"
-            : status === "interviewing"
-              ? "Interviewing"
-              : status === "closed"
-                ? "Closed"
-                : "Open";
+    const { label, className } = gigStatusStyle(status);
     return (
-        <span className={cn("px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest border", color)}>
+        <span className={cn("px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest border", className)}>
             {label}
         </span>
     );
@@ -526,7 +539,7 @@ function ShellEmpty({
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-[1600px] w-full mx-auto px-8 lg:px-12 py-10 flex flex-col gap-10">
                     <Link
                         href="/dashboard/district"

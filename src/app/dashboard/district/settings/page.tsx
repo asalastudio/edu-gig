@@ -36,7 +36,7 @@ export default function DistrictSettingsPage() {
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-3xl mx-auto px-8 lg:px-12 py-10">
                     <Link
                         href="/dashboard/district"
@@ -55,7 +55,7 @@ export default function DistrictSettingsPage() {
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-6">
                                     <UserButton />
                                     <p className="text-sm text-[var(--text-secondary)]">
-                                        Manage your profile, security, and connected accounts with Clerk.
+                                        Manage your name, email, password, and sign-in methods.
                                     </p>
                                 </div>
                             ) : (
@@ -79,7 +79,7 @@ export default function DistrictSettingsPage() {
                                             checked={prefs[item.id]}
                                             disabled={!district}
                                             onChange={(e) => void toggle(item.id, e.target.checked)}
-                                            className="h-4 w-4 rounded border-[var(--border-strong)] text-[var(--accent-primary)]"
+                                            className="h-5 w-5 rounded border-[var(--border-strong)] accent-[var(--accent-primary)]"
                                         />
                                     </label>
                                 ))}
@@ -91,7 +91,7 @@ export default function DistrictSettingsPage() {
                         <section className="p-8 rounded-lg bg-white border border-[var(--border-subtle)] shadow-sm">
                             <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-4">Hiring account</h2>
                             <p className="text-sm text-[var(--text-secondary)] mb-4">
-                                Manage needs, messages, and accepted engagements from the district dashboard.
+                                Manage posted gigs, messages, and accepted engagements from the district dashboard.
                             </p>
                             <div className="flex flex-wrap gap-3">
                                 <Link href="/post" className="text-sm font-bold text-[var(--accent-primary)] hover:underline">Post a gig</Link>

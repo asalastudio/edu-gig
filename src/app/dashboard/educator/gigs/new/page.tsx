@@ -18,7 +18,7 @@ export default function NewGigPage() {
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full relative">
+            <main id="main-content" className="flex-1 overflow-y-auto w-full relative">
                 <div className="max-w-3xl mx-auto px-8 lg:px-12 py-10">
                     <Link
                         href="/dashboard/educator"
@@ -39,7 +39,7 @@ export default function NewGigPage() {
                         </h3>
                         <p className="text-sm text-[var(--text-secondary)] max-w-md mb-6">
                             Complete your profile so districts can find you in the Directory, and respond to
-                            district-posted needs with proposals on the Open Needs board.
+                            district-posted gigs with proposals on the Gig Board.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3">
                             <Link href="/dashboard/board">

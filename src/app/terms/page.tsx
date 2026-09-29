@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/shared/site-footer";
 import { LEGAL_LAST_UPDATED, SUPPORT_EMAIL, TERMS_VERSION } from "@/lib/legal";
 
 export const metadata: Metadata = {
-    title: "Terms of Service | K12Gig",
+    title: "Terms of Service",
     description: "Terms governing use of the K12Gig platform.",
 };
 
@@ -13,7 +13,7 @@ export default function TermsPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
             <SiteHeader />
-            <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-12 lg:py-16">
+            <main id="main-content" className="flex-1 max-w-3xl mx-auto w-full px-6 py-12 lg:py-16">
                 <Link href="/" className="text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] mb-8 inline-block">
                     ← Home
                 </Link>

@@ -8,7 +8,7 @@ import { getActiveBetaCopy } from "@/lib/active-beta-copy";
 
 export const metadata = {
     title: "Help",
-    description: "Help for districts and educators using K12Gig.",
+    description: "Help for districts and consultants using K12Gig.",
 };
 
 export default function HelpPage() {
@@ -16,7 +16,7 @@ export default function HelpPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)]">
             <SiteHeader />
-            <main className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-12 lg:px-12 lg:py-14">
+            <main id="main-content" className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-12 lg:px-12 lg:py-14">
                 <section className="max-w-3xl">
                     <div className="education-rule mb-4" />
                     <h1 className="font-heading text-4xl font-bold leading-tight md:text-5xl">Support for every hiring step.</h1>
@@ -28,7 +28,7 @@ export default function HelpPage() {
                 <section className="grid gap-6 md:grid-cols-2">
                     {[
                         ["Districts", "Post a gig, browse consultants, review proposals, accept work, and message candidates. After you accept, reach out to the consultant within 3 business days. Contracts and payment stay off-platform."],
-                        ["Educators", betaCopy.educatorHelp],
+                        ["Consultants", betaCopy.educatorHelp],
                         ["Billing", betaCopy.billingHelp],
                         ["Trust and compliance", "Privacy, terms, DPA requests, credential status, and current verification information are available from profile and legal surfaces."],
                     ].map(([title, body]) => (

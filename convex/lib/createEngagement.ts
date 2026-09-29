@@ -1,5 +1,6 @@
 import type { MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
+import { getAreaOfNeedLabel } from "../../src/lib/taxonomy";
 
 export async function findEngagementByProposal(
     ctx: MutationCtx,
@@ -11,8 +12,9 @@ export async function findEngagementByProposal(
         .unique();
 }
 
+/** Display title for an engagement, e.g. "keynote" -> "Keynote Speaking". */
 export function titleFromNeed(need: Pick<Doc<"needs">, "areaOfNeed">): string {
-    return need.areaOfNeed.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    return getAreaOfNeedLabel(need.areaOfNeed);
 }
 
 export function engagementInsertFields(args: {

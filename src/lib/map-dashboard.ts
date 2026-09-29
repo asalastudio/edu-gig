@@ -91,20 +91,6 @@ export function formatEducatorKpis(kpis: EducatorKpis | null | undefined): Educa
 
 type StatusColor = "amber" | "emerald" | "blue";
 
-export function formatPipelineStatus(status: string): { text: string; color: StatusColor } {
-    switch (status) {
-        case "interviewing":
-            return { text: "Interviewing", color: "amber" };
-        case "placed":
-            return { text: "Placed", color: "emerald" };
-        case "closed":
-            return { text: "Closed", color: "blue" };
-        case "open":
-        default:
-            return { text: "Sourcing", color: "blue" };
-    }
-}
-
 export function formatOrderStatus(status: string): { text: string; color: StatusColor } {
     switch (status) {
         case "active":
@@ -131,4 +117,13 @@ export function formatAgreedRate(amount?: number, unit?: string | null): string 
     if (unit === "daily") return `${dollars}/day`;
     if (unit === "fixed") return `${dollars} flat`;
     return dollars;
+}
+
+/** "2026-10-20" -> "Tue, Oct 20, 2026". Date-only strings are read as local dates (no UTC shift). */
+export function formatDateOnly(value: string | undefined | null): string {
+    if (!value) return "";
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+    if (!match) return value;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 }

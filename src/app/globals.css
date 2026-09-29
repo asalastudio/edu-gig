@@ -32,7 +32,7 @@
   /* Near-black, warm — headlines */
   --text-secondary: #56615A;
   /* Labels, metadata */
-  --text-tertiary: #879188;
+  --text-tertiary: #626d65; /* 4.8–5.4:1 on white, app bg, tinted chips (was #879188, 2.9–3.3:1) */
   /* Placeholders, disabled, timestamps */
   --text-inverse: #F8FAF6;
   /* On dark backgrounds */

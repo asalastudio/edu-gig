@@ -2,6 +2,10 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+    PRIMARY_SUPPORT_AREA_LABEL,
+    SPECIFIC_EXPERTISE_NEEDED_LABEL,
+} from "@/lib/school-posting-labels";
 import { TAXONOMY } from "@/lib/taxonomy";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 
@@ -29,22 +33,22 @@ export function HeroSearch() {
         <div className="w-full rounded-lg border border-[#F7F1E3]/65 bg-[#FBF8EF]/96 p-3 text-left text-[var(--text-primary)] shadow-[0_20px_56px_rgba(4,18,12,0.26)] backdrop-blur-xl">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(2,minmax(0,1fr))_3.5rem] 2xl:grid-cols-[repeat(4,minmax(0,1fr))_3.5rem]">
                 <HeroSelect
-                    label="Support Type"
+                    label={PRIMARY_SUPPORT_AREA_LABEL}
                     value={area}
                     onChange={(value) => {
                         setArea(value);
                         setSpec("");
                     }}
                     options={TAXONOMY.areasOfNeed}
-                    placeholder="Support Type"
+                    placeholder={PRIMARY_SUPPORT_AREA_LABEL}
                 />
 
                 <HeroSelect
-                    label="Area of Expertise"
+                    label={SPECIFIC_EXPERTISE_NEEDED_LABEL}
                     value={spec}
                     onChange={setSpec}
                     options={specs}
-                    placeholder="Area of Expertise"
+                    placeholder={SPECIFIC_EXPERTISE_NEEDED_LABEL}
                     disabled={!area || specs.length === 0}
                 />
 

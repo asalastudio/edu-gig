@@ -276,7 +276,7 @@ export default function EducatorSettingsPage() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="flex flex-col gap-2">
-                                            <label htmlFor="yearsExperience" className="text-sm font-semibold text-[var(--text-primary)]">Years experience</label>
+                                            <label htmlFor="yearsExperience" className="text-sm font-semibold text-[var(--text-primary)]">Years in education</label>
                                             <input id="yearsExperience" type="number" min={0} value={yearsExperience} onChange={(e) => setYearsExperience(e.target.value)} className="h-11 rounded-lg border border-[var(--border-subtle)] px-4 text-sm" />
                                         </div>
                                         <div className="flex flex-col gap-2 md:col-span-2">

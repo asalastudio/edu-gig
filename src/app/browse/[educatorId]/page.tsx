@@ -9,18 +9,16 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { PrimaryButton } from "@/components/shared/button";
 import { VerificationBadge } from "@/components/shared/verification-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlayCircle, Medal, MapPin, Briefcase, CheckCircle, ChatCircle, BookmarkSimple, ShieldCheck, Certificate, CurrencyDollar, ArrowLeft } from "@phosphor-icons/react";
+import { PlayCircle, Medal, MapPin, CheckCircle, ChatCircle, BookmarkSimple, ShieldCheck, Certificate, CurrencyDollar, ArrowLeft } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
 import { mapConvexEducatorToProfileView } from "@/lib/map-convex-educator-profile";
 import { CopyButton } from "@/components/shared/copy-button";
 import { CredentialFileLink } from "@/components/shared/credential-file-link";
 import { isDistrictRole } from "@/lib/roles";
 import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
-import { formatPrice } from "@/lib/map-review";
 
 const USE_CONVEX = process.env.NEXT_PUBLIC_USE_CONVEX_BROWSE === "true";
 
@@ -56,10 +54,6 @@ export default function EducatorProfilePage() {
 
     const convexData = useQuery(
         api.educators.getProfileForDistrict,
-        useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
-    );
-    const educatorGigs = useQuery(
-        api.gigs.listActiveByEducatorForDistrict,
         useConvexProfile ? { educatorId: educatorId as Id<"educators"> } : "skip"
     );
     const credentialRows = useQuery(
@@ -202,19 +196,6 @@ export default function EducatorProfilePage() {
         }
     };
 
-    const handleRequestEducator = () => {
-        const next = `/post?educator=${encodeURIComponent(educatorId)}&name=${encodeURIComponent(profile?.name ?? "Educator")}`;
-        if (!viewer) {
-            router.push(`/sign-up?${AUTH_INTENT_PARAM}=district&next=${encodeURIComponent(next)}`);
-            return;
-        }
-        if (!districtOK) {
-            router.push("/login");
-            return;
-        }
-        router.push(next);
-    };
-
     if (!profile) {
         return (
             <div className="min-h-screen bg-[var(--bg-app)] flex flex-col font-sans">
@@ -228,20 +209,6 @@ export default function EducatorProfilePage() {
             </div>
         );
     }
-
-    const availabilityLabel =
-        profile.availabilityStatus === "open"
-            ? "Open to New Clients"
-            : profile.availabilityStatus === "limited"
-              ? "Limited Availability"
-              : "Not Accepting New Clients";
-
-    const availabilityClass =
-        profile.availabilityStatus === "open"
-            ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-            : profile.availabilityStatus === "limited"
-              ? "bg-amber-100 text-amber-900 border-amber-200"
-              : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-strong)]";
 
     const signedIn = !!viewer;
     const pricingLabel = profile.rateLabel !== "Not set"
@@ -336,10 +303,7 @@ export default function EducatorProfilePage() {
                                 </div>
                             ) : (
                         <div className="hidden md:flex flex-row gap-3 w-full sm:w-auto mt-2">
-                            <button onClick={() => handleRequestEducator()} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-lg hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
-                                    <Briefcase weight="fill" className="w-5 h-5" /> Post a gig
-                            </button>
-                                    <button onClick={handleMessageEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
+                                    <button onClick={handleMessageEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--accent-primary)] text-white font-bold rounded-lg hover:bg-[var(--accent-primary-h)] transition-all shadow-sm w-full sm:w-auto text-base cursor-pointer">
                                         <ChatCircle weight="fill" className="w-5 h-5" /> Message Consultant
                                     </button>
                                     <button onClick={handleSaveEducator} className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
@@ -354,7 +318,7 @@ export default function EducatorProfilePage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)]">
                         <div className="p-6 text-center border-r border-b md:border-b-0 border-[var(--border-strong)]">
                             <div className="font-heading text-3xl font-bold text-[var(--text-primary)]">{profile.yearsExperience}</div>
-                            <div className="text-sm text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-1">Years Exp.</div>
+                            <div className="text-sm text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-1">Years</div>
                         </div>
                         <div className="p-6 text-center border-r hidden md:block border-[var(--border-strong)]">
                             <div className="font-heading text-2xl md:text-3xl font-bold text-[var(--text-primary)] leading-tight px-1">{profile.primarySubjectLabel}</div>
@@ -378,7 +342,6 @@ export default function EducatorProfilePage() {
                                 <TabsTrigger value="services" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Areas of Support</TabsTrigger>
                                 <TabsTrigger value="credentials" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Credentials</TabsTrigger>
                                 <TabsTrigger value="experience" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Resume / CV</TabsTrigger>
-                                <TabsTrigger value="availability" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Availability</TabsTrigger>
                             </TabsList>
                         </div>
 
@@ -422,48 +385,17 @@ export default function EducatorProfilePage() {
                             <TabsContent value="services" className="mt-0 outline-none animate-in fade-in duration-300">
                                 <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Areas of Support</h2>
                                 <p className="text-sm text-[var(--text-secondary)] mb-8">
-                                    Post a gig and review available support options to start hiring.
+                                    Support types this consultant lists on their profile, including Keynote Speaking when selected.
                                 </p>
-                                {educatorGigs === undefined ? (
-                                    <p className="text-[var(--text-secondary)]">Loading services…</p>
-                                ) : educatorGigs.length === 0 ? (
-                                    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-8 text-center">
-                                        <h3 className="font-heading text-lg font-bold text-[var(--text-primary)] mb-2">No support details yet</h3>
-                                        <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
-                                            This educator hasn&apos;t published fixed service details yet. You can still post a gig to request support.
-                                        </p>
-                                        <PrimaryButton onClick={() => handleRequestEducator()}>
-                                            Post a gig
-                                        </PrimaryButton>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {educatorGigs.map((gig) => (
-                                            <div
-                                                key={gig.id}
-                                                className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-subtle)] p-5 flex flex-col gap-4"
-                                            >
-                                                <div>
-                                                    <h3 className="font-heading text-lg font-bold text-[var(--text-primary)]">{gig.title}</h3>
-                                                    <p className="text-sm font-semibold text-[var(--accent-primary)] mt-1">
-                                                        {formatPrice(gig.price, gig.pricingType)}
-                                                        {gig.estimatedDuration ? ` · ${gig.estimatedDuration}` : ""}
-                                                    </p>
-                                                </div>
-                                                <PrimaryButton onClick={() => handleRequestEducator()} className="mt-auto w-full">
-                                                    Post a gig
-                                                </PrimaryButton>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                <div className="mt-8">
-                                    <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-3">
-                                        Need a specific gig?
-                                    </p>
-                                    <PrimaryButton onClick={() => handleRequestEducator()} className="w-full md:w-auto">
-                                        Post a gig
-                                    </PrimaryButton>
+                                <div className="flex flex-wrap gap-3">
+                                    {profile.areas.map((area) => (
+                                        <span
+                                            key={area}
+                                            className="px-4 py-2 bg-[var(--bg-hover)] border border-[var(--border-strong)] rounded-lg text-sm font-bold text-[var(--text-secondary)]"
+                                        >
+                                            {area}
+                                        </span>
+                                    ))}
                                 </div>
                             </TabsContent>
 
@@ -590,29 +522,6 @@ export default function EducatorProfilePage() {
                                     </div>
                                 )}
                             </TabsContent>
-
-                            <TabsContent value="availability" className="mt-0 outline-none animate-in fade-in duration-300">
-                                <div className="flex justify-between items-start mb-6 flex-wrap gap-3">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Availability</h2>
-                                        <p className="text-sm text-[var(--text-secondary)] font-medium mt-1">
-                                            Availability is a status indicator only. Dates and scope are confirmed after you post a gig.
-                                        </p>
-                                    </div>
-                                    <span className={cn("inline-flex items-center gap-2 px-4 py-2 border rounded-lg font-bold text-sm", availabilityClass)}>
-                                        {profile.availabilityStatus === "open" && <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
-                                        {availabilityLabel}
-                                    </span>
-                                </div>
-                                <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] p-5">
-                                    <p className="text-sm text-[var(--text-secondary)]">
-                                        Educators update this status manually. Use post-based hiring to confirm exact dates and expectations.
-                                    </p>
-                                </div>
-                                <PrimaryButton onClick={() => handleRequestEducator()} className="w-full mt-4 sm:w-auto">
-                                    Post a gig
-                                </PrimaryButton>
-                            </TabsContent>
                         </div>
 
                         {/* Bottom Pills */}
@@ -644,11 +553,8 @@ export default function EducatorProfilePage() {
                     <button onClick={handleSaveEducator} aria-label={savedLabel} className="h-11 w-11 rounded-lg border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)]">
                         <BookmarkSimple weight={saved ? "fill" : "bold"} className="w-5 h-5" />
                     </button>
-                    <button onClick={handleMessageEducator} aria-label="Message educator" className="h-11 w-11 rounded-lg border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)]">
-                        <ChatCircle weight="bold" className="w-5 h-5" />
-                    </button>
-                    <PrimaryButton onClick={() => handleRequestEducator()} className="px-4 py-3 text-sm">
-                        Post a gig
+                    <PrimaryButton onClick={handleMessageEducator} className="px-4 py-3 text-sm">
+                        Message
                     </PrimaryButton>
                 </div>
             </div>

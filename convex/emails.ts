@@ -25,7 +25,11 @@ import {
 } from "../src/lib/email-templates";
 import { generateInvoicePdf, invoiceNumber } from "../src/lib/invoice-pdf";
 import { SUPPORT_EMAIL } from "../src/lib/legal";
-import { getAreaOfNeedLabel, TAXONOMY } from "../src/lib/taxonomy";
+import {
+    DISTRICT_NOTIFICATION_SETTINGS_PATH,
+    EDUCATOR_NOTIFICATION_SETTINGS_PATH,
+} from "../src/lib/email-templates";
+import { formatNeedTitle, getAreaOfNeedLabel, TAXONOMY } from "../src/lib/taxonomy";
 
 type ResendAttachment = {
     filename: string;
@@ -78,6 +82,12 @@ function appUrl(): string {
     return process.env.NEXT_PUBLIC_APP_URL || "https://k12gig.com";
 }
 
+function settingsUrl(role: "educator" | "district"): string {
+    const path =
+        role === "district" ? DISTRICT_NOTIFICATION_SETTINGS_PATH : EDUCATOR_NOTIFICATION_SETTINGS_PATH;
+    return `${appUrl()}${path}`;
+}
+
 /** Uint8Array → base64 (works in V8 isolates where Buffer may not exist). */
 function uint8ToBase64(bytes: Uint8Array): string {
     // Prefer Buffer when available (Node runtime).
@@ -127,6 +137,7 @@ export const sendBookingConfirmation = internalAction({
                 educatorPayout: order.order.educatorPayout,
                 startDate: order.order.startDate,
                 paymentMethod: order.order.paymentMethod,
+                unsubscribeUrl: settingsUrl("district"),
             });
 
             const attachments: ResendAttachment[] = [];
@@ -206,6 +217,7 @@ export const sendNewMessageAlert = internalAction({
                 recipientFirstName,
                 messagePreview: content,
                 conversationUrl: `${appUrl()}/dashboard/messages`,
+                unsubscribeUrl: settingsUrl(recipient.role === "educator" ? "educator" : "district"),
             });
 
             await sendViaResend({
@@ -248,11 +260,12 @@ export const sendNewProposalAlert = internalAction({
 
             const payload = newProposalAlert({
                 educatorName,
-                needTitle: need.areaOfNeed || "your posting",
+                needTitle: formatNeedTitle(need.areaOfNeed, "your posting"),
                 orgName: need.orgName,
                 proposedRate: proposal.proposedRate,
                 proposedRateUnit: proposal.proposedRateUnit,
                 needUrl: `${appUrl()}/dashboard/district/needs/${need._id}`,
+                unsubscribeUrl: settingsUrl("district"),
             });
 
             await sendViaResend({
@@ -291,10 +304,11 @@ export const sendProposalAcceptedAlert = internalAction({
             }
 
             const payload = proposalAcceptedAlert({
-                needTitle: need.areaOfNeed || "your placement",
+                needTitle: formatNeedTitle(need.areaOfNeed, "your placement"),
                 orgName: need.orgName,
                 educatorFirstName: educatorUser.firstName || "there",
                 needUrl: `${appUrl()}/dashboard/educator/my-gigs`,
+                unsubscribeUrl: settingsUrl("educator"),
             });
 
             await sendViaResend({
@@ -338,11 +352,12 @@ export const sendProposalRejectedAlert = internalAction({
             }
 
             const payload = proposalRejectedAlert({
-                needTitle: need.areaOfNeed || "the posting",
+                needTitle: formatNeedTitle(need.areaOfNeed, "the posting"),
                 orgName: need.orgName,
                 educatorFirstName: educatorUser.firstName || "there",
                 needUrl: `${appUrl()}/dashboard/board`,
                 reason: args.reason,
+                unsubscribeUrl: settingsUrl("educator"),
             });
 
             await sendViaResend({
@@ -383,6 +398,7 @@ export const sendEngagementStatusAlert = internalAction({
                 areaLabel: data.areaLabel,
                 statusLabel: args.statusLabel,
                 engagementUrl: `${appUrl()}/dashboard/engagements/${args.engagementId}`,
+                unsubscribeUrl: settingsUrl(data.counterpart.role === "educator" ? "educator" : "district"),
             });
 
             await sendViaResend({
@@ -410,6 +426,7 @@ export const sendRefundIssued = internalAction({
             orderId: String(args.orderId),
             refundAmount: args.refundAmount,
             reason: args.reason,
+            unsubscribeUrl: settingsUrl("district"),
         });
         await sendViaResend({
             from: fromAddress(),
@@ -478,6 +495,7 @@ export const sendNewNeedAlert = internalAction({
                 areaLabel: getAreaOfNeedLabel(need.areaOfNeed),
                 gradeLevel,
                 needsBoardUrl: `${appUrl()}/dashboard/educator/needs`,
+                unsubscribeUrl: settingsUrl("educator"),
             });
 
             await sendViaResend({
@@ -546,13 +564,13 @@ export const sendProfileCompletionReminders = internalAction({
                 (await import("./_generated/api")).internal.emails.selectAndStampReminderRecipients,
                 {}
             );
-            const settingsUrl = `${appUrl()}/dashboard/educator/settings`;
+            const educatorSettings = settingsUrl("educator");
             for (const recipient of recipients) {
                 const payload = profileCompletionReminder({
                     firstName: recipient.firstName,
                     completePct: recipient.completePct,
-                    settingsUrl,
-                    unsubscribeUrl: settingsUrl,
+                    settingsUrl: educatorSettings,
+                    unsubscribeUrl: educatorSettings,
                 });
                 await sendViaResend({
                     from: fromAddress(),

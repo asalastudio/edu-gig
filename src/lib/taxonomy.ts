@@ -145,6 +145,13 @@ export const TAXONOMY = {
     ],
 } as const;
 
+/** Human-readable title for a posted need (emails, subjects). Never returns a raw id. */
+export function formatNeedTitle(areaOfNeed: string | undefined, fallback = "your posting"): string {
+    const trimmed = areaOfNeed?.trim();
+    if (!trimmed) return fallback;
+    return getAreaOfNeedLabel(trimmed);
+}
+
 /** Resolve taxonomy id to label for display (Convex seed data may use legacy codes). */
 export function getAreaOfNeedLabel(id: string): string {
     const found = TAXONOMY.areasOfNeed.find((a) => a.id === id);

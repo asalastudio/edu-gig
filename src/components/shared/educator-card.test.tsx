@@ -1,6 +1,6 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { EducatorCard, type EducatorCardProps } from "./educator-card";
 
 const educator: EducatorCardProps = {
@@ -19,6 +19,28 @@ const educator: EducatorCardProps = {
 };
 
 describe("EducatorCard", () => {
+    afterEach(() => {
+        cleanup();
+    });
+
+    it("does not show public star ratings or review counts", () => {
+        render(
+            <EducatorCard
+                educator={{
+                    ...educator,
+                    overallRating: 4.9,
+                    reviewCount: 27,
+                }}
+            />
+        );
+
+        expect(screen.queryByText(/4\.9/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/27/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/review/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/rating/i)).not.toBeInTheDocument();
+        expect(document.querySelector("[data-rating], .star, [aria-label*='star' i]")).toBeNull();
+    });
+
     it("shows the support area responsible for an active filter match first", () => {
         render(
             <EducatorCard

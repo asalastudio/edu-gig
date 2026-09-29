@@ -1,3 +1,7 @@
+import {
+    PRIMARY_SUPPORT_AREA_PUBLISH_MESSAGE,
+    SPECIFIC_EXPERTISE_NEEDED_PUBLISH_MESSAGE,
+} from "./school-posting-labels";
 import { TAXONOMY } from "./taxonomy";
 
 export const NEED_DESCRIPTION_MIN_LENGTH = 50;
@@ -92,14 +96,14 @@ export function getNeedPublishIssues(input: NeedInput): NeedPublishIssue[] {
         issues.push({ field: "orgName", message: "Organization name is required to publish." });
     }
     if (!need.areaOfNeed) {
-        issues.push({ field: "areaOfNeed", message: "Select a support type to publish." });
+        issues.push({ field: "areaOfNeed", message: PRIMARY_SUPPORT_AREA_PUBLISH_MESSAGE });
     }
     if (
         need.areaOfNeed &&
         supportTypeRequiresSubcategory(need.areaOfNeed) &&
         !need.subCategory
     ) {
-        issues.push({ field: "subCategory", message: "Select an area of expertise to publish." });
+        issues.push({ field: "subCategory", message: SPECIFIC_EXPERTISE_NEEDED_PUBLISH_MESSAGE });
     }
     if (!need.gradeLevel) {
         issues.push({ field: "gradeLevel", message: "Select a grade level band to publish." });

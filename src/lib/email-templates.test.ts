@@ -1,9 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
     bookingConfirmation,
+    DISTRICT_NOTIFICATION_SETTINGS_PATH,
+    EDUCATOR_NOTIFICATION_SETTINGS_PATH,
     newMessageAlert,
     newNeedAlert,
     newProposalAlert,
+    notificationSettingsUrl,
     profileCompletionReminder,
     proposalAcceptedAlert,
     proposalRejectedAlert,
@@ -58,11 +61,21 @@ describe("bookingConfirmation", () => {
         expect(out.html).not.toContain("Net-30 invoice");
     });
 
-    it("includes unsubscribe placeholder and brand footer", () => {
+    it("links the footer to the real educator notification settings page", () => {
         const out = bookingConfirmation(baseInput);
-        expect(out.html).toContain("{{unsubscribe_url}}");
+        expect(out.html).not.toContain("{{unsubscribe_url}}");
+        expect(out.html).toContain(notificationSettingsUrl());
+        expect(out.html).toContain("Manage notifications");
         expect(out.html).toContain("K12Gig");
         expect(out.html).toContain("The K-12 Educator Marketplace");
+    });
+
+    it("uses a role-specific settings URL when provided", () => {
+        const districtUrl = notificationSettingsUrl("district");
+        const out = bookingConfirmation({ ...baseInput, unsubscribeUrl: districtUrl });
+        expect(out.html).toContain(districtUrl);
+        expect(out.html).toContain(DISTRICT_NOTIFICATION_SETTINGS_PATH);
+        expect(out.html).not.toContain("{{unsubscribe_url}}");
     });
 
     it("escapes html-sensitive chars so untrusted strings don't break markup", () => {
@@ -196,6 +209,52 @@ describe("engagementStatusAlert", () => {
     });
 });
 
+describe("transactional templates", () => {
+    it("never ship the literal {{unsubscribe_url}} placeholder", () => {
+        const payloads = [
+            bookingConfirmation({
+                gigTitle: "Gig",
+                educatorName: "Edu",
+                buyerName: "Buyer",
+                orgName: "Org",
+                totalAmount: 100,
+                platformFee: 18,
+                educatorPayout: 82,
+                startDate: "2026-09-01",
+                paymentMethod: "card",
+            }),
+            newMessageAlert({
+                senderName: "A",
+                recipientFirstName: "B",
+                messagePreview: "Hi",
+                conversationUrl: "https://k12gig.com/dashboard/messages",
+            }),
+            newProposalAlert({
+                educatorName: "Dana",
+                needTitle: "AI & Educational Technology",
+                orgName: "District",
+                needUrl: "https://k12gig.com/needs/x",
+            }),
+            proposalAcceptedAlert({
+                needTitle: "AI & Educational Technology",
+                orgName: "District",
+                educatorFirstName: "Kai",
+                needUrl: "https://k12gig.com/x",
+            }),
+            newNeedAlert({
+                orgName: "District",
+                areaLabel: "AI & Educational Technology",
+                needsBoardUrl: "https://k12gig.com/dashboard/educator/needs",
+            }),
+        ];
+        for (const payload of payloads) {
+            expect(payload.html).not.toContain("{{unsubscribe_url}}");
+            expect(payload.html).toContain("Manage notifications");
+            expect(payload.html).toContain("/dashboard/");
+        }
+    });
+});
+
 describe("newNeedAlert", () => {
     it("includes org, area label, and needs board url in subject and body", () => {
         const out = newNeedAlert({
@@ -235,6 +294,7 @@ describe("profileCompletionReminder", () => {
         expect(out.html).toContain("Jordan");
         expect(out.html).toContain("45%");
         expect(out.html).toContain("https://k12gig.com/dashboard/educator/settings");
+        expect(out.html).toContain("Manage notifications");
         expect(out.html).not.toContain("{{unsubscribe_url}}");
     });
 
@@ -246,5 +306,13 @@ describe("profileCompletionReminder", () => {
             unsubscribeUrl: "https://k12gig.com/x",
         });
         expect(out.html).toContain("100%");
+    });
+});
+
+describe("notificationSettingsUrl", () => {
+    it("points at the existing educator and district settings routes", () => {
+        expect(notificationSettingsUrl()).toContain(EDUCATOR_NOTIFICATION_SETTINGS_PATH);
+        expect(notificationSettingsUrl("educator")).toContain("/dashboard/educator/settings");
+        expect(notificationSettingsUrl("district")).toContain("/dashboard/district/settings");
     });
 });

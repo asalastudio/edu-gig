@@ -50,7 +50,15 @@ export default function SignUpPage() {
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
             <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-                <div className="w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
+                <div className="k12-clerk-card w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
+                    <div className="px-2 pt-2 pb-1 text-center sm:px-4">
+                        <h1 className="font-heading text-xl font-bold text-[var(--text-primary)]">
+                            Create your K12Gig account
+                        </h1>
+                        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                            Welcome! Please fill in the details to get started.
+                        </p>
+                    </div>
                     <SignUp
                         forceRedirectUrl={afterAuthUrl}
                         signInUrl={authPagePath("/sign-in", intent, safeNext)}

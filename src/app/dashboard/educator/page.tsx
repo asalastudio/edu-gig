@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { Sidebar } from "@/components/shared/sidebar";
 import { Briefcase, CheckCircle, ChatCircle, Power, ArrowRight } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { EDUCATOR_DASHBOARD_SUBTITLE } from "@/lib/dashboard-copy";
 import { formatAgreedRate, formatEducatorKpis, formatOrderStatus, type EducatorPipelineRow } from "@/lib/map-dashboard";
 
 export default function EducatorDashboardPage() {
@@ -55,7 +56,7 @@ export default function EducatorDashboardPage() {
                                 Welcome back, {displayName}
                             </h1>
                             <p className="max-w-3xl text-base leading-7 text-[var(--text-secondary)] md:text-lg">
-                                Track accepted gigs, pending proposals, and contract documents. Payment is handled off-platform with the district.
+                                {EDUCATOR_DASHBOARD_SUBTITLE}
                             </p>
                         </div>
                         <div className="flex items-center gap-3 bg-white p-2 pr-4 rounded-lg border border-[var(--border-subtle)] shadow-sm hover:shadow-md transition-shadow">

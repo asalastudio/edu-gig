@@ -170,16 +170,6 @@ export default function GigBoardPage() {
                     <PageHeader
                         title={boardTitle}
                         description={boardDescription}
-                        actions={
-                            isDistrict ? (
-                                <Link href="/post">
-                                    <PrimaryButton>
-                                        <PlusCircle weight="bold" className="w-4 h-4" />
-                                        Post a gig
-                                    </PrimaryButton>
-                                </Link>
-                            ) : undefined
-                        }
                     />
 
                     {isSignedOut && (

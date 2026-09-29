@@ -324,3 +324,24 @@
     }
   }
 }
+
+/*
+ * Clerk v7 ships unlayered CSS that beats Tailwind v4 utilities
+ * (`hidden`, `bg-[var(--accent-primary)]`, etc.). Keep these rules
+ * outside @layer and use !important so /sign-in and /sign-up hide
+ * Clerk's own header + footer switcher even if appearance classNames
+ * are ignored. Pages render AuthAccountSwitch as the only path.
+ */
+.k12-clerk-card .cl-header,
+.k12-clerk-card .cl-headerTitle,
+.k12-clerk-card .cl-headerSubtitle,
+.k12-clerk-card .cl-footer,
+.k12-clerk-card .cl-footerAction,
+.k12-clerk-card .cl-footerActionText,
+.k12-clerk-card .cl-footerActionLink,
+.k12-clerk-card [data-localization-key="footerAction__signIn"],
+.k12-clerk-card [data-localization-key="footerAction__signUp"],
+.k12-clerk-card [data-localization-key="footerActionLink__signIn"],
+.k12-clerk-card [data-localization-key="footerActionLink__signUp"] {
+  display: none !important;
+}

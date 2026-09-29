@@ -58,7 +58,7 @@ function AlertDialogContent({
         data-slot="alert-dialog-content"
         data-size={size}
         className={cn(
-          "group/alert-dialog-content fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 data-[size=sm]:max-w-xs data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[size=default]:sm:max-w-lg",
+          "group/alert-dialog-content fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] p-6 shadow-xl duration-200 data-[size=sm]:max-w-xs data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[size=default]:sm:max-w-lg",
           className
         )}
         {...props}
@@ -122,7 +122,7 @@ function AlertDialogDescription({
   return (
     <AlertDialogPrimitive.Description
       data-slot="alert-dialog-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-sm text-[var(--text-secondary)]", className)}
       {...props}
     />
   )
@@ -144,6 +144,15 @@ function AlertDialogMedia({
   )
 }
 
+// The shadcn Button variants use theme tokens (bg-primary, bg-destructive,
+// bg-background) that this app never maps in Tailwind, so they render
+// transparent. Dialog buttons get explicit brand colors instead.
+const DIALOG_BUTTON_BRAND: Partial<Record<NonNullable<React.ComponentProps<typeof Button>["variant"]>, string>> = {
+  default: "bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)] hover:opacity-90",
+  destructive: "bg-red-600 text-white hover:bg-red-700",
+  outline: "border-[var(--border-strong)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
+}
+
 function AlertDialogAction({
   className,
   variant = "default",
@@ -155,7 +164,7 @@ function AlertDialogAction({
     <Button variant={variant} size={size} asChild>
       <AlertDialogPrimitive.Action
         data-slot="alert-dialog-action"
-        className={cn(className)}
+        className={cn(variant && DIALOG_BUTTON_BRAND[variant], className)}
         {...props}
       />
     </Button>
@@ -173,7 +182,7 @@ function AlertDialogCancel({
     <Button variant={variant} size={size} asChild>
       <AlertDialogPrimitive.Cancel
         data-slot="alert-dialog-cancel"
-        className={cn(className)}
+        className={cn(variant && DIALOG_BUTTON_BRAND[variant], className)}
         {...props}
       />
     </Button>

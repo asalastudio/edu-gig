@@ -301,7 +301,7 @@ export default function ProposePage() {
                     {need.subCategory ? (
                         <span className="text-[var(--text-secondary)] font-semibold text-lg">
                             {" · "}
-                            {need.subCategory.replace(/_/g, " ")}
+                            {getAreaOfNeedLabel(need.subCategory)}
                         </span>
                     ) : null}
                 </h2>

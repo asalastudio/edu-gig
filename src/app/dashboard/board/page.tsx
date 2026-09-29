@@ -235,7 +235,7 @@ export default function GigBoardPage() {
                                                     {need.subCategory ? (
                                                         <span className="text-[var(--text-secondary)] font-semibold text-lg">
                                                             {" · "}
-                                                            {need.subCategory.replace(/_/g, " ")}
+                                                            {getAreaOfNeedLabel(need.subCategory)}
                                                         </span>
                                                     ) : null}
                                                 </h3>
@@ -340,7 +340,7 @@ export default function GigBoardPage() {
                                                     {need.subCategory ? (
                                                         <span className="text-[var(--text-secondary)] font-semibold text-lg">
                                                             {" · "}
-                                                            {need.subCategory.replace(/_/g, " ")}
+                                                            {getAreaOfNeedLabel(need.subCategory)}
                                                         </span>
                                                     ) : null}
                                                 </h3>

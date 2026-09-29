@@ -10,6 +10,7 @@ import { Card } from "@/components/shared/card";
 import { ArrowLeft, Briefcase } from "@phosphor-icons/react";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { formatAgreedRate, formatOrderStatus } from "@/lib/map-dashboard";
+import { formatFollowUpDeadline } from "@/lib/post-accept-copy";
 import { cn } from "@/lib/utils";
 
 export default function EducatorMyGigsPage() {
@@ -90,6 +91,15 @@ export default function EducatorMyGigsPage() {
                                                     </span>
                                                 )}
                                             </div>
+                                            {engagement.status === "active" && (
+                                                <p className="rounded-md bg-[var(--bg-subtle)] px-3 py-2 text-sm text-[var(--text-primary)]">
+                                                    Haven&apos;t heard from the school? Reach out{" "}
+                                                    <strong className="font-bold">
+                                                        by {formatFollowUpDeadline(engagement.createdAt)}
+                                                    </strong>
+                                                    .
+                                                </p>
+                                            )}
                                         </Card>
                                     </Link>
                                 );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useConvex, useMutation, useQuery } from "convex/react";
@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/shared/sidebar";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrimaryButton } from "@/components/shared/button";
 import { getAreaOfNeedLabel, TAXONOMY } from "@/lib/taxonomy";
+import { formatFollowUpDeadline } from "@/lib/post-accept-copy";
 import { formatProposalStatus, formatProposedRate } from "@/lib/map-proposal";
 import { isDistrictRole } from "@/lib/roles";
 import { ArrowLeft, CheckCircle, Paperclip, Trash, XCircle } from "@phosphor-icons/react";
@@ -43,6 +44,8 @@ export default function DistrictNeedDetailPage() {
     const router = useRouter();
     const rawId = typeof params.needId === "string" ? params.needId : "";
     const isValidIdShape = looksLikeConvexId(rawId);
+    // Snapshot for the "reach out by <date>" deadline shown in the accept dialog.
+    const now = useMemo(() => Date.now(), []);
 
     const viewer = useQuery(api.users.viewer, {});
     const isDistrict = !!viewer && isDistrictRole(viewer.role);
@@ -230,7 +233,7 @@ export default function DistrictNeedDetailPage() {
                             <div className="flex flex-wrap gap-3">
                                 <StatusPill status={need.status} />
                                 {need.subCategory && (
-                                    <Pill label={need.subCategory.replace(/_/g, " ")} />
+                                    <Pill label={getAreaOfNeedLabel(need.subCategory)} />
                                 )}
                                 {gradeLabel(need.gradeLevel) && <Pill label={gradeLabel(need.gradeLevel)!} />}
                             </div>
@@ -380,7 +383,11 @@ export default function DistrictNeedDetailPage() {
                                                                 <AlertDialogTitle>Accept this proposal?</AlertDialogTitle>
                                                                 <AlertDialogDescription>
                                                                     This cannot be undone. Other pending proposals will be declined and emailed.
-                                                                    After you accept, reach out to {educatorName} within 3 business days. Contracts stay off-platform.
+                                                                    After you accept, reach out to {educatorName}{" "}
+                                                                    <strong className="font-bold text-[var(--text-primary)]">
+                                                                        by {formatFollowUpDeadline(now)} (3 business days)
+                                                                    </strong>
+                                                                    . Contracts stay off-platform.
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>

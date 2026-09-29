@@ -13,7 +13,7 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { formatAgreedRate, formatOrderStatus } from "@/lib/map-dashboard";
 import { isDistrictRole } from "@/lib/roles";
-import { getPostAcceptCopy } from "@/lib/post-accept-copy";
+import { getPostAcceptNextStep } from "@/lib/post-accept-copy";
 import { cn } from "@/lib/utils";
 
 export default function EngagementDetailPage() {
@@ -24,7 +24,8 @@ export default function EngagementDetailPage() {
     const setStatus = useMutation(api.engagements.setStatus);
     const isDistrict = !!viewer && isDistrictRole(viewer.role);
     const backHref = isDistrict ? "/dashboard/district" : "/dashboard/educator/my-gigs";
-    const nextStepCopy = getPostAcceptCopy(isDistrict ? "district" : "educator");
+    const nextStepCopy = (acceptedAt: number) =>
+        getPostAcceptNextStep(isDistrict ? "district" : "educator", acceptedAt);
 
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
@@ -76,7 +77,9 @@ export default function EngagementDetailPage() {
                                         </div>
                                     )}
                                     <p className="text-sm leading-6 text-[var(--text-primary)]">
-                                        {nextStepCopy}
+                                        {nextStepCopy(detail.engagement.createdAt).lead}
+                                        <strong className="font-bold">{nextStepCopy(detail.engagement.createdAt).deadline}</strong>
+                                        {nextStepCopy(detail.engagement.createdAt).rest}
                                     </p>
                                     <p className="text-sm text-[var(--text-secondary)]">
                                         Payment is arranged directly between the district and consultant. K12Gig coordinates the introduction and proposal only.

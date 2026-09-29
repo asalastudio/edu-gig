@@ -67,6 +67,30 @@ const proposalDocValidator = v.object({
     createdAt: v.number(),
 });
 
+/** Educator listMine rows include the need title/org for dashboard lists. */
+const listMineRowValidator = v.object({
+    _id: v.id("proposals"),
+    _creationTime: v.number(),
+    needId: v.id("needs"),
+    educatorId: v.id("educators"),
+    educatorUserId: v.id("users"),
+    message: v.string(),
+    attachmentStorageId: v.optional(v.id("_storage")),
+    attachmentName: v.optional(v.string()),
+    proposedRate: v.optional(v.number()),
+    proposedRateUnit: v.optional(proposedRateUnitValidator),
+    status: v.union(
+        v.literal("pending"),
+        v.literal("accepted"),
+        v.literal("rejected"),
+        v.literal("withdrawn")
+    ),
+    createdAt: v.number(),
+    orgName: v.string(),
+    areaOfNeed: v.string(),
+    subCategory: v.optional(v.string()),
+});
+
 /**
  * Educator submits a proposal on a district-posted need.
  * Rejects duplicate pending proposals from the same educator on the same need.
@@ -159,10 +183,10 @@ export const submit = mutation({
     },
 });
 
-/** Educator's own proposals, newest first. */
+/** Educator's own proposals, newest first, with need title/org for lists. */
 export const listMine = query({
     args: {},
-    returns: v.array(proposalDocValidator),
+    returns: v.array(listMineRowValidator),
     handler: async (ctx) => {
         const user = await requireEducatorViewer(ctx);
         const educator = await ctx.db
@@ -170,11 +194,22 @@ export const listMine = query({
             .withIndex("by_user_id", (q) => q.eq("userId", user._id))
             .first();
         if (!educator) return [];
-        return await ctx.db
+        const proposals = await ctx.db
             .query("proposals")
             .withIndex("by_educator", (q) => q.eq("educatorId", educator._id))
             .order("desc")
             .collect();
+        const rows: Array<Doc<"proposals"> & { orgName: string; areaOfNeed: string; subCategory?: string }> = [];
+        for (const proposal of proposals) {
+            const need = await ctx.db.get(proposal.needId);
+            rows.push({
+                ...proposal,
+                orgName: need?.orgName ?? "Unknown organization",
+                areaOfNeed: need?.areaOfNeed ?? "",
+                subCategory: need?.subCategory,
+            });
+        }
+        return rows;
     },
 });
 

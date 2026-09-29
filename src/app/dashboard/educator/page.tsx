@@ -9,6 +9,7 @@ import { Briefcase, CheckCircle, ChatCircle, Power, ArrowRight } from "@phosphor
 import { cn } from "@/lib/utils";
 import { EDUCATOR_DASHBOARD_SUBTITLE } from "@/lib/dashboard-copy";
 import { formatAgreedRate, formatEducatorKpis, formatOrderStatus, type EducatorPipelineRow } from "@/lib/map-dashboard";
+import { PendingProposalsSection } from "@/components/educator/pending-proposals";
 
 export default function EducatorDashboardPage() {
     const [isActive, setIsActive] = useState(true);
@@ -19,6 +20,7 @@ export default function EducatorDashboardPage() {
     const kpis = useQuery(api.dashboards.educatorKpis, live ? {} : "skip");
     const pipeline = useQuery(api.dashboards.educatorPipeline, live ? {} : "skip");
     const mine = useQuery(api.educators.getMine, live ? {} : "skip");
+    const myProposals = useQuery(api.proposals.listMine, live ? {} : "skip");
     const updateProfile = useMutation(api.educators.updateMyProfile);
 
     const kpiValues = formatEducatorKpis(live && kpis ? kpis : null);
@@ -140,6 +142,10 @@ export default function EducatorDashboardPage() {
                                     );
                                 })}
                             </div>
+                            <PendingProposalsSection
+                                proposals={myProposals}
+                                isLoading={live && myProposals === undefined}
+                            />
                         </div>
                         <div className="lg:col-span-4 flex flex-col gap-8">
                             <Link href="/dashboard/messages" className="p-8 border border-[var(--border-default)] shadow-[var(--shadow-subtle)] rounded-lg bg-[var(--bg-subtle)] flex flex-col items-center justify-center text-center hover:border-[var(--accent-primary)]/40 hover:shadow-[var(--shadow-soft)] transition-all">

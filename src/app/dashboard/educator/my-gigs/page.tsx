@@ -10,11 +10,14 @@ import { Card } from "@/components/shared/card";
 import { ArrowLeft, Briefcase } from "@phosphor-icons/react";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { formatAgreedRate, formatOrderStatus } from "@/lib/map-dashboard";
+import { PendingProposalsSection } from "@/components/educator/pending-proposals";
 import { cn } from "@/lib/utils";
 
 export default function EducatorMyGigsPage() {
     const viewer = useQuery(api.users.viewer, {});
+    const live = !!viewer && viewer.role === "educator";
     const engagements = useQuery(api.engagements.listMine, viewer ? {} : "skip");
+    const myProposals = useQuery(api.proposals.listMine, live ? {} : "skip");
     const isEmpty = Array.isArray(engagements) && engagements.length === 0;
 
     return (
@@ -33,10 +36,21 @@ export default function EducatorMyGigsPage() {
                         description="Accepted district work lives here. If you don't hear from the school in 3 business days, reach out to them."
                     />
 
+                    <div className="mt-10">
+                        <PendingProposalsSection
+                            proposals={myProposals}
+                            isLoading={live && myProposals === undefined}
+                        />
+                    </div>
+
+                    <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mt-10 px-1">
+                        Accepted gigs
+                    </h2>
+
                     {engagements === undefined ? (
-                        <div className="mt-10 text-[var(--text-secondary)]">Loading accepted gigs…</div>
+                        <div className="mt-5 text-[var(--text-secondary)]">Loading accepted gigs…</div>
                     ) : isEmpty ? (
-                        <Card className="mt-10 p-12 flex flex-col items-center text-center">
+                        <Card className="mt-5 p-12 flex flex-col items-center text-center">
                             <div className="h-12 w-12 rounded-lg border border-[var(--border-default)] flex items-center justify-center mb-4 bg-[var(--bg-subtle)]">
                                 <Briefcase className="w-6 h-6 text-[var(--text-tertiary)]" />
                             </div>
@@ -51,7 +65,7 @@ export default function EducatorMyGigsPage() {
                             </Link>
                         </Card>
                     ) : (
-                        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                             {engagements.map((engagement) => {
                                 const label = formatOrderStatus(engagement.status);
                                 return (

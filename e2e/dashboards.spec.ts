@@ -14,6 +14,11 @@ test.describe("Protected dashboards", () => {
         await expectClerkSignIn(page);
     });
 
+    test("educator my gigs requires sign-in", async ({ page }) => {
+        await page.goto("/dashboard/educator/my-gigs");
+        await expectClerkSignIn(page);
+    });
+
     test("messages hub requires sign-in", async ({ page }) => {
         await page.goto("/dashboard/messages");
         await expectClerkSignIn(page);

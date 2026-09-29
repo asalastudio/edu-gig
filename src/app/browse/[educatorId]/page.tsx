@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { mapConvexEducatorToProfileView } from "@/lib/map-convex-educator-profile";
 import { CopyButton } from "@/components/shared/copy-button";
 import { CredentialFileLink } from "@/components/shared/credential-file-link";
+import { PublicProfileAvailability } from "@/components/shared/public-profile-availability";
 import { isDistrictRole } from "@/lib/roles";
 import { AUTH_INTENT_PARAM } from "@/lib/auth-intent";
 
@@ -295,6 +296,8 @@ export default function EducatorProfilePage() {
                                 </span>
                             </div>
 
+                            <PublicProfileAvailability status={profile.availabilityStatus} />
+
                             {isOwnProfile ? (
                                 <div className="hidden md:flex flex-row gap-3 w-full sm:w-auto mt-2">
                                     <Link href="/dashboard/educator/settings" className="flex items-center justify-center gap-2 px-8 py-3 bg-white border-2 border-[var(--border-strong)] text-[var(--text-primary)] font-bold rounded-lg hover:bg-[var(--bg-subtle)] transition-all w-full sm:w-auto text-base cursor-pointer">
@@ -339,7 +342,6 @@ export default function EducatorProfilePage() {
                         <div className="px-6 md:px-12 border-b border-[var(--border-subtle)] overflow-x-auto no-scrollbar bg-white">
                             <TabsList className="h-16 bg-transparent p-0 flex gap-8" variant="line">
                                 <TabsTrigger value="about" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">About</TabsTrigger>
-                                <TabsTrigger value="services" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Areas of Support</TabsTrigger>
                                 <TabsTrigger value="credentials" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Credentials</TabsTrigger>
                                 <TabsTrigger value="experience" className="text-lg font-bold h-full px-0 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none border-b-4 border-transparent data-[state=active]:border-b-[var(--accent-primary)] data-[state=active]:text-[var(--accent-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Resume / CV</TabsTrigger>
                             </TabsList>
@@ -380,23 +382,6 @@ export default function EducatorProfilePage() {
                                         </div>
                                     </div>
                                 )}
-                            </TabsContent>
-
-                            <TabsContent value="services" className="mt-0 outline-none animate-in fade-in duration-300">
-                                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Areas of Support</h2>
-                                <p className="text-sm text-[var(--text-secondary)] mb-8">
-                                    Support types this consultant lists on their profile, including Keynote Speaking when selected.
-                                </p>
-                                <div className="flex flex-wrap gap-3">
-                                    {profile.areas.map((area) => (
-                                        <span
-                                            key={area}
-                                            className="px-4 py-2 bg-[var(--bg-hover)] border border-[var(--border-strong)] rounded-lg text-sm font-bold text-[var(--text-secondary)]"
-                                        >
-                                            {area}
-                                        </span>
-                                    ))}
-                                </div>
                             </TabsContent>
 
                             <TabsContent value="credentials" className="mt-0 outline-none animate-in fade-in duration-300 flex flex-col gap-8">

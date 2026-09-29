@@ -59,7 +59,15 @@ export default function SignInPage() {
         <div className="min-h-screen bg-[var(--bg-app)] flex flex-col">
             <SiteHeader />
             <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-                <div className="w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
+                <div className="k12-clerk-card w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-soft)] md:p-6">
+                    <div className="px-2 pt-2 pb-1 text-center sm:px-4">
+                        <h1 className="font-heading text-xl font-bold text-[var(--text-primary)]">
+                            Sign in to K12Gig
+                        </h1>
+                        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                            Welcome back! Please sign in to continue.
+                        </p>
+                    </div>
                     <SignIn
                         forceRedirectUrl={afterAuthUrl}
                         signUpUrl={authPagePath("/sign-up", intent, safeNext)}

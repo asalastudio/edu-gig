@@ -9,9 +9,11 @@ import { PageHeader } from "@/components/shared/page-header";
 import { TaxonomyFilter } from "@/components/shared/taxonomy-filter";
 import { EducatorCard, type EducatorCardProps } from "@/components/shared/educator-card";
 import { TAXONOMY, getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxonomy";
+import { VERIFIED_ONLY_HELPER } from "@/lib/directory-copy";
 import { filterEducatorRoster } from "@/lib/filter-educators";
 import { PrimaryButton } from "@/components/shared/button";
-import { ArrowLeft, FadersHorizontal, Funnel } from "@phosphor-icons/react";
+import { ArrowLeft, FadersHorizontal, Funnel, Info } from "@phosphor-icons/react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -76,7 +78,6 @@ export default function BrowsePage() {
     const [selectedGrades, setSelectedGrades] = useState<string[]>(() => searchParamList("grade"));
     const [selectedRegions, setSelectedRegions] = useState<string[]>(() => searchParamList("region", "location"));
     const [verifiedOnly, setVerifiedOnly] = useState(false);
-    const [sortOption, setSortOption] = useState("relevance");
     const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
     const [showSavedOnly, setShowSavedOnly] = useState(false);
     const [savedEducatorIds] = useState<string[]>(() => savedEducatorIdsFromStorage());
@@ -113,10 +114,6 @@ export default function BrowsePage() {
         ...(verifiedOnly ? [{ id: "verified", label: "Verified only", clear: () => setVerifiedOnly(false) }] : []),
         ...(showSavedOnly ? [{ id: "saved", label: "Saved educators", clear: () => setShowSavedOnly(false) }] : []),
     ];
-
-    if (sortOption === "rate") {
-        filteredEducators.sort((a, b) => (a.startingRate ?? 0) - (b.startingRate ?? 0));
-    }
 
     const canUseDirectory = convexLive;
 
@@ -289,7 +286,7 @@ export default function BrowsePage() {
 
                             <div className="h-px bg-[var(--border-subtle)] w-full my-1" />
 
-                            <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
                                 <label className="flex items-center gap-3 cursor-pointer group">
                                     <input 
                                         type="checkbox" 
@@ -298,7 +295,24 @@ export default function BrowsePage() {
                                         onChange={(e) => setVerifiedOnly(e.target.checked)}
                                     />
                                     <span className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Verified Only</span>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                type="button"
+                                                className="inline-flex text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                                                aria-label="What verified means"
+                                            >
+                                                <Info className="w-4 h-4" weight="bold" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="max-w-xs text-xs">
+                                            {VERIFIED_ONLY_HELPER}
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </label>
+                                <p className="text-xs leading-5 text-[var(--text-tertiary)] pl-7">
+                                    {VERIFIED_ONLY_HELPER}
+                                </p>
                             </div>
 
                             <div className="h-px bg-[var(--border-subtle)] w-full my-1" />
@@ -338,15 +352,6 @@ export default function BrowsePage() {
                                         ? "Checking your session…"
                                         : `Showing ${filteredEducators.length} result${filteredEducators.length !== 1 ? "s" : ""}`}
                             </span>
-
-                            <select 
-                                className="h-10 px-3 rounded-lg border border-[var(--border-subtle)] bg-white text-[var(--text-primary)] text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 shadow-sm cursor-pointer"
-                                value={sortOption}
-                                onChange={(e) => setSortOption(e.target.value)}
-                            >
-                                <option value="relevance">Sort by: Relevance</option>
-                                <option value="rate">Sort by: Rate</option>
-                            </select>
                         </div>
 
                         {filteredEducators.length > 0 ? (

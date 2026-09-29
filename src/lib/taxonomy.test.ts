@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TAXONOMY } from "./taxonomy";
+import { TAXONOMY, getAreaOfNeedLabel, getAreaOfNeedMatchIds } from "./taxonomy";
 
 describe("TAXONOMY.engagementTypes", () => {
     it("keeps consulting as the stored default even though the picker is hidden", () => {
@@ -8,8 +8,24 @@ describe("TAXONOMY.engagementTypes", () => {
 });
 
 describe("TAXONOMY support types", () => {
-    it("lists Keynote speaking under Leadership & Operations", () => {
+    it("lists Keynote Speaking as a top-level Support Type", () => {
+        const keynote = TAXONOMY.areasOfNeed.find((area) => area.id === "keynote");
+        expect(keynote?.label).toBe("Keynote Speaking");
+        expect(keynote?.subCategories).toEqual([]);
+    });
+
+    it("does not keep Keynote as a Leadership & Operations expertise option", () => {
         const leadership = TAXONOMY.areasOfNeed.find((area) => area.id === "leadership_operations");
-        expect(leadership?.subCategories.some((sub) => sub.id === "keynote" && sub.label === "Keynote speaking")).toBe(true);
+        const leftoverIds = (leadership?.subCategories ?? []).map((sub) => String(sub.id));
+        expect(leftoverIds).not.toContain("keynote");
+    });
+
+    it("resolves stored keynote ids to the top-level label", () => {
+        expect(getAreaOfNeedLabel("keynote")).toBe("Keynote Speaking");
+    });
+
+    it("matches Keynote independently from Leadership & Operations", () => {
+        expect(getAreaOfNeedMatchIds("keynote")).toEqual(["keynote"]);
+        expect(getAreaOfNeedMatchIds("leadership_operations")).not.toContain("keynote");
     });
 });

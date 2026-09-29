@@ -47,6 +47,30 @@ describe("educatorMatchesDirectoryFilters", () => {
         ).toBe(false);
     });
 
+    it("matches Keynote Speaking without treating Leadership consultants as keynote speakers", () => {
+        const keynoteSpeaker = { ...educator, areasOfNeed: ["keynote"] };
+        const leadershipConsultant = { ...educator, areasOfNeed: ["leadership_operations"] };
+
+        expect(
+            educatorMatchesDirectoryFilters(keynoteSpeaker, {
+                ...noFilters,
+                selectedAreas: ["keynote"],
+            })
+        ).toBe(true);
+        expect(
+            educatorMatchesDirectoryFilters(leadershipConsultant, {
+                ...noFilters,
+                selectedAreas: ["keynote"],
+            })
+        ).toBe(false);
+        expect(
+            educatorMatchesDirectoryFilters(keynoteSpeaker, {
+                ...noFilters,
+                selectedAreas: ["leadership_operations"],
+            })
+        ).toBe(false);
+    });
+
     it("matches canonical areas through a stored legacy alias or subcategory", () => {
         const legacy = {
             ...educator,

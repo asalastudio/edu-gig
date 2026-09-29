@@ -26,6 +26,21 @@ describe("educatorMatchesNeed", () => {
         ).toBe(false);
     });
 
+    it("matches Keynote needs only to Keynote consultants", () => {
+        expect(
+            educatorMatchesNeed(
+                { areasOfNeed: ["keynote"], gradeLevelBands: ["all"] },
+                { areaOfNeed: "keynote", gradeLevel: "9_12" }
+            )
+        ).toBe(true);
+        expect(
+            educatorMatchesNeed(
+                { areasOfNeed: ["leadership_operations"], gradeLevelBands: ["all"] },
+                { areaOfNeed: "keynote", gradeLevel: "9_12" }
+            )
+        ).toBe(false);
+    });
+
     it("treats all-grades educators as grade-compatible", () => {
         expect(
             educatorMatchesNeed(

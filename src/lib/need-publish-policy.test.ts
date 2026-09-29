@@ -76,6 +76,13 @@ describe("getNeedPublishIssues", () => {
 
         expect(withKnownArea.some((issue) => issue.field === "subCategory")).toBe(true);
         expect(withUnknownLegacyArea.some((issue) => issue.field === "subCategory")).toBe(false);
+        expect(
+            getNeedPublishIssues({
+                ...completeNeed,
+                areaOfNeed: "keynote",
+                subCategory: undefined,
+            }).some((issue) => issue.field === "subCategory")
+        ).toBe(false);
     });
 
     it("rejects placeholder-length logistics and descriptions", () => {

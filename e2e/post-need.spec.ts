@@ -39,4 +39,16 @@ test.describe("Post a Need", () => {
             areaOfNeed: "instruction_curriculum",
         });
     });
+
+    test("Keynote Speaking is a top-level Support Type and does not require expertise", async ({ page }) => {
+        await page.goto("/post");
+        await page.getByRole("button", { name: /Preview the form/i }).click();
+
+        const supportType = page.locator("#areaId");
+        await expect(supportType.locator("option[value='keynote']")).toHaveText("Keynote Speaking");
+        await supportType.selectOption("keynote");
+
+        await expect(page.locator("#specId")).toHaveCount(0);
+        await expect(page.getByText(/Area of Expertise/i)).toHaveCount(0);
+    });
 });

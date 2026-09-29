@@ -16,7 +16,8 @@ describe("TAXONOMY support types", () => {
 
     it("does not keep Keynote as a Leadership & Operations expertise option", () => {
         const leadership = TAXONOMY.areasOfNeed.find((area) => area.id === "leadership_operations");
-        expect(leadership?.subCategories.some((sub) => sub.id === "keynote")).toBe(false);
+        const leftoverIds = (leadership?.subCategories ?? []).map((sub) => String(sub.id));
+        expect(leftoverIds).not.toContain("keynote");
     });
 
     it("resolves stored keynote ids to the top-level label", () => {

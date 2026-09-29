@@ -11,7 +11,7 @@ import { ArrowLeft, Briefcase } from "@phosphor-icons/react";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { formatAgreedRate, formatDateOnly, formatOrderStatus } from "@/lib/map-dashboard";
 import { formatFollowUpDeadline } from "@/lib/post-accept-copy";
-import { PendingProposalsSection } from "@/components/educator/pending-proposals";
+import { PastProposalsSection, PendingProposalsSection } from "@/components/educator/pending-proposals";
 import { cn } from "@/lib/utils";
 
 export default function EducatorMyGigsPage() {
@@ -120,6 +120,10 @@ export default function EducatorMyGigsPage() {
                             })}
                         </div>
                     )}
+
+                    <div className="mt-10">
+                        <PastProposalsSection proposals={myProposals} />
+                    </div>
                 </div>
             </main>
         </div>

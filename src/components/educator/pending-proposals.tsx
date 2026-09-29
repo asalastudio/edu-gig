@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Clock } from "@phosphor-icons/react";
 import { getAreaOfNeedLabel } from "@/lib/taxonomy";
 import { formatCreatedAt } from "@/lib/map-gigs";
-import { listPendingProposals } from "@/lib/proposed-needs";
+import { listPastProposals, listPendingProposals } from "@/lib/proposed-needs";
 
 export type PendingProposalRow = {
     _id: string;
@@ -43,7 +43,7 @@ export function PendingProposalsSection({
                     {pending.map((proposal) => {
                         const title = getAreaOfNeedLabel(proposal.areaOfNeed) || "Proposal";
                         const specialty = proposal.subCategory
-                            ? ` · ${proposal.subCategory.replace(/_/g, " ")}`
+                            ? ` · ${getAreaOfNeedLabel(proposal.subCategory)}`
                             : "";
                         return (
                             <Link
@@ -71,6 +71,55 @@ export function PendingProposalsSection({
                     })}
                 </div>
             )}
+        </section>
+    );
+}
+
+/**
+ * Rejected and withdrawn proposals, so a "not selected" decision doesn't just vanish
+ * from the consultant's lists. Renders nothing until there is history to show.
+ */
+export function PastProposalsSection({
+    proposals,
+}: {
+    proposals: readonly PendingProposalRow[] | undefined;
+}) {
+    const past = listPastProposals(proposals ?? []).slice(0, 10);
+    if (past.length === 0) return null;
+
+    return (
+        <section className="flex flex-col gap-5">
+            <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] px-1">
+                Past proposals
+            </h2>
+            <ul className="flex flex-col divide-y divide-[var(--border-subtle)] border border-[var(--border-subtle)] rounded-lg bg-white">
+                {past.map((proposal) => {
+                    const title = getAreaOfNeedLabel(proposal.areaOfNeed) || "Proposal";
+                    const rejected = proposal.status === "rejected";
+                    return (
+                        <li key={proposal._id} className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                                <p className="font-semibold text-[var(--text-primary)]">
+                                    {title}
+                                    {proposal.subCategory ? ` · ${getAreaOfNeedLabel(proposal.subCategory)}` : ""}
+                                </p>
+                                <p className="text-sm text-[var(--text-secondary)]">
+                                    {proposal.orgName} · Submitted {formatCreatedAt(proposal.createdAt)}
+                                </p>
+                            </div>
+                            <span
+                                className={
+                                    rejected
+                                        ? "self-start sm:self-auto shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700"
+                                        : "self-start sm:self-auto shrink-0 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-bold text-gray-700"
+                                }
+                            >
+                                {rejected ? "Not selected" : "Withdrawn"}
+                            </span>
+                        </li>
+                    );
+                })}
+            </ul>
         </section>
     );
 }

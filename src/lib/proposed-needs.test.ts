@@ -3,6 +3,7 @@ import {
     blocksNewProposal,
     collectProposedNeedIds,
     findViewableProposal,
+    listPastProposals,
     listPendingProposals,
 } from "./proposed-needs";
 
@@ -84,5 +85,17 @@ describe("listPendingProposals", () => {
             { status: "accepted", id: "c" },
         ]);
         expect(pending.map((row) => row.id)).toEqual(["a"]);
+    });
+});
+
+describe("listPastProposals", () => {
+    it("keeps only rejected and withdrawn proposals, in order", () => {
+        const rows = [
+            { needId: "a", status: "rejected" },
+            { needId: "b", status: "pending" },
+            { needId: "c", status: "accepted" },
+            { needId: "d", status: "withdrawn" },
+        ];
+        expect(listPastProposals(rows).map((row) => row.needId)).toEqual(["a", "d"]);
     });
 });

@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { MonitoringInit } from "@/components/monitoring-init";
 import { SeedAccountLinker } from "@/components/seed-account-linker";
-import { ConvexReactClient, ConvexProvider } from "convex/react";
+import { ConvexReactClient, ConvexProviderWithAuth } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://dummy-url.convex.cloud";
@@ -27,14 +27,21 @@ const clerkLocalization = {
     },
 };
 
+// Without Clerk (e.g. Vercel previews) every visitor is signed out. Using the auth-aware
+// provider anyway keeps `useConvexAuth()` working on every page instead of throwing.
+const signedOutAuth = { isLoading: false, isAuthenticated: false, fetchAccessToken: async () => null };
+function useSignedOutAuth() {
+    return signedOutAuth;
+}
+
 function ClerkConvexProviders({ children }: { children: ReactNode }) {
     const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     if (!publishableKey) {
         return (
-            <ConvexProvider client={convex}>
+            <ConvexProviderWithAuth client={convex} useAuth={useSignedOutAuth}>
                 <MonitoringInit />
                 {children}
-            </ConvexProvider>
+            </ConvexProviderWithAuth>
         );
     }
     return (

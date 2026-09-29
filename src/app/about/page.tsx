@@ -25,9 +25,9 @@ export default function AboutPage() {
 
                 <section className="grid gap-6 md:grid-cols-3">
                     {[
-                        ["District-first", "Search by instructional need, grade band, coverage area, verification tier, and availability."],
-                        ["Educator-respecting", "Profiles foreground credentials, expertise, rates, and engagement preferences."],
-                        ["Procurement-aware", "Legal, privacy, DPA, invoice, and purchase-order workflows are treated as part of the product."],
+                        ["District-first", "Search by support area, grade band, and coverage area, then post a gig consultants can propose on."],
+                        ["Consultant-respecting", "Profiles foreground credentials, resumes, expertise, rates, and availability."],
+                        ["Off-platform by design", "K12Gig connects districts and consultants. Contracts, purchase orders, and payment are arranged directly between them."],
                     ].map(([title, body]) => (
                         <div key={title} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-subtle)] md:p-6">
                             <h2 className="font-heading text-xl font-bold">{title}</h2>

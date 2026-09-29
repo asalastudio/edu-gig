@@ -34,7 +34,7 @@ test.describe("Post a gig", () => {
         await page.getByRole("button", { name: /publish need/i }).click();
 
         await expect(page).toHaveURL(/\/sign-up/);
-        await expect(page.getByText(/your need has been posted/i)).toHaveCount(0);
+        await expect(page.getByText(/your (need|gig) has been posted/i)).toHaveCount(0);
 
         const savedDraft = await page.evaluate(() =>
             JSON.parse(window.localStorage.getItem("k12gig_post_need_draft") ?? "null")

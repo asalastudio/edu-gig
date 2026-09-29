@@ -109,11 +109,11 @@ function MessagesPageInner() {
     const starterMessages = isEducator
         ? [
               { label: "Confirm availability", text: `Hi ${activeThreadName}, thanks for reaching out — I'm available and interested.` },
-              { label: "Share my fit", text: `Hi ${activeThreadName}, happy to share more about how I'd fit this need.` },
+              { label: "Share my fit", text: `Hi ${activeThreadName}, happy to share more about how I'd fit this gig.` },
               { label: "Send details", text: `Hi ${activeThreadName}, here are the details you asked about.` },
           ]
         : [
-              { label: "Ask availability", text: `Hi ${activeThreadName}, we'd like to confirm your availability for an upcoming need.` },
+              { label: "Ask availability", text: `Hi ${activeThreadName}, we'd like to confirm your availability for an upcoming gig.` },
               { label: "Ask about fit", text: `Hi ${activeThreadName}, can you share a bit more about your fit for this role?` },
               { label: "Ask what they need", text: `Hi ${activeThreadName}, what details would help you decide if this request is a good match?` },
           ];

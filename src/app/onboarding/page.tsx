@@ -156,6 +156,11 @@ function OnboardingWithClerk() {
         [areasOfNeed, bio, coverageRegions, dailyRate, gradeLevelBands, headline, hourlyRate, yearsExperience]
     );
 
+    // Set while this page's own submission is finishing. Convex flips
+    // `viewer.onboarded` before `completeOnboarding` resolves, and without this
+    // guard the redirect below would win over the district's chosen first action.
+    const finishingSetup = useRef(false);
+
     useEffect(() => {
         if (!isLoaded) return;
         if (!user) {
@@ -163,7 +168,7 @@ function OnboardingWithClerk() {
             return;
         }
         if (viewer === undefined) return;
-        if (viewer?.onboarded) {
+        if (viewer?.onboarded && !finishingSetup.current) {
             router.replace(safeNext ?? dashboardPathForIntent(intentFromRole(viewer.role)));
         }
     }, [isLoaded, user, viewer, router, safeNext]);
@@ -280,6 +285,7 @@ function OnboardingWithClerk() {
 
         setError(null);
         setSubmitting(true);
+        finishingSetup.current = true;
         try {
             await completeOnboarding({
                 role: intent === "educator" ? "educator" : roleForDistrictOnboarding(districtRole),
@@ -319,6 +325,7 @@ function OnboardingWithClerk() {
                     : safeNext ?? defaultDestinationForIntent(intent);
             router.replace(destination);
         } catch (err) {
+            finishingSetup.current = false;
             console.error(err);
             setError(
                 "Could not save your setup. If you just enabled Clerk, confirm Convex is using the same Clerk issuer and try again."
@@ -604,7 +611,7 @@ function LegalAcceptance({
                 </Link>{" "}
                 version {PRIVACY_VERSION}
                 {intent === "district"
-                    ? ", and I understand that district DPA, purchase-order, and invoice requirements should be reviewed before paid use."
+                    ? ", and I understand that contracts, purchase orders, and payment are arranged directly with the consultant, off-platform."
                     : ", and I understand that my public profile, rates, credentials, and availability must stay accurate for district review."}
             </span>
         </label>

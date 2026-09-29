@@ -87,7 +87,7 @@ export function Sidebar() {
             ...(!isEducator ? [{ href: "/browse", label: "Directory", icon: Users }] : []),
             {
                 href: "/dashboard/board",
-                label: isEducator ? "Gig Board" : "Posted Needs",
+                label: isEducator ? "Gig Board" : "Posted Gigs",
                 icon: Briefcase,
             },
             ...(isEducator

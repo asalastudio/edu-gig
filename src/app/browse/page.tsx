@@ -9,11 +9,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { TaxonomyFilter } from "@/components/shared/taxonomy-filter";
 import { EducatorCard, type EducatorCardProps } from "@/components/shared/educator-card";
 import { TAXONOMY, getAreaOfNeedLabel, getCoverageRegionLabel } from "@/lib/taxonomy";
-import { VERIFIED_ONLY_HELPER } from "@/lib/directory-copy";
 import { filterEducatorRoster } from "@/lib/filter-educators";
 import { PrimaryButton } from "@/components/shared/button";
-import { ArrowLeft, FadersHorizontal, Funnel, Info } from "@phosphor-icons/react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowLeft, FadersHorizontal, Funnel } from "@phosphor-icons/react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { Sidebar } from "@/components/shared/sidebar";
@@ -77,7 +75,6 @@ export default function BrowsePage() {
     const [selectedAreas, setSelectedAreas] = useState<string[]>(() => searchParamList("area"));
     const [selectedGrades, setSelectedGrades] = useState<string[]>(() => searchParamList("grade"));
     const [selectedRegions, setSelectedRegions] = useState<string[]>(() => searchParamList("region", "location"));
-    const [verifiedOnly, setVerifiedOnly] = useState(false);
     const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
     const [showSavedOnly, setShowSavedOnly] = useState(false);
     const [savedEducatorIds] = useState<string[]>(() => savedEducatorIdsFromStorage());
@@ -90,7 +87,6 @@ export default function BrowsePage() {
         setSelectedAreas([]);
         setSelectedGrades([]);
         setSelectedRegions([]);
-        setVerifiedOnly(false);
         setShowSavedOnly(false);
     };
 
@@ -100,7 +96,7 @@ export default function BrowsePage() {
         selectedGrades,
         selectedRegions,
         selectedEngagements: [],
-        verifiedOnly,
+        verifiedOnly: false,
         availableNow: false,
         showSavedOnly,
         savedEducatorIds,
@@ -111,7 +107,6 @@ export default function BrowsePage() {
         ...selectedAreas.map((id) => ({ id: `area:${id}`, label: getAreaOfNeedLabel(id), clear: () => setSelectedAreas((prev) => prev.filter((v) => v !== id)) })),
         ...selectedGrades.map((id) => ({ id: `grade:${id}`, label: TAXONOMY.gradeLevelBands.find((g) => g.id === id)?.label ?? id, clear: () => setSelectedGrades((prev) => prev.filter((v) => v !== id)) })),
         ...selectedRegions.map((id) => ({ id: `region:${id}`, label: getCoverageRegionLabel(id), clear: () => setSelectedRegions((prev) => prev.filter((v) => v !== id)) })),
-        ...(verifiedOnly ? [{ id: "verified", label: "Verified only", clear: () => setVerifiedOnly(false) }] : []),
         ...(showSavedOnly ? [{ id: "saved", label: "Saved educators", clear: () => setShowSavedOnly(false) }] : []),
     ];
 
@@ -129,7 +124,7 @@ export default function BrowsePage() {
         if (needsDistrictSignIn) {
             return {
                 title: "Sign in to view the live directory",
-                body: "The educator directory is available to district hiring teams. Sign in or create a district account to browse verified profiles, save favorites, and start booking.",
+                body: "The educator directory is available to district hiring teams. Sign in or create a district account to browse consultant profiles, save favorites, and message consultants.",
                 action: (
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Link href="/login">
@@ -183,7 +178,7 @@ export default function BrowsePage() {
                     description={
                         needsDistrictSignIn
                             ? "The live educator directory is available to district hiring teams."
-                            : "Browse and connect with verified specialists for your district's needs."
+                            : "Browse and connect with specialists for your district's needs."
                     }
                     actions={
                         districtOK ? (
@@ -197,7 +192,7 @@ export default function BrowsePage() {
                 {USE_CONVEX_BROWSE && needsDistrictSignIn && (
                     <div className="mt-4 rounded-lg border border-[var(--accent-primary)]/25 bg-[var(--accent-primary)]/5 px-4 py-4 md:flex md:items-center md:justify-between md:gap-4">
                         <p className="text-sm font-medium text-[var(--text-secondary)]">
-                            Sign in with a district account to browse verified educators and use filters on the live roster.
+                            Sign in with a district account to browse consultants and use filters on the live roster.
                         </p>
                         <div className="mt-3 flex flex-col gap-2 sm:flex-row md:mt-0 md:shrink-0">
                             <Link href="/login">
@@ -224,7 +219,7 @@ export default function BrowsePage() {
                         )}
                     >
                         {convexLoading && "Loading district directory…"}
-                        {!convexLoading && convexLive && "Showing verified district directory."}
+                        {!convexLoading && convexLive && "Showing the live consultant directory."}
                         {!convexLoading && !convexLive && viewer === null && "Sign in with a district account to save educators and use the live roster."}
                         {!convexLoading && !convexLive && viewer && !districtOK && "Use a district account to access live district hiring tools."}
                         {!convexLoading && !convexLive && viewer === undefined && "Checking session…"}
@@ -284,37 +279,9 @@ export default function BrowsePage() {
                                 />
                             </div>
 
-                            <div className="h-px bg-[var(--border-subtle)] w-full my-1" />
-
-                            <div className="flex flex-col gap-2">
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input 
-                                        type="checkbox" 
-                                        className="w-4 h-4 rounded border-[var(--border-strong)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
-                                        checked={verifiedOnly}
-                                        onChange={(e) => setVerifiedOnly(e.target.checked)}
-                                    />
-                                    <span className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Verified Only</span>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <button
-                                                type="button"
-                                                className="inline-flex text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                                                aria-label="What verified means"
-                                            >
-                                                <Info className="w-4 h-4" weight="bold" />
-                                            </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top" className="max-w-xs text-xs">
-                                            {VERIFIED_ONLY_HELPER}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </label>
-                                <p className="text-xs leading-5 text-[var(--text-tertiary)] pl-7">
-                                    {VERIFIED_ONLY_HELPER}
-                                </p>
-                            </div>
-
+                            {/* "Verified only" is hidden for launch: background checks are off in
+                                production, so the filter implied a verification system that isn't
+                                running yet (Chris, Sep 4). filterEducatorRoster still supports it. */}
                             <div className="h-px bg-[var(--border-subtle)] w-full my-1" />
 
                             <button

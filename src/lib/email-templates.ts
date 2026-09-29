@@ -344,9 +344,9 @@ export function proposalRejectedAlert(input: ProposalRejectedAlertInput): EmailP
 <h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">Proposal update</h1>
 <p style="margin:0 0 16px;">Hi ${escapeHtml(educatorFirstName)},</p>
 <p style="margin:0 0 16px;">${escapeHtml(reasonCopy)}</p>
-<p style="margin:0 0 20px;">You can keep browsing open district needs and submit a new proposal when you find a fit.</p>
+<p style="margin:0 0 20px;">You can keep browsing open district gigs and submit a new proposal when you find a fit.</p>
 <p style="margin:0 0 0;">
-  <a href="${escapeHtml(needUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">View open needs</a>
+  <a href="${escapeHtml(needUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">View open gigs</a>
 </p>
 `;
 
@@ -357,7 +357,7 @@ export function proposalRejectedAlert(input: ProposalRejectedAlertInput): EmailP
         ``,
         reasonCopy,
         ``,
-        `View open needs: ${needUrl}`,
+        `View open gigs: ${needUrl}`,
         ``,
         `— K12Gig, The K-12 Educator Marketplace`,
     ].join("\n");
@@ -451,35 +451,35 @@ export type NewNeedAlertInput = {
 
 export function newNeedAlert(input: NewNeedAlertInput): EmailPayload {
     const { orgName, areaLabel, gradeLevel, needsBoardUrl, unsubscribeUrl } = input;
-    const subject = `New district need matches your profile: ${areaLabel}`;
+    const subject = `New district gig matches your profile: ${areaLabel}`;
 
     const gradeRow = gradeLevel
         ? `  <tr><td style="padding:10px 16px;color:${MUTED_COLOR};">Grade level</td><td style="padding:10px 16px;">${escapeHtml(gradeLevel)}</td></tr>`
         : "";
 
     const bodyHtml = `
-<h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">A new district need matches your profile</h1>
-<p style="margin:0 0 16px;"><strong>${escapeHtml(orgName)}</strong> just posted an open need in an area you support. Respond with a proposal before it fills up.</p>
+<h1 style="margin:0 0 16px;font-size:22px;color:${BRAND_COLOR};">A new district gig matches your profile</h1>
+<p style="margin:0 0 16px;"><strong>${escapeHtml(orgName)}</strong> just posted an open gig in an area you support. Respond with a proposal before it fills up.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px;background-color:${PANEL_COLOR};border-radius:8px;">
   <tr><td style="padding:10px 16px;color:${MUTED_COLOR};width:160px;">District</td><td style="padding:10px 16px;font-weight:600;">${escapeHtml(orgName)}</td></tr>
-  <tr><td style="padding:10px 16px;color:${MUTED_COLOR};">Area of need</td><td style="padding:10px 16px;">${escapeHtml(areaLabel)}</td></tr>
+  <tr><td style="padding:10px 16px;color:${MUTED_COLOR};">Primary support area</td><td style="padding:10px 16px;">${escapeHtml(areaLabel)}</td></tr>
 ${gradeRow}
 </table>
 <p style="margin:0 0 0;">
-  <a href="${escapeHtml(needsBoardUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">View open needs</a>
+  <a href="${escapeHtml(needsBoardUrl)}" style="display:inline-block;padding:10px 18px;background-color:${BRAND_COLOR};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">View open gigs</a>
 </p>
 `;
 
     const text = [
-        `New district need matches your profile: ${areaLabel}`,
+        `New district gig matches your profile: ${areaLabel}`,
         ``,
-        `${orgName} just posted an open need in an area you support.`,
+        `${orgName} just posted an open gig in an area you support.`,
         ``,
         `District: ${orgName}`,
-        `Area of need: ${areaLabel}`,
+        `Primary support area: ${areaLabel}`,
         gradeLevel ? `Grade level: ${gradeLevel}` : ``,
         ``,
-        `View open needs: ${needsBoardUrl}`,
+        `View open gigs: ${needsBoardUrl}`,
         ``,
         `— K12Gig, The K-12 Educator Marketplace`,
     ]

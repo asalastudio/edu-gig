@@ -8,7 +8,7 @@ import { MagnifyingGlass, Briefcase, House, Lifebuoy } from "@phosphor-icons/rea
 import { supportMailto } from "@/lib/legal";
 
 const recoveryLinks = [
-    { href: "/browse", label: "Browse educators", icon: MagnifyingGlass },
+    { href: "/browse", label: "Find consultants", icon: MagnifyingGlass },
     { href: "/post", label: "Post a gig", icon: Briefcase },
     { href: "/", label: "Home", icon: House },
     { href: supportMailto("K12Gig broken link support"), label: "Contact support", icon: Lifebuoy },
@@ -42,7 +42,7 @@ export default function NotFound() {
                     ))}
                 </div>
                 <Link href="/browse">
-                    <PrimaryButton>Find an educator</PrimaryButton>
+                    <PrimaryButton>Find consultants</PrimaryButton>
                 </Link>
             </main>
             <SiteFooter />

@@ -111,9 +111,9 @@ function PostNeedPageInner() {
     useEffect(() => {
         if (!requestedDraftId || !canPersist || !existingDraftResult) return;
         if (existingDraftResult.status === "unavailable") {
-            setSubmitError("Draft unavailable. Return to Posted Needs and choose a draft you can edit.");
+            setSubmitError("Draft unavailable. Return to Posted Gigs and choose a draft you can edit.");
         } else if (existingDraftResult.status === "not_draft") {
-            setSubmitError("This need has already been published and can no longer be edited as a draft.");
+            setSubmitError("This gig has already been published and can no longer be edited as a draft.");
         }
     }, [requestedDraftId, canPersist, existingDraftResult]);
 
@@ -303,7 +303,7 @@ function PostNeedPageInner() {
             setSubmitError(
                 err instanceof Error
                     ? err.message
-                    : "Could not save or publish this need. Please try again."
+                    : "Could not save or publish this gig. Please try again."
             );
             return;
         } finally {
@@ -392,7 +392,7 @@ function PostNeedPageInner() {
                                 This link is invalid, the draft was already published, or it belongs to another district account.
                             </p>
                             <Link href="/dashboard/board">
-                                <PrimaryButton>Return to Posted Needs</PrimaryButton>
+                                <PrimaryButton>Return to Posted Gigs</PrimaryButton>
                             </Link>
                         </div>
                     ) : (
@@ -649,7 +649,7 @@ function PostNeedPageInner() {
                                         </PrimaryButton>
                                     ) : (
                                         <PrimaryButton type="submit" disabled={submitting} className="shadow-md bg-[var(--accent-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-secondary)]/90">
-                                            {submitting ? "Saving…" : "Publish need"}
+                                            {submitting ? "Saving…" : "Publish gig"}
                                         </PrimaryButton>
                                     )}
                                 </div>
@@ -663,7 +663,7 @@ function PostNeedPageInner() {
                         <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-emerald-50/50">
                             <CheckCircle weight="fill" className="w-12 h-12 text-emerald-500" />
                         </div>
-                        <h2 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-4">Your need has been posted!</h2>
+                        <h2 className="font-heading text-4xl font-bold text-[var(--text-primary)] mb-4">Your gig has been posted!</h2>
                         <p className="text-lg text-[var(--text-secondary)] max-w-lg mb-10">
                             Matched educators can now review the opportunity and respond from the Gig Board.
                         </p>

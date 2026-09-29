@@ -69,7 +69,7 @@ export default function DistrictDashboardPage() {
               <div className="px-6 py-6 border-b border-[var(--border-subtle)] flex flex-col justify-between gap-4 bg-white sm:flex-row sm:items-center">
                 <div>
                   <h2 className="font-heading text-xl font-bold text-[var(--text-primary)]">Talent Pipeline</h2>
-                  <p className="text-sm text-[var(--text-secondary)] mt-1">Active needs and candidate statuses</p>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1">Active gigs and candidate statuses</p>
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -86,7 +86,7 @@ export default function DistrictDashboardPage() {
                     {pipelineRows.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="py-10 px-6 text-center text-sm font-semibold text-[var(--text-tertiary)]">
-                          No openings yet. <Link href="/post" className="text-[var(--accent-primary)] underline">Post your first need</Link>.
+                          No openings yet. <Link href="/post" className="text-[var(--accent-primary)] underline">Post your first gig</Link>.
                         </td>
                       </tr>
                     ) : (

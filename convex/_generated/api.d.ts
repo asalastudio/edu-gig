@@ -11,7 +11,6 @@
 import type * as admin from "../admin.js";
 import type * as beta_founding_profiles from "../beta_founding_profiles.js";
 import type * as beta_launch from "../beta_launch.js";
-import type * as contracts from "../contracts.js";
 import type * as credentials from "../credentials.js";
 import type * as crons from "../crons.js";
 import type * as dashboards from "../dashboards.js";
@@ -47,7 +46,6 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   beta_founding_profiles: typeof beta_founding_profiles;
   beta_launch: typeof beta_launch;
-  contracts: typeof contracts;
   credentials: typeof credentials;
   crons: typeof crons;
   dashboards: typeof dashboards;

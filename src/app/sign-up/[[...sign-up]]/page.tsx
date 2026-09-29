@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/shared/site-footer";
 import { AuthAccountSwitch } from "@/components/shared/auth-account-switch";
 import { AUTH_INTENT_PARAM, afterAuthPath, authPagePath, rememberAuthIntent, safeRedirectPath } from "@/lib/auth-intent";
 import { clerkCardAppearance } from "@/lib/clerk-appearance";
+import { useCurrentOrigin } from "@/lib/use-current-origin";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 
 export default function SignUpPage() {
@@ -16,7 +17,7 @@ export default function SignUpPage() {
     const intentParam = searchParams.get(AUTH_INTENT_PARAM);
     const intent = intentParam === "district" || intentParam === "educator" ? intentParam : null;
     const redirectParam = searchParams.get("redirect_url") ?? searchParams.get("redirectUrl") ?? searchParams.get("next");
-    const currentOrigin = typeof window === "undefined" ? undefined : window.location.origin;
+    const currentOrigin = useCurrentOrigin();
     const safeNext = safeRedirectPath(redirectParam, currentOrigin);
     const afterAuthUrl = afterAuthPath(intent, safeNext);
 

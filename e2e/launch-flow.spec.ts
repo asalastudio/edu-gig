@@ -72,7 +72,7 @@ test.describe("Launch marketplace flow (public)", () => {
         await expect(page.getByText(/Sort by: Relevance/i)).toHaveCount(0);
         await expect(page.getByText(/Sort by: Rate/i)).toHaveCount(0);
         await expect(page.getByText(/Request Availability/i)).toHaveCount(0);
-        await expect(page.getByText(/Verified means a background check and at least one license have been confirmed/i)).toBeVisible();
+        await expect(page.getByText(/Verified only/i)).toHaveCount(0);
     });
 });
 

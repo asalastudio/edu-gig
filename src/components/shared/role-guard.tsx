@@ -19,7 +19,7 @@ const BLOCKED_COPY: Record<ExpectedRole, { title: string; body: string; href: st
     },
     district: {
         title: "This area is for district accounts",
-        body: "Your account is set up as a consultant. District tools — browsing consultants, posting needs, and reviewing proposals — live in the district account.",
+        body: "Your account is set up as a consultant. District tools — browsing consultants, posting gigs, and reviewing proposals — live in the district account.",
         href: "/dashboard/educator",
         cta: "Go to consultant dashboard",
     },

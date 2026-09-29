@@ -202,7 +202,7 @@ export default function ProposePage() {
                 <BackLink />
                 <PageHeader
                     title="Proposal already submitted"
-                    description={`You've already submitted a proposal for this need from ${need.orgName}.`}
+                    description={`You've already submitted a proposal for this gig from ${need.orgName}.`}
                 />
                 <div className="p-8 border border-[var(--border-subtle)] rounded-lg bg-white">
                     <p className="text-[var(--text-secondary)] mb-6">
@@ -287,7 +287,7 @@ export default function ProposePage() {
             <BackLink />
             <PageHeader
                 title="Submit a proposal"
-                description="Respond to this district-posted need. Share how you can help and attach your resume or a proposal doc."
+                description="Respond to this district-posted gig. Share how you can help and attach your resume or a proposal doc."
             />
 
             {/* ── RFP summary — the need you're responding to ── */}
@@ -343,7 +343,7 @@ export default function ProposePage() {
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         rows={8}
-                        placeholder="Introduce yourself and describe how you can help with this need."
+                        placeholder="Introduce yourself and describe how you can help with this gig."
                         className="w-full p-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] focus:bg-white transition-all resize-y"
                         required
                     />

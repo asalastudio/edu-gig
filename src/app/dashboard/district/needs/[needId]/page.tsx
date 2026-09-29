@@ -38,12 +38,6 @@ function gradeLabel(gradeId: string | undefined | null): string | null {
     return match?.label ?? gradeId;
 }
 
-function engagementLabel(id: string | undefined | null): string | null {
-    if (!id) return null;
-    const match = TAXONOMY.engagementTypes.find((e) => e.id === id);
-    return match?.label ?? id;
-}
-
 export default function DistrictNeedDetailPage() {
     const params = useParams<{ needId: string }>();
     const router = useRouter();
@@ -119,7 +113,7 @@ export default function DistrictNeedDetailPage() {
         return (
             <ShellEmpty
                 title="Sign in to review proposals"
-                body="This page is for the district that posted this need."
+                body="This page is for the district that posted this gig."
             />
         );
     }
@@ -138,7 +132,7 @@ export default function DistrictNeedDetailPage() {
     if (!isValidIdShape) {
         return (
             <ShellEmpty
-                title="Need not found"
+                title="Gig not found"
                 body="That link doesn't point to a valid need. Return to your dashboard to open one from the pipeline."
                 showDashboardLink
             />
@@ -149,7 +143,7 @@ export default function DistrictNeedDetailPage() {
     if (isDistrict && need === null) {
         return (
             <ShellEmpty
-                title="Need not found"
+                title="Gig not found"
                 body="This need may have been removed or you may not have access."
                 showDashboardLink
             />
@@ -239,9 +233,6 @@ export default function DistrictNeedDetailPage() {
                                     <Pill label={need.subCategory.replace(/_/g, " ")} />
                                 )}
                                 {gradeLabel(need.gradeLevel) && <Pill label={gradeLabel(need.gradeLevel)!} />}
-                                {engagementLabel(need.engagementType) && (
-                                    <Pill label={engagementLabel(need.engagementType)!} />
-                                )}
                             </div>
                             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
                                 {need.startDate && <Field label="Start date" value={need.startDate} />}
@@ -291,7 +282,7 @@ export default function DistrictNeedDetailPage() {
                                         No proposals yet
                                     </h3>
                                     <p className="text-[var(--text-secondary)]">
-                                        Educators who respond to this need will appear here.
+                                        Consultants who respond to this gig will appear here.
                                     </p>
                                 </div>
                             )}
@@ -309,10 +300,10 @@ export default function DistrictNeedDetailPage() {
                                         .join("")
                                         .slice(0, 2)
                                         .toUpperCase();
-                                    const disableActions =
-                                        acting !== null ||
-                                        row.proposal.status !== "pending" ||
-                                        isPlaced;
+                                    // Decided proposals (accepted/rejected/withdrawn) and placed gigs
+                                    // show only their status badge, not greyed-out Accept/Reject.
+                                    const canDecide = row.proposal.status === "pending" && !isPlaced;
+                                    const disableActions = acting !== null;
 
                                     return (
                                         <div
@@ -371,6 +362,7 @@ export default function DistrictNeedDetailPage() {
                                                         />
                                                     )}
                                                 </div>
+                                                {canDecide && (
                                                 <div className="flex flex-wrap gap-2 mt-2">
                                                     <AlertDialog>
                                                         <AlertDialogTrigger asChild>
@@ -411,6 +403,7 @@ export default function DistrictNeedDetailPage() {
                                                         Reject
                                                     </button>
                                                 </div>
+                                                )}
                                             </div>
                                         </div>
                                     );

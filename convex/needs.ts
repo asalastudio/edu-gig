@@ -75,8 +75,8 @@ async function fanOutNeedAlerts(ctx: MutationCtx, need: Doc<"needs">) {
         await ctx.db.insert("notifications", {
             userId: educatorUser._id,
             type: "new_need",
-            title: `New need at ${need.orgName}`,
-            body: "A district posted an open need that matches your profile.",
+            title: `New gig at ${need.orgName}`,
+            body: "A district posted an open gig that matches your profile.",
             read: false,
             actionUrl: "/dashboard/educator/needs",
             createdAt: Date.now(),

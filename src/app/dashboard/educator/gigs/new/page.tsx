@@ -39,7 +39,7 @@ export default function NewGigPage() {
                         </h3>
                         <p className="text-sm text-[var(--text-secondary)] max-w-md mb-6">
                             Complete your profile so districts can find you in the Directory, and respond to
-                            district-posted needs with proposals on the Open Needs board.
+                            district-posted gigs with proposals on the Gig Board.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3">
                             <Link href="/dashboard/board">

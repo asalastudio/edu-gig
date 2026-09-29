@@ -156,10 +156,10 @@ export default function GigBoardPage() {
     const isSuperadmin = !!viewer && viewer.role === "superadmin";
     // Signed in but neither an educator nor a district-family role.
     const isOtherRole = !!viewer && !isEducator && !isDistrict;
-    const boardTitle = viewer === undefined ? "Needs" : isDistrict ? "Posted Needs" : "Gig Board";
+    const boardTitle = viewer === undefined ? "Gigs" : isDistrict ? "Posted Gigs" : "Gig Board";
     const boardDescription = isDistrict
-        ? "Manage drafts, published needs, and educator proposals."
-        : "District-posted needs and RFPs. Educators respond with proposals.";
+        ? "Manage drafts, published gigs, and consultant proposals."
+        : "District-posted gigs and RFPs. Consultants respond with proposals.";
 
     return (
         <div className="flex h-screen bg-[var(--bg-subtle)] font-sans pt-14 lg:pt-0">
@@ -291,7 +291,7 @@ export default function GigBoardPage() {
                         <div className="flex flex-col gap-5">
                             {districtNeeds === undefined && (
                                 <div className="p-10 border border-[var(--border-subtle)] rounded-lg bg-white text-center text-[var(--text-secondary)]">
-                                    Loading your posted needs…
+                                    Loading your posted gigs…
                                 </div>
                             )}
 
@@ -408,7 +408,7 @@ export default function GigBoardPage() {
                                         </AlertDialogTitle>
                                         <AlertDialogDescription>
                                             {cancelTarget?.status === "draft"
-                                                ? "This draft will be removed. You can post a new need anytime."
+                                                ? "This draft will be removed. You can post a new gig anytime."
                                                 : "The posting will close and pending consultants will be emailed that it was cancelled. This cannot be undone."}
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>

@@ -25,7 +25,7 @@ export default function DistrictDpaPage() {
 
                 <section className="grid gap-6 md:grid-cols-3">
                     {[
-                        ["Student-data posture", "K12Gig is designed for educator staffing and services, not student records. Need descriptions and messages should avoid unnecessary student-identifying details."],
+                        ["Student-data posture", "K12Gig is designed for educator staffing and services, not student records. Gig descriptions and messages should avoid unnecessary student-identifying details."],
                         ["Contract packet", "District teams can review the Privacy Policy, Terms of Service, DPA materials, subprocessor details, and invoice language before paid use."],
                         ["Security contacts", `Incident, privacy, contract, and procurement questions route through ${SUPPORT_EMAIL}.`],
                     ].map(([title, body]) => (

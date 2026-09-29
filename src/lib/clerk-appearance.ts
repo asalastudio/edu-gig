@@ -2,6 +2,11 @@
  * Shared Clerk component styling so embedded auth cards match the app's
  * design tokens instead of Clerk's defaults. The page supplies the card
  * chrome (border/shadow/title); the Clerk card renders as a bare form.
+ *
+ * Hide Clerk's built-in sign-in/sign-up footer switcher. Each auth page
+ * already renders one custom, intent-preserving path below the card
+ * (prominent Sign up on /sign-in; Sign in on /sign-up). Showing both
+ * stacks two "Don't have an account?" / "Already have an account?" prompts.
  */
 export const clerkCardAppearance = {
     elements: {
@@ -12,7 +17,8 @@ export const clerkCardAppearance = {
         formButtonPrimary:
             "bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)] hover:opacity-90 text-sm normal-case shadow-none",
         formFieldLabel: "text-[var(--text-primary)] font-semibold",
-        footerActionText: "text-sm text-[var(--text-secondary)]",
-        footerActionLink: "text-sm font-bold text-[var(--accent-primary)] hover:underline",
+        footerAction: "hidden",
+        footerActionText: "hidden",
+        footerActionLink: "hidden",
     },
 } as const;

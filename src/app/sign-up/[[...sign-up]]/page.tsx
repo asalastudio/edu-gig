@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/shared/site-header";
 import { SiteFooter } from "@/components/shared/site-footer";
+import { AuthAccountSwitch } from "@/components/shared/auth-account-switch";
 import { AUTH_INTENT_PARAM, afterAuthPath, authPagePath, rememberAuthIntent, safeRedirectPath } from "@/lib/auth-intent";
 import { clerkCardAppearance } from "@/lib/clerk-appearance";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
@@ -56,6 +57,10 @@ export default function SignUpPage() {
                         appearance={clerkCardAppearance}
                     />
                 </div>
+                <AuthAccountSwitch
+                    mode="sign-in"
+                    href={authPagePath("/sign-in", intent, safeNext)}
+                />
                 <p className="mt-5 max-w-md text-center text-xs leading-5 text-[var(--text-tertiary)]">
                     By creating an account, you agree to K12Gig&apos;s{" "}
                     <Link href="/terms" className="font-bold text-[var(--accent-primary)] hover:underline">

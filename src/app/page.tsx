@@ -76,7 +76,7 @@ export default function Home() {
                 Stop waiting on generic staffing agencies. K12Gig helps districts find reviewed educators, coaches, and specialists for contract and consulting needs.
               </p>
               <p className="max-w-2xl text-sm leading-6 text-white/70">
-                The live educator directory is available to district hiring teams — sign in to browse, message, and book.
+                The live educator directory is available to district hiring teams — sign in to browse consultants and message them.
               </p>
 
               <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
@@ -106,7 +106,7 @@ export default function Home() {
             <div className="mb-6 flex items-center justify-center gap-5 text-center">
               <div className="hidden h-px w-16 bg-[var(--border-strong)] md:block" />
               <p className="font-heading text-base font-bold text-[var(--text-primary)]">
-                Trusted by school districts nationwide
+                Built for Michigan school districts
               </p>
               <div className="hidden h-px w-16 bg-[var(--border-strong)] md:block" />
             </div>

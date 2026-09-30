@@ -140,10 +140,10 @@ export default function GigBoardPage() {
                     {isSignedOut && (
                         <div className="p-10 border border-[var(--border-subtle)] rounded-lg bg-white text-center">
                             <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
-                                Sign in as an educator to browse open needs
+                                Sign in as a consultant to browse open gigs
                             </h2>
                             <p className="text-[var(--text-secondary)] max-w-md mx-auto mb-6">
-                                District-posted roles appear here once you&apos;re signed in with an educator account.
+                                District-posted gigs appear here once you&apos;re signed in with a consultant account.
                             </p>
                             <Link href="/login?intent=educator">
                                 <PrimaryButton>Sign in</PrimaryButton>
@@ -154,10 +154,10 @@ export default function GigBoardPage() {
                     {isOtherRole && !isSuperadmin && (
                         <div className="p-10 border border-[var(--border-subtle)] rounded-lg bg-white text-center">
                             <h2 className="font-heading text-xl font-bold text-[var(--text-primary)] mb-2">
-                                This board is for districts and educators
+                                This board is for districts and consultants
                             </h2>
                             <p className="text-[var(--text-secondary)] max-w-md mx-auto">
-                                Districts post needs — educators respond with proposals.
+                                Districts post gigs — consultants respond with proposals.
                             </p>
                         </div>
                     )}
@@ -269,7 +269,7 @@ export default function GigBoardPage() {
                                         No gigs posted yet
                                     </h2>
                                     <p className="text-[var(--text-secondary)] max-w-md mx-auto mb-6">
-                                        Post a gig to reach matching educators. They&apos;ll respond with
+                                        Post a gig to reach matching consultants. They&apos;ll respond with
                                         proposals you can review here.
                                     </p>
                                     <Link href="/post">

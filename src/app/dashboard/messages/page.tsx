@@ -167,7 +167,7 @@ function MessagesPageInner() {
                                 <Link href="/browse">
                                     <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]">
                                         <MagnifyingGlass className="h-4 w-4" />
-                                        Find educators
+                                        Find consultants
                                     </button>
                                 </Link>
                             )

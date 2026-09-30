@@ -341,7 +341,7 @@ export default function EducatorSettingsPage() {
                                 </form>
                             ) : (
                                 <p className="text-sm text-[var(--text-secondary)]">
-                                    Finish onboarding to create your public educator profile.
+                                    Finish onboarding to create your public consultant profile.
                                 </p>
                             )}
                         </section>

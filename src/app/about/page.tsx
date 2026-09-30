@@ -19,7 +19,7 @@ export default function AboutPage() {
                         A clearer marketplace for K-12 talent.
                     </h1>
                     <p className="mt-5 text-base leading-7 text-[var(--text-secondary)] md:text-lg">
-                        K12Gig is built for districts that need trusted educator support without opaque staffing markups, and for educators who want direct, professional access to district opportunities.
+                        K12Gig is built for districts that need experienced consultant support without opaque staffing markups, and for consultants who want direct, professional access to district opportunities.
                     </p>
                 </section>
 

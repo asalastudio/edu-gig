@@ -66,7 +66,7 @@ function renderLayout(opts: { title: string; bodyHtml: string; unsubscribeUrl?: 
 ${opts.bodyHtml}
 </td></tr>
 <tr><td style="padding:20px 28px;background-color:${PANEL_COLOR};border-top:1px solid #e5e7db;color:${MUTED_COLOR};font-size:12px;line-height:1.5;">
-<div><strong>K12Gig</strong> — The K-12 Educator Marketplace</div>
+<div><strong>K12Gig</strong> — The K-12 Consultant Marketplace</div>
 <div style="margin-top:6px;">
 You received this email because of activity on your K12Gig account.
 <a href="${escapeHtml(unsubscribeUrl)}" style="color:${MUTED_COLOR};text-decoration:underline;">Manage notifications</a>
@@ -168,7 +168,7 @@ ${paymentMethod === "invoice" ? `<p style="margin:20px 0 0;color:${MUTED_COLOR};
         paymentMethod === "invoice"
             ? `A Net-30 invoice PDF is attached. Payment is due within 30 days.`
             : ``,
-        `— K12Gig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Consultant Marketplace`,
     ]
         .filter(Boolean)
         .join("\n");
@@ -215,7 +215,7 @@ ${escapeHtml(preview)}
         ``,
         `Reply: ${conversationUrl}`,
         ``,
-        `— K12Gig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Consultant Marketplace`,
     ].join("\n");
 
     return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
@@ -269,7 +269,7 @@ export function newProposalAlert(input: NewProposalAlertInput): EmailPayload {
         ``,
         `Review: ${needUrl}`,
         ``,
-        `— K12Gig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Consultant Marketplace`,
     ].join("\n");
 
     return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
@@ -310,7 +310,7 @@ export function proposalAcceptedAlert(input: ProposalAcceptedAlertInput): EmailP
         ``,
         `Open placement: ${needUrl}`,
         ``,
-        `— K12Gig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Consultant Marketplace`,
     ].join("\n");
 
     return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
@@ -359,7 +359,7 @@ export function proposalRejectedAlert(input: ProposalRejectedAlertInput): EmailP
         ``,
         `View open gigs: ${needUrl}`,
         ``,
-        `— K12Gig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Consultant Marketplace`,
     ].join("\n");
 
     return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
@@ -397,7 +397,7 @@ export function engagementStatusAlert(input: EngagementStatusAlertInput): EmailP
         ``,
         `Open engagement: ${engagementUrl}`,
         ``,
-        `— K12Gig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Consultant Marketplace`,
     ].join("\n");
 
     return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };
@@ -481,7 +481,7 @@ ${gradeRow}
         ``,
         `View open gigs: ${needsBoardUrl}`,
         ``,
-        `— K12Gig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Consultant Marketplace`,
     ]
         .filter(Boolean)
         .join("\n");
@@ -524,7 +524,7 @@ export function profileCompletionReminder(input: ProfileCompletionReminderInput)
         ``,
         `Finish my profile: ${settingsUrl}`,
         ``,
-        `— K12Gig, The K-12 Educator Marketplace`,
+        `— K12Gig, The K-12 Consultant Marketplace`,
     ].join("\n");
 
     return { subject, html: renderLayout({ title: subject, bodyHtml, unsubscribeUrl }), text };

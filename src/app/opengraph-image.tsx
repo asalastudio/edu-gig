@@ -83,7 +83,7 @@ export default function OpengraphImage() {
                         maxWidth: "900px",
                     }}
                 >
-                    The K-12 Educator Marketplace
+                    The K-12 Consultant Marketplace
                 </div>
                 <div
                     style={{
@@ -95,7 +95,7 @@ export default function OpengraphImage() {
                         letterSpacing: "-0.01em",
                     }}
                 >
-                    Credential-verified educators. Direct district connections.
+                    K-12 consultants. Direct district connections.
                 </div>
             </div>
         ),

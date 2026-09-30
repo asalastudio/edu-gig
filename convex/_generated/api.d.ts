@@ -15,6 +15,7 @@ import type * as credentials from "../credentials.js";
 import type * as crons from "../crons.js";
 import type * as dashboards from "../dashboards.js";
 import type * as demo_seed_constants from "../demo_seed_constants.js";
+import type * as directoryAdmin from "../directoryAdmin.js";
 import type * as districts from "../districts.js";
 import type * as educators from "../educators.js";
 import type * as emails from "../emails.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   dashboards: typeof dashboards;
   demo_seed_constants: typeof demo_seed_constants;
+  directoryAdmin: typeof directoryAdmin;
   districts: typeof districts;
   educators: typeof educators;
   emails: typeof emails;

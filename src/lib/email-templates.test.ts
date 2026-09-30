@@ -67,7 +67,7 @@ describe("bookingConfirmation", () => {
         expect(out.html).toContain(notificationSettingsUrl());
         expect(out.html).toContain("Manage notifications");
         expect(out.html).toContain("K12Gig");
-        expect(out.html).toContain("The K-12 Educator Marketplace");
+        expect(out.html).toContain("The K-12 Consultant Marketplace");
     });
 
     it("uses a role-specific settings URL when provided", () => {
